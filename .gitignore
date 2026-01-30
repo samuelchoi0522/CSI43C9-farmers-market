@@ -51,10 +51,8 @@ target/
 build/
 bin/
 
-# Maven
-*.mvn
-.mvn/wrapper/maven-wrapper.jar
-!/.mvn/wrapper/maven-wrapper.jar
+# Gradle
+.gradle
 
 # Environment files
 .env
