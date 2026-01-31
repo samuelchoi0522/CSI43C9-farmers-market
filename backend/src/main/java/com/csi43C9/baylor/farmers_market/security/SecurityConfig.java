@@ -17,6 +17,15 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+/**
+ * Configuration class for Spring Security.
+ *
+ * <p>This class sets up the security configurations for the application,
+ * including enabling web security and method security, configuring JWT
+ * authentication, defining password encoding, and setting authorization
+ * rules for different API endpoints. It integrates {@link JwtAuthFilter}
+ * and {@link AuthEntryPointJwt} into the security chain.
+ */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity

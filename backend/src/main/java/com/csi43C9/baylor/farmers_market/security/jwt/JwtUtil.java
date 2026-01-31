@@ -17,6 +17,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
+/**
+ * Utility class for JSON Web Token (JWT) operations.
+ *
+ * <p>This class provides methods for generating, extracting information from,
+ * and validating JWTs used for authentication within the application.
+ * It handles the creation of tokens, retrieval of claims like username and
+ * expiration date, and verification of token integrity and validity.
+ */
 @Component
 public class JwtUtil {
 

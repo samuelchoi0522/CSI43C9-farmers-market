@@ -15,6 +15,13 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Handles unauthorized authentication attempts in a JWT-based security context.
+ *
+ * <p>This component is triggered when an unauthenticated user tries to access a secured resource.
+ * It begins the authentication scheme by sending an HTTP 401 Unauthorized response
+ * and providing a clear error message in JSON format to the client.
+ */
 @Component
 public class AuthEntryPointJwt implements AuthenticationEntryPoint {
 

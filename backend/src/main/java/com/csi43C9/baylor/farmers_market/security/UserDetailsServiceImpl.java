@@ -9,6 +9,15 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 
+/**
+ * Custom implementation of Spring Security's {@link UserDetailsService}.
+ *
+ * <p>This service is responsible for loading user-specific data during the
+ * authentication process. It retrieves a user's details (like username,
+ * password, and authorities) based on their username. Currently, it uses
+ * a hardcoded user for demonstration but is intended to fetch
+ * user data from a persistent store (e.g., a database).
+ */
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService {
 
