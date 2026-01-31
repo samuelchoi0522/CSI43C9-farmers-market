@@ -26,25 +26,33 @@ replay_pid*
 # Help files
 .help/
 
-# IntelliJ IDEA
-.idea/
+### IntelliJ IDEA ###
+.idea
 *.iws
 *.iml
 *.ipr
-out/
 
 # VS Code
 .vscode/
 *.code-workspace
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
 
 # Build tools
 target/
 build/
 bin/
 
-# Maven
-.mvn/wrapper/maven-wrapper.jar
-!/.mvn/wrapper/maven-wrapper.jar
+# Gradle
+.gradle
 
 # Environment files
 .env
