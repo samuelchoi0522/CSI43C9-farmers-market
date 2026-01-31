@@ -32,6 +32,18 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
     private final UserDetailsServiceImpl userDetailsService;
 
+
+    /**
+     * The core logic of the JWT authentication filter.
+     * This method intercepts incoming requests, parses the JWT from the Authorization header,
+     * validates it, and sets the user's authentication in the {@link SecurityContextHolder} if the token is valid.
+     *
+     * @param request     the {@link HttpServletRequest} to process.
+     * @param response    the {@link HttpServletResponse} to use.
+     * @param filterChain the {@link FilterChain} to pass the request along to the next filter.
+     * @throws ServletException if a servlet-related exception occurs.
+     * @throws IOException      if an I/O error occurs during processing.
+     */
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
@@ -58,6 +70,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
+
+    /**
+     * Extracts the JWT from the "Authorization" header of the incoming HTTP request.
+     * The token is expected to be in the "Bearer [token]" format.
+     *
+     * @param request the {@link HttpServletRequest} from which to extract the token.
+     * @return the JWT as a {@link String}, or {@code null} if the header is not found or is malformed.
+     */
     private String parseJwt(HttpServletRequest request) {
         String headerAuth = request.getHeader("Authorization");
 

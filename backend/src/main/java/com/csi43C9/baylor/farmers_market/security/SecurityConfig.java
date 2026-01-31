@@ -36,16 +36,42 @@ public class SecurityConfig {
     private final AuthEntryPointJwt unauthorizedHandler;
     private final JwtAuthFilter jwtAuthFilter;
 
+
+    /**
+     * Provides a {@link PasswordEncoder} bean for the application.
+     * This is used to encode passwords for storage and to verify them during authentication.
+     *
+     * @return a {@link BCryptPasswordEncoder} instance.
+     */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
+
+    /**
+     * Provides the {@link AuthenticationManager} bean, which is the main Spring Security interface for authenticating a user.
+     *
+     * @param authenticationConfiguration the {@link AuthenticationConfiguration} from which to get the manager.
+     * @return the configured {@link AuthenticationManager}.
+     * @throws Exception if an error occurs while getting the authentication manager.
+     */
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
     }
 
+
+    /**
+     * Configures the main security filter chain for the application.
+     * This method defines the security rules for HTTP requests, including CSRF protection,
+     * exception handling, session management, and request authorization. It also adds the
+     * {@link JwtAuthFilter} to the filter chain.
+     *
+     * @param http the {@link HttpSecurity} builder to configure.
+     * @return the built {@link SecurityFilterChain}.
+     * @throws Exception if an error occurs during the configuration.
+     */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http

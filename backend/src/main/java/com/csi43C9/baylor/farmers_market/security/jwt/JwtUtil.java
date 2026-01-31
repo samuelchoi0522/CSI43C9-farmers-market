@@ -36,32 +36,87 @@ public class JwtUtil {
     @Value("${farmers.market.jwt.expiration-ms}")
     private int jwtExpirationMs;
 
+
+    /**
+     * Extracts the username from the given JWT token.
+     *
+     * @param token the JWT token from which to extract the username.
+     * @return the username stored in the token's subject.
+     */
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
+
+    /**
+     * Extracts the expiration date from the given JWT token.
+     *
+     * @param token the JWT token from which to extract the expiration date.
+     * @return the expiration {@link Date} of the token.
+     */
     public Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
     }
 
+
+    /**
+     * Extracts a specific claim from the JWT token using a provided claims resolver function.
+     * This is a generic method that can retrieve any claim from the token.
+     *
+     * @param <T>            the type of the claim to be returned.
+     * @param token          the JWT token from which to extract the claim.
+     * @param claimsResolver a {@link Function} that resolves the desired claim from the {@link Claims}.
+     * @return the extracted claim.
+     */
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
     }
 
+
+    /**
+     * Parses the JWT token and returns all of its claims.
+     * This private method is a helper for extracting token data.
+     *
+     * @param token the JWT token to parse.
+     * @return a {@link Claims} object containing all claims from the token.
+     */
     private Claims extractAllClaims(String token) {
         return Jwts.parser().setSigningKey(getSigningKey()).build().parseClaimsJws(token).getBody();
     }
 
+
+    /**
+     * Checks if the JWT token has expired.
+     *
+     * @param token the JWT token to check.
+     * @return {@code true} if the token's expiration date is before the current date, {@code false} otherwise.
+     */
     private Boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
     }
 
+
+    /**
+     * Generates a new JWT token for the given user.
+     *
+     * @param userDetails the {@link UserDetails} of the user for whom the token is being generated.
+     * @return a JWT token as a {@link String}.
+     */
     public String generateToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
         return createToken(claims, userDetails.getUsername());
     }
 
+
+    /**
+     * Creates a new JWT token with the specified claims and subject, then signs it.
+     * This is a helper method for token generation.
+     *
+     * @param claims  a {@link Map} of claims to include in the token's payload.
+     * @param subject the subject of the token (typically the username).
+     * @return the compact, URL-safe JWT string.
+     */
     private String createToken(Map<String, Object> claims, String subject) {
         return Jwts.builder()
                 .setClaims(claims)
@@ -72,11 +127,28 @@ public class JwtUtil {
                 .compact();
     }
 
+
+    /**
+     * Validates the JWT token.
+     * This method checks if the username in the token matches the username in the provided {@link UserDetails}
+     * and if the token is not expired.
+     *
+     * @param token       the JWT token to validate.
+     * @param userDetails the {@link UserDetails} of the user to validate against.
+     * @return {@code true} if the token is valid, {@code false} otherwise.
+     */
     public Boolean validateToken(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
         return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
     }
 
+
+    /**
+     * Decodes the base64-encoded JWT secret and returns it as a {@link Key} object.
+     * This key is used for signing and verifying JWT tokens.
+     *
+     * @return the signing {@link Key}.
+     */
     private Key getSigningKey() {
         byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
         return Keys.hmacShaKeyFor(keyBytes);

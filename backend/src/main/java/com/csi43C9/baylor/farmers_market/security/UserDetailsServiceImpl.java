@@ -21,6 +21,16 @@ import java.util.ArrayList;
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService {
 
+
+    /**
+     * Locates the user based on the username.
+     * In the actual implementation, the search may be case-sensitive or case-insensitive depending on how the
+     * implementation instance is configured. In this case, the lookup is case-sensitive.
+     *
+     * @param username the username identifying the user whose data is required.
+     * @return a fully populated user record (never {@code null}).
+     * @throws UsernameNotFoundException if the user could not be found or the user has no GrantedAuthority.
+     */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         // TODO: fetch the user from the database here.

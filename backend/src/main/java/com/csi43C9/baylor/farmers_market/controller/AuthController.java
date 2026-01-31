@@ -27,6 +27,16 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
 
+
+    /**
+     * Authenticates a user based on the provided login request.
+     * This method takes the user's login credentials, authenticates them using the {@link AuthenticationManager},
+     * and if successful, sets the {@link Authentication} in the {@link SecurityContextHolder}.
+     * A JWT token is then generated for the authenticated user.
+     *
+     * @param loginRequest DTO containing the username and password for authentication.
+     * @return a {@link ResponseEntity} containing the {@link JwtResponse} with the JWT token.
+     */
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest) {
 
@@ -40,6 +50,14 @@ public class AuthController {
         return ResponseEntity.ok(new JwtResponse(jwt));
     }
 
+
+    /**
+     * A protected endpoint for testing authentication.
+     * This method retrieves the authenticated user's details from the {@link SecurityContextHolder}
+     * and returns a personalized greeting. It is used to verify that a user is successfully authenticated.
+     *
+     * @return a {@link ResponseEntity} with a greeting message to the authenticated user.
+     */
     @GetMapping("/hello")
     public ResponseEntity<String> hello() {
         UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();

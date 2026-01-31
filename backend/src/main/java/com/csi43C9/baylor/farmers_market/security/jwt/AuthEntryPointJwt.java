@@ -27,6 +27,18 @@ public class AuthEntryPointJwt implements AuthenticationEntryPoint {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthEntryPointJwt.class);
 
+
+    /**
+     * This method is invoked when an unauthenticated user attempts to access a secured REST endpoint.
+     * It logs the authentication error and sends a 401 Unauthorized response to the client
+     * with a JSON body containing details about the error.
+     *
+     * @param request       the {@link HttpServletRequest} that resulted in an {@link AuthenticationException}.
+     * @param response      the {@link HttpServletResponse} so that the user agent can begin authentication.
+     * @param authException the exception that triggered the commencement.
+     * @throws IOException      if an input or output exception occurs.
+     * @throws ServletException if a servlet-related exception occurs.
+     */
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException)
             throws IOException, ServletException {
