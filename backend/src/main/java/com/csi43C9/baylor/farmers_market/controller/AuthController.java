@@ -4,6 +4,7 @@ import com.csi43C9.baylor.farmers_market.dto.JwtResponse;
 import com.csi43C9.baylor.farmers_market.dto.LoginRequest;
 import com.csi43C9.baylor.farmers_market.security.jwt.JwtUtil;
 import lombok.AllArgsConstructor;
+import lombok.NonNull;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -11,6 +12,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Objects;
 
 
 /**
@@ -45,6 +48,9 @@ public class AuthController {
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        if (Objects.isNull(userDetails)) {
+            return ResponseEntity.badRequest().body("Invalid username or password.");
+        }
         String jwt = jwtUtil.generateToken(userDetails);
 
         return ResponseEntity.ok(new JwtResponse(jwt));
@@ -59,8 +65,11 @@ public class AuthController {
      * @return a {@link ResponseEntity} with a greeting message to the authenticated user.
      */
     @GetMapping("/hello")
-    public ResponseEntity<String> hello() {
-        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    public ResponseEntity<@NonNull String> hello() {
+        UserDetails userDetails = (UserDetails) Objects.requireNonNull(SecurityContextHolder.getContext().getAuthentication()).getPrincipal();
+        if (Objects.isNull(userDetails)) {
+            return ResponseEntity.badRequest().body("User not authenticated.");
+        }
         String username = userDetails.getUsername();
         return ResponseEntity.ok("Hello, " + username + "! This is a protected endpoint.");
     }

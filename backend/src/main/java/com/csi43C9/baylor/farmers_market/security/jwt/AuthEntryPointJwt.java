@@ -1,6 +1,5 @@
 package com.csi43C9.baylor.farmers_market.security.jwt;
 
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -37,11 +36,10 @@ public class AuthEntryPointJwt implements AuthenticationEntryPoint {
      * @param response      the {@link HttpServletResponse} so that the user agent can begin authentication.
      * @param authException the exception that triggered the commencement.
      * @throws IOException      if an input or output exception occurs.
-     * @throws ServletException if a servlet-related exception occurs.
      */
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException)
-            throws IOException, ServletException {
+            throws IOException {
         logger.error("Unauthorized error: {}", authException.getMessage());
 
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);

@@ -54,10 +54,9 @@ public class SecurityConfig {
      *
      * @param authenticationConfiguration the {@link AuthenticationConfiguration} from which to get the manager.
      * @return the configured {@link AuthenticationManager}.
-     * @throws Exception if an error occurs while getting the authentication manager.
      */
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) {
         return authenticationConfiguration.getAuthenticationManager();
     }
 
@@ -70,10 +69,9 @@ public class SecurityConfig {
      *
      * @param http the {@link HttpSecurity} builder to configure.
      * @return the built {@link SecurityFilterChain}.
-     * @throws Exception if an error occurs during the configuration.
      */
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http) {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))

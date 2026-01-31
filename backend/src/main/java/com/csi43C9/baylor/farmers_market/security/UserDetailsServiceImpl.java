@@ -1,5 +1,6 @@
 package com.csi43C9.baylor.farmers_market.security;
 
+import lombok.NonNull;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -32,7 +33,8 @@ public class UserDetailsServiceImpl implements UserDetailsService {
      * @throws UsernameNotFoundException if the user could not be found or the user has no GrantedAuthority.
      */
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+    @NonNull
+    public UserDetails loadUserByUsername(@NonNull String username) throws UsernameNotFoundException {
         // TODO: fetch the user from the database here.
         if ("user".equals(username)) {
             return new User(
