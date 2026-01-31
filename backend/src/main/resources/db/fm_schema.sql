@@ -20,7 +20,7 @@ create trigger before_insert_vendors
     before insert
     on vendors
     for each row
-set new.id = uuid_to_bin(uuid());
+    set new.id = uuid_to_bin(uuid());
 
 
 create table vendor_transactions
@@ -37,15 +37,15 @@ create table vendor_transactions
     reimbursement_due    double               null,
     reported_sales       double               null,
     est_produce_sales    double               null,
-    est_num_transactions bigint               null
+    est_num_transactions bigint               null,
+    foreign key (vendor_id) references vendors (id)
 );
 
 create trigger before_insert_vendor_transactions
     before insert
     on vendor_transactions
     for each row
-set new.id = uuid_to_bin(uuid());
-
+    set new.id = uuid_to_bin(uuid());
 
 create index vt_vendor_id_date_index
     on vendor_transactions (vendor_id, market_date);
