@@ -28,7 +28,9 @@
 
     <module name="TreeWalker">
         <!-- Naming conventions -->
-        <module name="ConstantName"/>
+        <module name="ConstantName">
+            <property name="format" value="^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$|^log(ger)?$"/>
+        </module>
         <module name="LocalFinalVariableName"/>
         <module name="LocalVariableName"/>
         <module name="MemberName"/>
