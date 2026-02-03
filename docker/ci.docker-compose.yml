@@ -2,7 +2,7 @@ services:
   frontend:
     image: farmers-market-frontend
     build:
-      context: ../farmers-market-frontend
+      context: ../frontend
       dockerfile: ../docker/farmers-market-frontend.Dockerfile
     restart: always
     ports:
@@ -11,7 +11,7 @@ services:
   api:
     image: farmers-market-backend
     build:
-      context: ../farmers-market-backend
+      context: ../backend
       dockerfile: ../docker/farmers-market-backend.Dockerfile
     restart: always
     ports:
