@@ -11,8 +11,7 @@ WORKDIR /app
 
 ENV SPRING_PROFILES_ACTIVE=docker,prod
 
-
-COPY --from=build /build/build/libs/farmers-market-1.0.0-SNAPSHOT.jar app.jar
+COPY --from=build /build/build/libs/*SNAPSHOT.jar app.jar
 
 # Run the app
 ENTRYPOINT exec java $JAVA_OPTS -jar app.jar
