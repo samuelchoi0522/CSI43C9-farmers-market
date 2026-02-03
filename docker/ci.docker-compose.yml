@@ -19,11 +19,11 @@ services:
     environment:
       MYSQL_HOST: db
   db:
-    image: mariadb:12.2.1
+    image: mariadb
     command: --mysql-native-password=ON
     restart: always
     ports:
       - '3307:3306'
     environment:
-      MYSQL_DATABASE: ${FARMERS_MARKET_DB}
-      MYSQL_ROOT_PASSWORD: ${FARMERS_MARKET_DB_PASSWORD}
+      MARIADB_DATABASE: ${FARMERS_MARKET_DB}
+      MARIADB_ROOT_PASSWORD: ${FARMERS_MARKET_DB_PASSWORD}
