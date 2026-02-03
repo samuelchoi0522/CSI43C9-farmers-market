@@ -1,10 +1,7 @@
 package com.csi43C9.baylor.farmers_market.controller;
 
-import com.csi43C9.baylor.farmers_market.dto.JwtResponse;
-import com.csi43C9.baylor.farmers_market.dto.LoginRequest;
-import com.csi43C9.baylor.farmers_market.security.jwt.JwtUtil;
-import lombok.AllArgsConstructor;
-import lombok.NonNull;
+import java.util.Objects;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -18,7 +15,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Objects;
+import com.csi43C9.baylor.farmers_market.dto.JwtResponse;
+import com.csi43C9.baylor.farmers_market.dto.LoginRequest;
+import com.csi43C9.baylor.farmers_market.security.jwt.JwtUtil;
+
+import lombok.AllArgsConstructor;
+import lombok.NonNull;
 
 
 /**

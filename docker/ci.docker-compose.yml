@@ -1,0 +1,29 @@
+services:
+  frontend:
+    image: farmers-market-frontend
+    build:
+      context: ../farmers-market-frontend
+      dockerfile: ../docker/farmers-market-frontend.Dockerfile
+    restart: always
+    ports:
+      - '3000:3000'
+
+  api:
+    image: farmers-market-backend
+    build:
+      context: ../farmers-market-backend
+      dockerfile: ../docker/farmers-market-backend.Dockerfile
+    restart: always
+    ports:
+      - '8080:8080'
+    environment:
+      MYSQL_HOST: db
+  db:
+    image: mariadb:12.2.1
+    command: --mysql-native-password=ON
+    restart: always
+    ports:
+      - '3307:3306'
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}

@@ -1,0 +1,44 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  cleanup:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cleanup
+        run: |
+          docker system prune -a -f --filter "until=24h"
+
+  build:
+    runs-on: self-hosted
+    needs: cleanup
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Generate .env file
+        run: |
+          echo "SPRING_PROFILES_ACTIVE=${{ secrets.ACTIVE_PROFILE }}" > .env
+          echo "SERVER_PORT=${{ secrets.SERVER_PORT }}" >> .env
+          echo "SPRING_DATASOURCE_URL=${{ secrets.SPRING_DATASOURCE_URL }} >> .env
+          echo "SPRING_DATASOURCE_USERNAME=${{ secrets.DB_USERNAME }}" >> .env
+          echo "SPRING_DATASOURCE_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+          echo "FARMERS_MARKET_JWT_SECRET=${{ secrets.FARMERS_MARKET_JWT_SECRET }}" >> .env
+
+      - name: Build
+        run: |
+          docker compose -f docker/ci.docker-compose.yml build
+
+  deploy:
+    runs-on: self-hosted
+    needs: build
+    steps:
+      - name: Deploy
+        run: |
+          cd ~/
+          docker compose --env-file .env -f docker/ci.docker-compose.yml down
+          docker compose --env-file .env -f docker/ci.docker-compose.yml up -d --build

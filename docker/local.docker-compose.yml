@@ -1,0 +1,10 @@
+services:
+  db:
+    image: mariadb:12.2.1
+    command: --mysql-native-password=ON
+    restart: always
+    ports:
+      - '3307:3306'
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
