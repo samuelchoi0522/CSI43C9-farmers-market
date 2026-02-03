@@ -6,7 +6,7 @@ COPY . .
 RUN ./gradlew build --no-daemon -p .
 
 # Copy the build artifacts
-FROM openjdk:25
+FROM eclipse-temurin:25-jre
 WORKDIR /app
 
 ENV SPRING_PROFILES_ACTIVE=docker,prod
