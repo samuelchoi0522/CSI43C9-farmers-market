@@ -1,7 +1,6 @@
 services:
   db:
     image: mariadb
-    command: --mysql-native-password=ON
     restart: always
     ports:
       - '3307:3306'
