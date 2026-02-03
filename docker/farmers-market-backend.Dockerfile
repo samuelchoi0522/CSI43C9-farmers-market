@@ -1,5 +1,5 @@
 # Create a build of the project
-FROM gradle:9.1.0-jdk25 AS build
+FROM eclipse-temurin:25 AS build
 WORKDIR /build
 COPY . .
 
