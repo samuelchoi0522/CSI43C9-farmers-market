@@ -20,9 +20,14 @@ services:
       - ../.env
     environment:
       # Override database URL to use Docker service name 'db' instead of localhost
-      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/${FARMERS_MARKET_DB}
+      # Use the database name from docker/.env file
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/${FARMERS_MARKET_DB:-farmers_market_db}?allowPublicKeyRetrieval=true&useSSL=false
+      # Override credentials to match MariaDB container
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${FARMERS_MARKET_DB_PASSWORD}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
   db:
     image: mariadb
     restart: always
@@ -31,3 +36,9 @@ services:
     environment:
       MARIADB_DATABASE: ${FARMERS_MARKET_DB}
       MARIADB_ROOT_PASSWORD: ${FARMERS_MARKET_DB_PASSWORD}
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
