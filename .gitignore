@@ -37,6 +37,10 @@ replay_pid*
 .vscode/
 *.code-workspace
 
+# MAC Files
+.DS_Store
+
+
 ### NetBeans ###
 /nbproject/private/
 /nbbuild/
