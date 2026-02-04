@@ -1,0 +1,44 @@
+services:
+  frontend:
+    image: farmers-market-frontend
+    build:
+      context: ../frontend
+      dockerfile: ../docker/farmers-market-frontend.Dockerfile
+    restart: always
+    ports:
+      - '3000:3000'
+
+  api:
+    image: farmers-market-backend
+    build:
+      context: ../backend
+      dockerfile: ../docker/farmers-market-backend.Dockerfile
+    restart: always
+    ports:
+      - '8080:8080'
+    env_file:
+      - ../.env
+    environment:
+      # Override database URL to use Docker service name 'db' instead of localhost
+      # Use the database name from docker/.env file
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/${FARMERS_MARKET_DB:-farmers_market_db}?allowPublicKeyRetrieval=true&useSSL=false
+      # Override credentials to match MariaDB container
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${FARMERS_MARKET_DB_PASSWORD}
+    depends_on:
+      db:
+        condition: service_healthy
+  db:
+    image: mariadb
+    restart: always
+    ports:
+      - '3307:3306'
+    environment:
+      MARIADB_DATABASE: ${FARMERS_MARKET_DB}
+      MARIADB_ROOT_PASSWORD: ${FARMERS_MARKET_DB_PASSWORD}
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s

@@ -1,0 +1,9 @@
+services:
+  db:
+    image: mariadb
+    restart: always
+    ports:
+      - '3307:3306'
+    environment:
+      MARIADB_DATABASE: ${FARMERS_MARKET_DB}
+      MARIADB_ROOT_PASSWORD: ${FARMERS_MARKET_DB_PASSWORD}
