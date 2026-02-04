@@ -16,8 +16,13 @@ services:
     restart: always
     ports:
       - '8080:8080'
+    env_file:
+      - ../.env
     environment:
-      MYSQL_HOST: db
+      # Override database URL to use Docker service name 'db' instead of localhost
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/${FARMERS_MARKET_DB}
+    depends_on:
+      - db
   db:
     image: mariadb
     restart: always
