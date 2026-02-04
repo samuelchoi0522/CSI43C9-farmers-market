@@ -52,3 +52,19 @@ create index vt_vendor_id_date_index
 
 create index vt_vendor_name_date_index
     on vendor_transactions (vendor_name, market_date);
+
+create table category_labels
+(
+    id   bigint auto_increment primary key,
+    name varchar(255)
+);
+
+create table vendor_category_labels
+(
+    vendor_id binary(16) not null,
+    label_id  bigint     not null,
+    primary key (vendor_id, label_id),
+    foreign key (vendor_id) references vendors (id),
+    foreign key (label_id) references category_labels (id)
+);
+
