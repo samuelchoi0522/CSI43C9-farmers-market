@@ -80,7 +80,7 @@ public class JwtUtil {
      * @param token the JWT token to parse.
      * @return a {@link Claims} object containing all claims from the token.
      */
-    private Claims extractAllClaims(String token) {
+    Claims extractAllClaims(String token) {
         return Jwts.parser()
                 .verifyWith((javax.crypto.SecretKey) getSigningKey())
                 .build()
