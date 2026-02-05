@@ -16,6 +16,7 @@ public class VendorCategoryRepository {
         this.jdbc = jdbc;
     }
 
+    // Fetch all label IDs associated with a given vendor
     public List<Long> findLabelIdsByVendor(UUID vendorId) {
         String sql = """
             SELECT label_id
@@ -26,24 +27,28 @@ public class VendorCategoryRepository {
         return jdbc.queryForList(sql, Long.class, uuidToBytes(vendorId));
     }
 
+    // Insert multiple label associations for a vendor in batch
+    // Ignore labels resulting in error & duplicate labels
     public void insertVendorLabels(UUID vendorId, List<Long> labelIds) {
         String sql = """
-            INSERT INTO vendor_category_labels (vendor_id, label_id)
-            VALUES (?, ?)
-            ON DUPLICATE KEY UPDATE label_id = label_id
-        """;
+        INSERT IGNORE INTO vendor_category_labels (vendor_id, label_id) VALUES (?, ?)
+    """;
 
-        jdbc.batchUpdate(
-                sql,
-                labelIds,
-                labelIds.size(),
-                (ps, labelId) -> {
-                    ps.setBytes(1, uuidToBytes(vendorId));
-                    ps.setLong(2, labelId);
-                }
-        );
+        jdbc.batchUpdate(sql, new org.springframework.jdbc.core.BatchPreparedStatementSetter() {
+            @Override
+            public void setValues(java.sql.PreparedStatement ps, int i) throws java.sql.SQLException {
+                ps.setBytes(1, uuidToBytes(vendorId));
+                ps.setLong(2, labelIds.get(i));
+            }
+
+            @Override
+            public int getBatchSize() {
+                return labelIds.size();
+            }
+        });
     }
 
+    // Delete a specific label association for a vendor
     public void deleteVendorLabel(UUID vendorId, long labelId) {
         String sql = """
             DELETE FROM vendor_category_labels
@@ -54,6 +59,7 @@ public class VendorCategoryRepository {
         jdbc.update(sql, uuidToBytes(vendorId), labelId);
     }
 
+    // Convert UUID to byte array for database storage according to schema
     private byte[] uuidToBytes(UUID uuid) {
         ByteBuffer bb = ByteBuffer.allocate(16);
         bb.putLong(uuid.getMostSignificantBits());
