@@ -1,4 +1,7 @@
-create table vendors
+create database if not exists farmers_market_db;
+USE farmers_market_db;
+
+create table if not exists vendors
 (
     id            binary(16)           not null primary key,
     vendor        varchar(255)         not null,
@@ -12,6 +15,7 @@ create table vendors
     woman_owned   tinyint(1) default 0 null,
     bipoc_owned   tinyint(1) default 0 null,
     veteran_owned tinyint(1) default 0 null,
+    is_active     tinyint(1) default 1 null,
     constraint vendors_vendor_uindex
         unique (vendor)
 );
@@ -23,7 +27,7 @@ create trigger before_insert_vendors
     set new.id = uuid_to_bin(uuid());
 
 
-create table vendor_transactions
+create table if not exists vendor_transactions
 (
     id                   binary(16)           not null primary key,
     vendor_id            binary(16)           not null,
