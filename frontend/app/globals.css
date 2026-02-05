@@ -5,11 +5,14 @@
   --foreground: #171717;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+@theme {
+  --color-primary: #2D5A27;
+  --color-accent: #8BA888;
+  --color-background-light: #F9FAF2;
+  --color-background-dark: #121412;
+  --font-family-sans: var(--font-inter), "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-family-display: var(--font-fraunces), "Fraunces", ui-serif, serif;
+  --radius-default: 0.75rem;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -22,5 +25,20 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), sans-serif;
+}
+
+.market-bg {
+  background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url(https://lh3.googleusercontent.com/aida-public/AB6AXuA9I07QkwrqpQC84vxAnzVnlbSElZGH2-0HBWwhpvqSPXb3TjWjeb22uWiltm1ndGNYwdCK49fIprq21rfTR070QvmIMXN5z8aRbV0cQpaWh78ZcEWPGjJF87ZgaeHPwT3Gf4QjMWbC_13mPayvbBVZviHZp-uNZ-aaqLkCj4Og4baxa5Pkm-Qd0WdoJPqDatQMMUHHUZ02XfYtfNufqV_vB2X4PK4sMHGZEFTb1jadcsAnzZ-22cDXZHVoIueecwI28f2e3lOez742);
+  background-size: cover;
+  background-position: center;
+}
+
+.glass-panel {
+  backdrop-filter: blur(12px);
+  background-color: rgba(255, 255, 255, 0.9);
+}
+
+.dark .glass-panel {
+  background-color: rgba(24, 28, 24, 0.9);
 }

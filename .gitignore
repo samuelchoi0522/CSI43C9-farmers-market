@@ -63,3 +63,4 @@ bin/
 # Spring Boot
 /logs/
 README.md
+frontend/yarn.lock
