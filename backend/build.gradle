@@ -54,6 +54,11 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     testImplementation 'org.springframework.boot:spring-boot-test-autoconfigure'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    // Test DB
+    testImplementation 'org.testcontainers:junit-jupiter:1.19.1'
+    testImplementation 'org.testcontainers:mariadb:1.19.1'
+    implementation 'org.mariadb.jdbc:mariadb-java-client:3.1.4' // <--- MariaDB driver
 }
 
 tasks.withType(Test) {
