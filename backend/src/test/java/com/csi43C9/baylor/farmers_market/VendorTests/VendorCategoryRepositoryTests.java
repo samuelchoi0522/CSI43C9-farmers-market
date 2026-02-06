@@ -16,9 +16,19 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for the {@link VendorCategoryRepository}.
@@ -45,7 +55,7 @@ class VendorCategoryRepositoryTest {
      * is called with the correct SQL string and the provided list of data.
      */
     @Test
-    void insertVendorLabels_shouldCallBatchUpdate_whenListIsPopulated() {
+    void insertVendorLabelsShouldCallBatchUpdateWhenListIsPopulated() {
         // Arrange
         UUID vendorId = UUID.randomUUID();
         List<Long> labelIds = List.of(1L, 2L, 3L);
@@ -73,7 +83,7 @@ class VendorCategoryRepositoryTest {
      * @throws SQLException if the PreparedStatement interaction fails (mocked)
      */
     @Test
-    void insertVendorLabels_shouldCallBatchUpdate_andSetCorrectBytes() throws SQLException {
+    void insertVendorLabelsShouldCallBatchUpdateAndSetCorrectBytes() throws SQLException {
         // Arrange
         UUID vendorId = UUID.randomUUID();
         List<Long> labelIds = List.of(100L, 200L);
@@ -113,7 +123,7 @@ class VendorCategoryRepositoryTest {
      * Ensures no database connection is attempted.
      */
     @Test
-    void insertVendorLabels_shouldDoNothing_whenListIsNull() {
+    void insertVendorLabelsShouldDoNothingWhenListIsNull() {
         // Act
         repository.insertVendorLabels(UUID.randomUUID(), null);
 
@@ -126,7 +136,7 @@ class VendorCategoryRepositoryTest {
      * Ensures no unnecessary SQL queries are executed.
      */
     @Test
-    void insertVendorLabels_shouldDoNothing_whenListIsEmpty() {
+    void insertVendorLabelsShouldDoNothingWhenListIsEmpty() {
         // Act
         repository.insertVendorLabels(UUID.randomUUID(), Collections.emptyList());
 
@@ -143,7 +153,7 @@ class VendorCategoryRepositoryTest {
      * passed to the JDBC template, and that the result list is returned correctly.
      */
     @Test
-    void findLabelIdsByVendor_shouldReturnListOfIds() {
+    void findLabelIdsByVendorShouldReturnListOfIds() {
         // Arrange
         UUID vendorId = UUID.randomUUID();
         List<Long> expectedLabels = List.of(10L, 20L);
@@ -173,7 +183,7 @@ class VendorCategoryRepositoryTest {
      * binary UUID and label ID are passed as parameters.
      */
     @Test
-    void deleteVendorLabel_shouldExecuteDeleteSql() {
+    void deleteVendorLabelShouldExecuteDeleteSql() {
         // Arrange
         UUID vendorId = UUID.randomUUID();
         long labelId = 55L;
@@ -199,7 +209,7 @@ class VendorCategoryRepositoryTest {
      * which is critical for matching the {@code BINARY(16)} column type in the database.
      */
     @Test
-    void uuidToBytes_shouldReturnCorrect16ByteArray() {
+    void uuidToBytesShouldReturnCorrect16ByteArray() {
         // Arrange
         UUID uuid = UUID.fromString("00000000-0000-0000-0000-000000000000");
 
