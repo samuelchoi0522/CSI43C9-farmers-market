@@ -16,13 +16,6 @@ create table vendors
         unique (vendor)
 );
 
-create trigger before_insert_vendors
-    before insert
-    on vendors
-    for each row
-    set new.id = uuid_to_bin(uuid());
-
-
 create table vendor_transactions
 (
     id                   binary(16)           not null primary key,
@@ -40,12 +33,6 @@ create table vendor_transactions
     est_num_transactions bigint               null,
     foreign key (vendor_id) references vendors (id)
 );
-
-create trigger before_insert_vendor_transactions
-    before insert
-    on vendor_transactions
-    for each row
-    set new.id = uuid_to_bin(uuid());
 
 create index vt_vendor_id_date_index
     on vendor_transactions (vendor_id, market_date);
