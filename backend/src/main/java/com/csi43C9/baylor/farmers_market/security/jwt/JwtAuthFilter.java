@@ -14,6 +14,8 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
@@ -29,9 +31,10 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
 
+    private static final Logger logger = LoggerFactory.getLogger(JwtAuthFilter.class);
+
     private final JwtUtil jwtUtil;
     private final UserDetailsServiceImpl userDetailsService;
-
 
     /**
      * The core logic of the JWT authentication filter.
@@ -49,24 +52,41 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                     @NonNull HttpServletResponse response,
                                     @NonNull FilterChain filterChain)
             throws ServletException, IOException {
+        final String requestUri = request.getRequestURI();
+        logger.debug("Processing request for URI: {}", requestUri);
+
         try {
             String jwt = parseJwt(request);
             if (jwt != null) {
+                logger.debug("JWT found in request for URI {}: {}", requestUri, jwt);
                 String username = jwtUtil.extractUsername(jwt);
+                logger.debug("Extracted username from JWT for URI {}: {}", requestUri, username);
+
 
                 if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                    logger.debug("Security context is null, attempting to authenticate for URI: {}", requestUri);
                     UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
                     if (jwtUtil.validateToken(jwt, userDetails)) {
+                        logger.debug("JWT validated successfully for user {} on URI {}", username, requestUri);
                         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                                 userDetails, null, userDetails.getAuthorities());
                         authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                         SecurityContextHolder.getContext().setAuthentication(authentication);
+                        logger.info("Authenticated user {} set in security context for URI: {}", username, requestUri);
+                    } else {
+                        logger.warn("JWT validation failed for user {} on URI {}", username, requestUri);
                     }
+                } else if (username != null) {
+                    logger.debug("Security context already contains authentication for user {} on URI: {}", username, requestUri);
+                } else {
+                    logger.warn("Username could not be extracted from JWT for URI: {}", requestUri);
                 }
+            } else {
+                logger.debug("No JWT found in request for URI: {}", requestUri);
             }
         } catch (Exception e) {
-            logger.error("Cannot set user authentication: {}", e);
+            logger.error("Authentication error for URI {}: {}", requestUri, e.getMessage(), e);
         }
 
         filterChain.doFilter(request, response);
