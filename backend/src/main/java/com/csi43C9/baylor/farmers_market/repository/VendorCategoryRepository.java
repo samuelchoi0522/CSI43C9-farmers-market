@@ -28,23 +28,19 @@ public class VendorCategoryRepository {
     }
 
     // Insert multiple label associations for a vendor in batch
-    // Ignore labels resulting in error & duplicate labels
     public void insertVendorLabels(UUID vendorId, List<Long> labelIds) {
-        String sql = """
-        INSERT IGNORE INTO vendor_category_labels (vendor_id, label_id) VALUES (?, ?)
-    """;
+        // Only proceed if there is data to insert
+        if (labelIds == null || labelIds.isEmpty()) {
+            return;
+        }
 
-        jdbc.batchUpdate(sql, new org.springframework.jdbc.core.BatchPreparedStatementSetter() {
-            @Override
-            public void setValues(java.sql.PreparedStatement ps, int i) throws java.sql.SQLException {
-                ps.setBytes(1, uuidToBytes(vendorId));
-                ps.setLong(2, labelIds.get(i));
-            }
+        String sql = "INSERT IGNORE INTO vendor_category_labels (vendor_id, label_id) VALUES (?, ?)";
 
-            @Override
-            public int getBatchSize() {
-                return labelIds.size();
-            }
+        byte[] vendorBytes = uuidToBytes(vendorId);
+
+        jdbc.batchUpdate(sql, labelIds, labelIds.size(), (ps, labelId) -> {
+            ps.setBytes(1, vendorBytes);
+            ps.setLong(2, labelId);
         });
     }
 
@@ -60,8 +56,11 @@ public class VendorCategoryRepository {
     }
 
     // Convert UUID to byte array for database storage according to schema
-    private byte[] uuidToBytes(UUID uuid) {
-        ByteBuffer bb = ByteBuffer.allocate(16);
+    public byte[] uuidToBytes(UUID uuid) {
+        if (uuid == null) {
+            return null;
+        }
+        ByteBuffer bb = ByteBuffer.wrap(new byte[16]);
         bb.putLong(uuid.getMostSignificantBits());
         bb.putLong(uuid.getLeastSignificantBits());
         return bb.array();
