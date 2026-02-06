@@ -20,6 +20,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+/**
+ * Unit tests for the {@link VendorCategoryRepository}.
+ * <p>
+ * This class uses Mockito to verify the behavior of the repository methods in isolation.
+ * It ensures that the correct SQL queries are constructed, parameters (especially UUIDs)
+ * are mapped correctly to database types, and guard clauses function as expected.
+ */
 @ExtendWith(MockitoExtension.class)
 class VendorCategoryRepositoryTest {
 
@@ -31,12 +38,17 @@ class VendorCategoryRepositoryTest {
 
     // --- Tests for INSERT ---
 
+    /**
+     * Verifies that {@code insertVendorLabels} triggers a batch update when provided with a valid list of labels.
+     * <p>
+     * This test checks the high-level flow: ensuring the {@code batchUpdate} method on the JdbcTemplate
+     * is called with the correct SQL string and the provided list of data.
+     */
     @Test
     void insertVendorLabels_shouldCallBatchUpdate_whenListIsPopulated() {
         // Arrange
         UUID vendorId = UUID.randomUUID();
         List<Long> labelIds = List.of(1L, 2L, 3L);
-
 
         // Act
         repository.insertVendorLabels(vendorId, labelIds);
@@ -49,6 +61,17 @@ class VendorCategoryRepositoryTest {
                 any(ParameterizedPreparedStatementSetter.class)        // Match the lambda
         );
     }
+
+    /**
+     * Verifies the internal logic of the batch update lambda.
+     * <p>
+     * Since the actual parameter setting happens inside a callback (Lambda), this test
+     * captures that callback and manually executes it against a mock {@link PreparedStatement}.
+     * This ensures that the UUID is correctly converted to bytes and the label ID is set
+     * at the correct parameter index.
+     *
+     * @throws SQLException if the PreparedStatement interaction fails (mocked)
+     */
     @Test
     void insertVendorLabels_shouldCallBatchUpdate_andSetCorrectBytes() throws SQLException {
         // Arrange
@@ -84,6 +107,11 @@ class VendorCategoryRepositoryTest {
         verify(mockPs).setBytes(1, expectedBytes); // Now expectedBytes is actually used!
         verify(mockPs).setLong(2, 100L);
     }
+
+    /**
+     * Verifies that the insert method aborts immediately if the label list is null.
+     * Ensures no database connection is attempted.
+     */
     @Test
     void insertVendorLabels_shouldDoNothing_whenListIsNull() {
         // Act
@@ -93,6 +121,10 @@ class VendorCategoryRepositoryTest {
         verifyNoInteractions(jdbc);
     }
 
+    /**
+     * Verifies that the insert method aborts immediately if the label list is empty.
+     * Ensures no unnecessary SQL queries are executed.
+     */
     @Test
     void insertVendorLabels_shouldDoNothing_whenListIsEmpty() {
         // Act
@@ -104,6 +136,12 @@ class VendorCategoryRepositoryTest {
 
     // --- Tests for SEARCH (Find) ---
 
+    /**
+     * Verifies that {@code findLabelIdsByVendor} executes the correct SELECT query.
+     * <p>
+     * It ensures that the UUID is converted to the expected byte array before being
+     * passed to the JDBC template, and that the result list is returned correctly.
+     */
     @Test
     void findLabelIdsByVendor_shouldReturnListOfIds() {
         // Arrange
@@ -128,6 +166,12 @@ class VendorCategoryRepositoryTest {
 
     // --- Tests for DELETE ---
 
+    /**
+     * Verifies that {@code deleteVendorLabel} executes the correct DELETE statement.
+     * <p>
+     * It checks that the SQL contains the delete clause and that the correct
+     * binary UUID and label ID are passed as parameters.
+     */
     @Test
     void deleteVendorLabel_shouldExecuteDeleteSql() {
         // Arrange
@@ -148,6 +192,12 @@ class VendorCategoryRepositoryTest {
 
     // --- Tests for HELPER (Optional but good for safety) ---
 
+    /**
+     * Verifies the correctness of the {@code uuidToBytes} helper method.
+     * <p>
+     * This test explicitly checks that the conversion results in a 16-byte array,
+     * which is critical for matching the {@code BINARY(16)} column type in the database.
+     */
     @Test
     void uuidToBytes_shouldReturnCorrect16ByteArray() {
         // Arrange
