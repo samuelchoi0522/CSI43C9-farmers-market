@@ -1,6 +1,7 @@
 "use client";
 
 import DarkModeToggle from "./components/DarkModeToggle";
+import Button from "./components/Button";
 
 export default function LoginPage() {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -19,10 +20,10 @@ export default function LoginPage() {
             <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-full mb-4 shadow-lg">
               <span className="material-icons text-white text-3xl">local_farm</span>
             </div>
-            <h1 className="font-display text-4xl font-bold text-gray-900 dark:text-white tracking-tight">
+            <h1 className="font-display text-4xl font-bold text-white tracking-tight" style={{ color: '#ffffff' }}>
               Harvest Hub
             </h1>
-            <p className="text-gray-800 dark:text-white/80 mt-2 font-medium">Market Manager Portal</p>
+            <p className="text-white/80 mt-2 font-medium">Market Manager Portal</p>
           </div>
 
           <div className="glass-panel dark:border dark:border-white/10 p-8 rounded-2xl shadow-2xl">
@@ -90,10 +91,11 @@ export default function LoginPage() {
 
               <div className="flex items-center">
                 <input
-                  className="h-4 w-4 text-primary focus:ring-primary border-gray-300 dark:border-zinc-700 rounded bg-white dark:bg-zinc-900"
+                  className="h-4 w-4 text-primary focus:ring-primary border-gray-300 dark:border-zinc-700 rounded bg-white dark:bg-zinc-900 accent-primary"
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
+                  style={{ accentColor: '#2D5A27' }}
                 />
                 <label
                   className="ml-2 block text-sm text-gray-700 dark:text-gray-300"
@@ -103,25 +105,15 @@ export default function LoginPage() {
                 </label>
               </div>
 
-              <button
-                className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-primary hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all transform hover:translate-y-[-1px] active:translate-y-[0px]"
+              <Button
+                variant="primary"
+                size="lg"
+                className="w-full flex justify-center shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transform hover:translate-y-[-1px] active:translate-y-[0px] bg-primary hover:bg-green-800"
                 type="submit"
               >
                 SIGN IN TO DASHBOARD
-              </button>
+              </Button>
             </form>
-
-            <div className="mt-8 pt-6 border-t border-gray-200 dark:border-zinc-700 text-center">
-              <p className="text-sm text-gray-700 dark:text-gray-400">
-                Interested in joining our network?{" "}
-                <a
-                  className="font-bold text-gray-800 dark:text-primary hover:text-green-700 dark:hover:text-green-400 ml-1"
-                  href="#"
-                >
-                  Get Started
-                </a>
-              </p>
-            </div>
           </div>
 
           <div className="mt-8 text-center">
