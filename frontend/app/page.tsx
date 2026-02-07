@@ -67,7 +67,7 @@ export default function LoginPage() {
                     Password
                   </label>
                   <a
-                    className="text-xs font-semibold text-primary hover:text-green-700 dark:hover:text-green-400 transition-colors"
+                    className="text-xs font-semibold text-gray-700 dark:text-primary hover:text-green-700 dark:hover:text-green-400 transition-colors"
                     href="#"
                   >
                     Forgot Password?
@@ -112,10 +112,10 @@ export default function LoginPage() {
             </form>
 
             <div className="mt-8 pt-6 border-t border-gray-200 dark:border-zinc-700 text-center">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-gray-700 dark:text-gray-400">
                 Interested in joining our network?{" "}
                 <a
-                  className="font-bold text-primary hover:text-green-700 dark:hover:text-green-400 ml-1"
+                  className="font-bold text-gray-800 dark:text-primary hover:text-green-700 dark:hover:text-green-400 ml-1"
                   href="#"
                 >
                   Get Started

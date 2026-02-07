@@ -5,6 +5,13 @@
   --foreground: #171717;
 }
 
+/* Ensure dark mode works with class strategy */
+@media (prefers-color-scheme: dark) {
+  :root:not(.dark) {
+    color-scheme: light;
+  }
+}
+
 @theme {
   --color-primary: #2D5A27;
   --color-accent: #8BA888;
@@ -45,4 +52,34 @@ body {
 
 .dark .glass-panel {
   background-color: rgba(24, 28, 24, 0.9);
+}
+
+/* Force text colors in light mode */
+:root:not(.dark) .font-display {
+  color: #1a1a1a !important;
+}
+
+:root:not(.dark) .text-gray-900,
+:root:not(.dark) h1.text-gray-900 {
+  color: #1a1a1a !important;
+}
+
+:root:not(.dark) .text-gray-800,
+:root:not(.dark) p.text-gray-800 {
+  color: #2a2a2a !important;
+}
+
+:root:not(.dark) .text-gray-700,
+:root:not(.dark) label.text-gray-700,
+:root:not(.dark) a.text-gray-700 {
+  color: #374151 !important;
+}
+
+:root:not(.dark) .text-gray-600,
+:root:not(.dark) p.text-gray-600 {
+  color: #4b5563 !important;
+}
+
+:root:not(.dark) a.text-gray-800 {
+  color: #1f2937 !important;
 }

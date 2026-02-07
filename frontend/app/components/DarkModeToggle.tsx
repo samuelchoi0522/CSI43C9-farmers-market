@@ -5,8 +5,8 @@ import { useEffect, useState, useCallback } from "react";
 function getInitialDarkMode(): boolean {
   if (typeof window === "undefined") return false;
   const darkMode = localStorage.getItem("darkMode");
-  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  return darkMode === "true" || (!darkMode && prefersDark);
+  // Only use dark mode if explicitly set, default to light mode
+  return darkMode === "true";
 }
 
 export default function DarkModeToggle() {
