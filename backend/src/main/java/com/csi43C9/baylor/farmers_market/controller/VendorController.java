@@ -4,7 +4,9 @@ import com.csi43C9.baylor.farmers_market.dto.vendor.CreateVendorRequest;
 import com.csi43C9.baylor.farmers_market.entity.Vendor;
 import com.csi43C9.baylor.farmers_market.service.VendorService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
+import lombok.NonNull;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -31,7 +33,7 @@ public class VendorController {
      * and a HTTP 201 Created status.
      */
     @PostMapping
-    public ResponseEntity<Vendor> createVendor(@Valid @RequestBody CreateVendorRequest request) {
+    public ResponseEntity<@NonNull Vendor> createVendor(@Valid @RequestBody CreateVendorRequest request) {
         Vendor newVendor = vendorService.createVendor(request);
         return new ResponseEntity<>(newVendor, HttpStatus.CREATED);
     }

@@ -9,10 +9,7 @@ public class CreateVendorRequest {
     @NotBlank(message = "Vendor name is required")
     private String vendorName;
 
-    @NotBlank(message = "Point person is required")
     private String pointPerson;
-
-    @NotBlank(message = "Email is required")
     @Email(message = "Valid email is required")
     private String email;
 
