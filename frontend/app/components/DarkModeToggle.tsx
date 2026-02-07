@@ -9,7 +9,17 @@ function getInitialDarkMode(): boolean {
   return darkMode === "true";
 }
 
-export default function DarkModeToggle() {
+interface DarkModeToggleProps {
+  /** Position of the toggle button. Defaults to "fixed" */
+  position?: "fixed" | "absolute" | "relative" | "static";
+  /** Additional CSS classes to apply to the button */
+  className?: string;
+}
+
+export default function DarkModeToggle({ 
+  position = "fixed",
+  className = ""
+}: DarkModeToggleProps) {
   const [isDark, setIsDark] = useState(() => {
     if (typeof window === "undefined") return false;
     return getInitialDarkMode();
@@ -37,10 +47,18 @@ export default function DarkModeToggle() {
     }
   }, [isDark]);
 
+  // Default positioning classes based on position prop
+  const positionClasses = {
+    fixed: "fixed top-6 right-6",
+    absolute: "absolute top-6 right-6",
+    relative: "relative",
+    static: "static"
+  };
+
   return (
     <button
       onClick={toggleDarkMode}
-      className="fixed top-6 right-6 p-2 rounded-full bg-white dark:bg-zinc-800 shadow-md z-50 text-gray-600 dark:text-gray-300 hover:scale-110 transition-transform flex items-center justify-center"
+      className={`${positionClasses[position]} p-2 rounded-full bg-white dark:bg-zinc-800 shadow-md z-50 text-gray-600 dark:text-gray-300 hover:scale-110 transition-transform flex items-center justify-center ${className}`}
       aria-label="Toggle dark mode"
     >
       {!isDark ? (

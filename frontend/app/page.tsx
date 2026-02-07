@@ -126,7 +126,7 @@ export default function LoginPage() {
 
           <div className="mt-8 text-center">
             <p className="text-[#2a2a2a] dark:text-white/60 text-xs uppercase tracking-widest font-medium">
-              © 2024 Harvest Hub Platform. All Rights Reserved.
+              © {new Date().getFullYear()} Harvest Hub Platform. All rights reserved.
             </p>
           </div>
         </div>
@@ -136,7 +136,7 @@ export default function LoginPage() {
         <div className="flex items-center gap-4 text-gray-800 dark:text-white/50 bg-white/80 dark:bg-black/20 backdrop-blur-md rounded-full px-6 py-2">
           <span className="material-icons text-sm">trending_up</span>
           <span className="text-xs font-semibold tracking-wide">
-            SUPPORTING 2,400+ LOCAL VENDORS
+            SUPPORTING 100+ LOCAL VENDORS
           </span>
         </div>
       </div>
