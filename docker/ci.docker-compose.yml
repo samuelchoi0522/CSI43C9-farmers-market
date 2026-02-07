@@ -36,9 +36,16 @@ services:
     environment:
       MARIADB_DATABASE: ${FARMERS_MARKET_DB}
       MARIADB_ROOT_PASSWORD: ${FARMERS_MARKET_DB_PASSWORD}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./init-scripts:/docker-entrypoint-initdb.d
+
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 5s
       timeout: 5s
       retries: 10
       start_period: 10s
+
+volumes:
+  mariadb_data:
