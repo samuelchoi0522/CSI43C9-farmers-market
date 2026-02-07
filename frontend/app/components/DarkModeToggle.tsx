@@ -40,11 +40,14 @@ export default function DarkModeToggle() {
   return (
     <button
       onClick={toggleDarkMode}
-      className="fixed top-6 right-6 p-2 rounded-full bg-white dark:bg-zinc-800 shadow-md z-50 text-gray-600 dark:text-gray-300 hover:scale-110 transition-transform"
+      className="fixed top-6 right-6 p-2 rounded-full bg-white dark:bg-zinc-800 shadow-md z-50 text-gray-600 dark:text-gray-300 hover:scale-110 transition-transform flex items-center justify-center"
       aria-label="Toggle dark mode"
     >
-      <span className="material-icons block dark:hidden">dark_mode</span>
-      <span className="material-icons hidden dark:block">light_mode</span>
+      {!isDark ? (
+        <span className="material-icons leading-none">dark_mode</span>
+      ) : (
+        <span className="material-icons leading-none">light_mode</span>
+      )}
     </button>
   );
 }
