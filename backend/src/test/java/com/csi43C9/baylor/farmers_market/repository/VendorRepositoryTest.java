@@ -29,19 +29,23 @@ class VendorRepositoryTest {
      */
     @BeforeEach
     void setUp() {
-        jdbcTemplate.execute("CREATE TABLE vendors (" +
-                "id BINARY(16) PRIMARY KEY, " +
-                "vendor VARCHAR(255) NOT NULL, " +
-                "point_person VARCHAR(255) NOT NULL, " +
-                "email VARCHAR(255) NOT NULL, " +
-                "location VARCHAR(255), " +
-                "miles INT, " +
-                "products VARCHAR(255), " +
-                "is_farmer BOOLEAN, " +
-                "is_produce BOOLEAN, " +
-                "woman_owned BOOLEAN, " +
-                "bipoc_owned BOOLEAN, " +
-                "veteran_owned BOOLEAN)");
+        jdbcTemplate.execute("""
+                create table vendors (
+                    id binary(16) primary key,
+                    vendor VARCHAR(255) not null,
+                    point_person VARCHAR(255) not null,
+                    email VARCHAR(255) not null,
+                    location VARCHAR(255),
+                    miles INT,
+                    products VARCHAR(255),
+                    is_active boolean default true,
+                    is_farmer boolean default false,
+                    is_produce boolean default false,
+                    woman_owned boolean default false,
+                    bipoc_owned boolean default false,
+                    veteran_owned boolean default false
+                )
+                """);
     }
 
     /**

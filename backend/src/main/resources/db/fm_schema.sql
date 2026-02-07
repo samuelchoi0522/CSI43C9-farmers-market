@@ -7,6 +7,7 @@ create table vendors
     location      varchar(255)         null,
     miles         int                  null,
     products      varchar(255)         null,
+    is_active     tinyint(1) default 1 null,
     is_farmer     tinyint(1) default 0 null,
     is_produce    tinyint(1) default 0 null,
     woman_owned   tinyint(1) default 0 null,

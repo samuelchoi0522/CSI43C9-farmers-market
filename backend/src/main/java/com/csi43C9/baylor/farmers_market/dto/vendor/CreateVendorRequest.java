@@ -61,6 +61,11 @@ public class CreateVendorRequest {
     private boolean isProduce;
 
     /**
+     * Flag indicating if the vendor is active at the market.
+     */
+    private boolean isActive;
+
+    /**
      * Diversity indicator: True if the business is woman-owned.
      */
     private boolean womanOwned;

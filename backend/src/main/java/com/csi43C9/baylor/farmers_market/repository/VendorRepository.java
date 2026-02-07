@@ -28,9 +28,11 @@ public class VendorRepository {
      * @return the saved vendor entity with its generated UUID.
      */
     public Vendor save(Vendor vendor) {
-        String sql = "INSERT INTO vendors (id, vendor, point_person, email, location, miles, products, " +
-                "is_farmer, is_produce, woman_owned, bipoc_owned, veteran_owned) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = """
+                INSERT INTO vendors (id, vendor, point_person, email, location, miles, products,
+                is_active, is_farmer, is_produce, woman_owned, bipoc_owned, veteran_owned)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """;
 
         if (vendor.getId() == null) {
             vendor.setId(UUID.randomUUID());
@@ -46,6 +48,7 @@ public class VendorRepository {
                 vendor.getLocation(),
                 vendor.getMiles(),
                 vendor.getProducts(),
+                vendor.isActive(),
                 vendor.isFarmer(),
                 vendor.isProduce(),
                 vendor.isWomanOwned(),

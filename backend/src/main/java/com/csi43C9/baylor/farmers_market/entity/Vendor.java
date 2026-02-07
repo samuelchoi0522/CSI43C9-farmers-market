@@ -34,6 +34,9 @@ public class Vendor {
     /** Descriptions of products sold by the vendor. */
     private String products;
 
+    /** Whether the vendor is active at the market. */
+    private boolean isActive;
+
     /** Whether the vendor is a farmer. */
     private boolean isFarmer;
 
