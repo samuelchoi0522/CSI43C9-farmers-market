@@ -36,9 +36,10 @@ export default function RootLayout({
             __html: `
               (function() {
                 const darkMode = localStorage.getItem("darkMode");
-                const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-                if (darkMode === "true" || (!darkMode && prefersDark)) {
+                if (darkMode === "true") {
                   document.documentElement.classList.add("dark");
+                } else {
+                  document.documentElement.classList.remove("dark");
                 }
               })();
             `,
