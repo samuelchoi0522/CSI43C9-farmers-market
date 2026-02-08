@@ -1,6 +1,9 @@
 # Compiled class file
 *.class
 
+# Irrelevant Mac File
+.DS_Store
+
 # Log file
 *.log
 
@@ -36,6 +39,10 @@ replay_pid*
 # VS Code
 .vscode/
 *.code-workspace
+
+# MAC Files
+.DS_Store
+
 
 ### NetBeans ###
 /nbproject/private/
