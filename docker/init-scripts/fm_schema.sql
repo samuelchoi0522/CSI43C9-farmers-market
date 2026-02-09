@@ -1,4 +1,4 @@
-create table vendors
+create table if not exists vendors
 (
     id            binary(16)           not null primary key,
     vendor        varchar(255)         not null,
@@ -17,7 +17,7 @@ create table vendors
         unique (vendor)
 );
 
-create table vendor_transactions
+create table if not exists vendor_transactions
 (
     id                   binary(16)           not null primary key,
     vendor_id            binary(16)           not null,

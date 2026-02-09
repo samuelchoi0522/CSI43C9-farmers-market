@@ -26,6 +26,8 @@ docker-compose -f local.docker-compose.yml up -d
 # Host: localhost
 # Port: 3307
 # Database: farmers_market_db (or as configured in .env)
+mariadb -h localhost -P 3307 -u root -p
+USE farmers_market_db;
 ```
 
 ### 2. Backend Setup
