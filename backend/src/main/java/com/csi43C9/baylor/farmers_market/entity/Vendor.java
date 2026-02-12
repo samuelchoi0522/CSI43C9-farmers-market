@@ -1,5 +1,6 @@
 package com.csi43C9.baylor.farmers_market.entity;
 
+import com.csi43C9.baylor.farmers_market.entity.base.IdentifiableUuid;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -12,7 +13,7 @@ import java.util.UUID;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Vendor {
+public class Vendor implements IdentifiableUuid {
     /** The unique identifier stored as binary(16) in the database. */
     private UUID id;
 
