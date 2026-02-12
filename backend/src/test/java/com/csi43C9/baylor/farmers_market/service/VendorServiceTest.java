@@ -1,6 +1,6 @@
 package com.csi43C9.baylor.farmers_market.service;
 
-import com.csi43C9.baylor.farmers_market.dto.vendor.CreateVendorRequest;
+import com.csi43C9.baylor.farmers_market.dto.vendor.SaveVendorRequest;
 import com.csi43C9.baylor.farmers_market.entity.Vendor;
 import com.csi43C9.baylor.farmers_market.repository.VendorRepository;
 import org.junit.jupiter.api.Test;
@@ -33,14 +33,14 @@ class VendorServiceTest {
      */
     @Test
     void createVendorMapsAndSavesSuccessfully() {
-        CreateVendorRequest request = new CreateVendorRequest();
+        SaveVendorRequest request = new SaveVendorRequest();
         request.setVendorName("Mclane Stadium Market");
         request.setPointPerson("Judge Baylor");
         request.setEmail("judge@baylor.edu");
 
         when(vendorRepository.save(any(Vendor.class))).thenAnswer(i -> i.getArguments()[0]);
 
-        Vendor result = vendorService.createVendor(request);
+        Vendor result = vendorService.create(request);
 
         assertThat(result.getVendorName()).isEqualTo(request.getVendorName());
         assertThat(result.getPointPerson()).isEqualTo(request.getPointPerson());

@@ -28,9 +28,6 @@ public class VendorRepository extends AbstractJdbcRepository implements MarketRe
      * Persists a new vendor to the database.
      * Generates a random {@link UUID} and converts it to a 16-byte array for
      * storage in a BINARY(16) column.
-     *
-     * @param vendor the vendor entity to be saved.
-     * @return the saved vendor entity with its generated UUID.
      */
     @Override
     public Vendor save(Vendor vendor) {
@@ -63,6 +60,10 @@ public class VendorRepository extends AbstractJdbcRepository implements MarketRe
         return vendor;
     }
 
+    /**
+     * Retrieves a vendor by its UUID from the database.
+     * @param uuid The UUID of the vendor to retrieve.
+     */
     @Override
     public Optional<Vendor> findById(UUID uuid) {
         String sql = "SELECT * FROM vendors WHERE id = ?";
@@ -74,6 +75,9 @@ public class VendorRepository extends AbstractJdbcRepository implements MarketRe
         }
     }
 
+    /**
+     * Retrieves all active vendors from the database.
+     */
     @Override
     public List<Vendor> findAll() {
         String sql = "SELECT * FROM vendors WHERE is_active = TRUE";
@@ -82,7 +86,7 @@ public class VendorRepository extends AbstractJdbcRepository implements MarketRe
 
     /**
      * Performs a soft delete by setting the is_active flag to false.
-     * * @param uuid The UUID of the vendor to deactivate.
+     * @param uuid The UUID of the vendor to deactivate.
      */
     @Override
     public void deleteById(UUID uuid) {

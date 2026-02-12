@@ -1,6 +1,6 @@
 package com.csi43C9.baylor.farmers_market.controller;
 
-import com.csi43C9.baylor.farmers_market.dto.vendor.CreateVendorRequest;
+import com.csi43C9.baylor.farmers_market.dto.vendor.SaveVendorRequest;
 import com.csi43C9.baylor.farmers_market.entity.Vendor;
 import com.csi43C9.baylor.farmers_market.security.SecurityConfig;
 import com.csi43C9.baylor.farmers_market.security.UserDetailsServiceImpl;
@@ -59,7 +59,7 @@ class VendorControllerTest {
     @Test
     @WithMockUser
     void createVendorAuthenticatedReturnsCreated() throws Exception {
-        CreateVendorRequest request = new CreateVendorRequest();
+        SaveVendorRequest request = new SaveVendorRequest();
         request.setVendorName("Test Vendor");
         request.setEmail("test@example.com");
         request.setPointPerson("John Doe");
@@ -68,7 +68,7 @@ class VendorControllerTest {
         savedVendor.setId(UUID.randomUUID());
         savedVendor.setVendorName(request.getVendorName());
 
-        when(vendorService.createVendor(any(CreateVendorRequest.class))).thenReturn(savedVendor);
+        when(vendorService.create(any(SaveVendorRequest.class))).thenReturn(savedVendor);
 
         mockMvc.perform(post("/api/vendor")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -87,7 +87,7 @@ class VendorControllerTest {
     @Test
     @WithMockUser
     void createVendorInvalidRequestReturnsBadRequest() throws Exception {
-        CreateVendorRequest request = new CreateVendorRequest();
+        SaveVendorRequest request = new SaveVendorRequest();
         request.setVendorName(""); // Should trigger @NotBlank
 
         mockMvc.perform(post("/api/vendor")
