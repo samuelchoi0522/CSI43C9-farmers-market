@@ -49,6 +49,10 @@ public class VendorService {
         return vendorRepository.save(vendor);
     }
 
+    public void delete(UUID uuid) {
+        vendorRepository.deleteById(uuid);
+    }
+
     /**
      * Helper class for mapping vendor requests to vendor entities.
      */

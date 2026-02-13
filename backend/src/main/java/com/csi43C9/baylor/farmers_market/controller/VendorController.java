@@ -60,4 +60,15 @@ public class VendorController {
     public ResponseEntity<@NonNull Vendor> updateVendor(@PathVariable UUID uuid, @Valid @RequestBody SaveVendorRequest request) {
         return new ResponseEntity<>(vendorService.update(uuid, request), HttpStatus.OK);
     }
+
+    /**
+     * Deletes a vendor from the system.
+     * @param uuid the UUID of the vendor to delete.
+     * @return a 204 No Content response if the vendor was successfully deleted.
+     */
+    @DeleteMapping("/{uuid}")
+    public ResponseEntity<?> deleteVendor(@PathVariable UUID uuid) {
+        vendorService.delete(uuid);
+        return ResponseEntity.noContent().build();
+    }
 }
