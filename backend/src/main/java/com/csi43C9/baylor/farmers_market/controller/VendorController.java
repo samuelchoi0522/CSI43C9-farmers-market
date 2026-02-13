@@ -1,5 +1,6 @@
 package com.csi43C9.baylor.farmers_market.controller;
 
+import com.csi43C9.baylor.farmers_market.dto.PagedResponse;
 import com.csi43C9.baylor.farmers_market.dto.vendor.SaveVendorRequest;
 import com.csi43C9.baylor.farmers_market.entity.Vendor;
 import com.csi43C9.baylor.farmers_market.service.VendorService;
@@ -36,6 +37,20 @@ public class VendorController {
     @PostMapping
     public ResponseEntity<@NonNull Vendor> createVendor(@Valid @RequestBody SaveVendorRequest request) {
         return new ResponseEntity<>(vendorService.create(request), HttpStatus.CREATED);
+    }
+
+    /**
+     * Retrieves a paged list of all vendors in the system.
+     * @param page 0-based page number
+     * @param size page size
+     * @return a {@link ResponseEntity} containing a {@link PagedResponse} of {@link Vendor}s
+     */
+    @GetMapping
+    public ResponseEntity<@NonNull PagedResponse<Vendor>> getAllVendors(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        return ResponseEntity.ok(vendorService.getVendors(page, size));
     }
 
     /**

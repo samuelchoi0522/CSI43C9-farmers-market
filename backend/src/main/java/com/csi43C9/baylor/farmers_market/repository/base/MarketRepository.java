@@ -26,7 +26,19 @@ public interface MarketRepository<T, ID> {
     List<T> findAll();
 
     /**
+     * Retrieves a paged list of records.
+     */
+    List<T> findAllPaged(int pageNumber, int pageSize);
+
+    /**
+     * Returns the total number of records in the database.
+     * @return the total number of records
+     */
+    Long count();
+
+    /**
      * Performs a hard or soft delete depending on implementation.
+     * @param id The ID of the record to delete.
      */
     void deleteById(ID id);
 }

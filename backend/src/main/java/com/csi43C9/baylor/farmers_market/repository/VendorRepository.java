@@ -72,7 +72,6 @@ public class VendorRepository extends AbstractJdbcRepository implements MarketRe
 
     /**
      * Updates an existing vendor record.
-     *
      * @return the number of rows affected (should be 1 if successful).
      */
     public int update(Vendor vendor) {
@@ -105,7 +104,6 @@ public class VendorRepository extends AbstractJdbcRepository implements MarketRe
 
     /**
      * Retrieves a vendor by its UUID from the database.
-     *
      * @param uuid The UUID of the vendor to retrieve.
      */
     @Override
@@ -129,8 +127,35 @@ public class VendorRepository extends AbstractJdbcRepository implements MarketRe
     }
 
     /**
+     * Retrieves a page of active vendors from the database.
+     * @param page 0-based page number
+     * @param size page size
+     * @return a List of active vendors
+     */
+    @Override
+    public List<Vendor> findAllPaged(int page, int size) {
+        int offset = page * size;
+        String sql = """
+                select * from vendors
+                where is_active = true
+                order by vendor
+                offset ? rows fetch next ? rows only
+                """;
+        return jdbcTemplate.query(sql, new VendorRowMapper(), offset, size);
+    }
+
+    /**
+     * Counts the number of active vendors in the database.
+     * @return the number of active vendors
+     */
+    public Long count() {
+        String sql = "select count(*) from vendors where is_active = true";
+        Long count = jdbcTemplate.queryForObject(sql, Long.class);
+        return count != null ? count : 0L;
+    }
+
+    /**
      * Performs a soft delete by setting the is_active flag to false.
-     *
      * @param uuid The UUID of the vendor to deactivate.
      */
     @Override
@@ -140,5 +165,3 @@ public class VendorRepository extends AbstractJdbcRepository implements MarketRe
     }
 
 }
-
-
