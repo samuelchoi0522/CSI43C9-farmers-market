@@ -38,11 +38,20 @@ public class VendorService {
         return vendorRepository.findById(uuid);
     }
 
+    /**
+     * Updates an existing vendor based on the provided request DTO.
+     * @param uuid the UUID of the vendor to update.
+     * @param request the DTO containing updated vendor details.
+     * @return the updated Vendor entity.
+     */
     public Vendor update(UUID uuid, SaveVendorRequest request) {
         Vendor vendor = new RequestMapper().mapRequest(request, uuid);
         return vendorRepository.save(vendor);
     }
 
+    /**
+     * Helper class for mapping vendor requests to vendor entities.
+     */
     private static class RequestMapper {
         Vendor mapRequest(SaveVendorRequest request) {
             Vendor vendor = new Vendor();
