@@ -14,7 +14,7 @@ import lombok.Data;
  * </p>
  */
 @Data
-public class CreateVendorRequest {
+public class SaveVendorRequest {
 
     /**
      * The unique business name of the vendor.

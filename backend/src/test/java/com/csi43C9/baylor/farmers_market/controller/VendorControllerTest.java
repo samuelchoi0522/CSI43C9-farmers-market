@@ -1,6 +1,7 @@
 package com.csi43C9.baylor.farmers_market.controller;
 
-import com.csi43C9.baylor.farmers_market.dto.vendor.CreateVendorRequest;
+import com.csi43C9.baylor.farmers_market.dto.PagedResponse;
+import com.csi43C9.baylor.farmers_market.dto.vendor.SaveVendorRequest;
 import com.csi43C9.baylor.farmers_market.entity.Vendor;
 import com.csi43C9.baylor.farmers_market.security.SecurityConfig;
 import com.csi43C9.baylor.farmers_market.security.UserDetailsServiceImpl;
@@ -18,11 +19,16 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.Collections;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -59,7 +65,7 @@ class VendorControllerTest {
     @Test
     @WithMockUser
     void createVendorAuthenticatedReturnsCreated() throws Exception {
-        CreateVendorRequest request = new CreateVendorRequest();
+        SaveVendorRequest request = new SaveVendorRequest();
         request.setVendorName("Test Vendor");
         request.setEmail("test@example.com");
         request.setPointPerson("John Doe");
@@ -68,7 +74,7 @@ class VendorControllerTest {
         savedVendor.setId(UUID.randomUUID());
         savedVendor.setVendorName(request.getVendorName());
 
-        when(vendorService.createVendor(any(CreateVendorRequest.class))).thenReturn(savedVendor);
+        when(vendorService.create(any(SaveVendorRequest.class))).thenReturn(savedVendor);
 
         mockMvc.perform(post("/api/vendor")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -87,7 +93,7 @@ class VendorControllerTest {
     @Test
     @WithMockUser
     void createVendorInvalidRequestReturnsBadRequest() throws Exception {
-        CreateVendorRequest request = new CreateVendorRequest();
+        SaveVendorRequest request = new SaveVendorRequest();
         request.setVendorName(""); // Should trigger @NotBlank
 
         mockMvc.perform(post("/api/vendor")
@@ -95,4 +101,72 @@ class VendorControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
     }
+
+    /**
+     * Verifies that the endpoint returns the requested vendor when found.
+     * @throws Exception if mock MVC request fails.
+     */
+    @Test
+    @WithMockUser
+    void getVendorByIdReturnsOk() throws Exception {
+        UUID id = UUID.randomUUID();
+        Vendor vendor = new Vendor();
+        vendor.setId(id);
+        vendor.setVendorName("Test Vendor");
+
+        when(vendorService.get(id)).thenReturn(Optional.of(vendor));
+
+        mockMvc.perform(get("/api/vendor/" + id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.vendorName").value("Test Vendor"));
+    }
+
+    /**
+     * Verifies that the endpoint returns 404 Not Found when the vendor is not found.
+     * @throws Exception if mock MVC request fails.
+     */
+    @Test
+    @WithMockUser
+    void getVendorByIdNotFoundReturns404() throws Exception {
+        when(vendorService.get(any(UUID.class))).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/vendor/" + UUID.randomUUID()))
+                .andExpect(status().isNotFound());
+    }
+
+    /**
+     * Verifies that the endpoint returns a paged response containing all vendors.
+     * @throws Exception if mock MVC request fails.
+     */
+    @Test
+    @WithMockUser
+    void getAllVendorsReturnsPagedResponse() throws Exception {
+        PagedResponse<Vendor> response = new PagedResponse<>(
+                Collections.emptyList(), 0, 10, 0L, 0);
+
+        when(vendorService.getVendors(0, 10)).thenReturn(response);
+
+        mockMvc.perform(get("/api/vendor?page=0&size=10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.totalElements").value(0));
+    }
+
+    /**
+     * Verifies that the delete endpoint triggers the service's delete method.
+     * @throws Exception if mock MVC request fails.
+     */
+    @Test
+    @WithMockUser
+    void deleteVendorReturnsNoContent() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        // Act & Assert
+        mockMvc.perform(delete("/api/vendor/" + id))
+                .andExpect(status().isNoContent());
+
+        // Verify the service was triggered
+        verify(vendorService).delete(id);
+    }
+
 }
