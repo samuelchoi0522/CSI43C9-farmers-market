@@ -37,3 +37,11 @@ create table if not exists vendor_transactions (
 );
 create index vt_vendor_id_date_index on vendor_transactions (vendor_id, market_date);
 create index vt_vendor_name_date_index on vendor_transactions (vendor_name, market_date);
+create table if not exists users (
+    id binary(16) not null primary key,
+    email varchar(255) not null unique,
+    password_hash varchar(255) not null,
+    created_at timestamp default now(),
+    updated_at timestamp on update now() null
+);
+create index users_email_index on users (email);
