@@ -42,12 +42,7 @@ class VendorRepositoryTest {
      */
     @Test
     void savePersistsVendorWithUuid() {
-        Vendor vendor = new Vendor();
-        vendor.setVendorName("Green Farms");
-        vendor.setPointPerson("Jane Smith");
-        vendor.setEmail("jane@green.com");
-
-        Vendor saved = vendorRepository.save(vendor);
+        Vendor saved = vendorRepository.save(createDummyVendor("Green Farms"));
 
         assertThat(saved.getId()).isNotNull();
 
@@ -62,11 +57,7 @@ class VendorRepositoryTest {
     @Test
     void saveUpdatesExistingVendorOnConflict() {
         // 1. Insert initial vendor
-        Vendor vendor = new Vendor();
-        vendor.setVendorName("Original Name");
-        vendor.setPointPerson("Original Person");
-        vendor.setEmail("test@test.com");
-        Vendor saved = vendorRepository.save(vendor);
+        Vendor saved = vendorRepository.save(createDummyVendor("Original Name"));
         UUID id = saved.getId();
 
         // 2. Modify and save again (Upsert)
@@ -90,12 +81,7 @@ class VendorRepositoryTest {
     void findAllPagedReturnsCorrectSlice() {
         // Insert 3 vendors
         for (int i = 1; i <= 3; i++) {
-            Vendor v = new Vendor();
-            v.setVendorName("Vendor " + i);
-            v.setPointPerson("Person");
-            v.setEmail("v"+i+"@test.com");
-            v.setActive(true);
-            vendorRepository.save(v);
+            vendorRepository.save(createDummyVendor("Vendor " + i));
         }
 
         // Fetch page 0, size 2
@@ -108,11 +94,59 @@ class VendorRepositoryTest {
     }
 
     /**
+     * Verifies that findAll() excludes soft-deleted vendors.
+     */
+    @Test
+    void findAllExcludesSoftDeletedVendors() {
+        // Insert two vendors, delete one
+        Vendor v1 = createDummyVendor("Vendor 1");
+        Vendor v2 = createDummyVendor("Vendor 2");
+        vendorRepository.save(v1);
+        Vendor saved2 = vendorRepository.save(v2);
+
+        vendorRepository.deleteById(saved2.getId());
+
+        // Act
+        List<Vendor> activeVendors = vendorRepository.findAllPaged(0, 10);
+
+        // Assert
+        assertThat(activeVendors).hasSize(1);
+        assertThat(activeVendors.getFirst().getVendorName()).isEqualTo("Vendor 1");
+    }
+
+    /**
      * Verifies that findById() returns an empty Optional when the ID is not found.
      */
     @Test
     void findByIdReturnsEmptyWhenNotFound() {
         Optional<Vendor> result = vendorRepository.findById(UUID.randomUUID());
         assertThat(result).isEmpty();
+    }
+
+    /**
+     * Verifies that deleteById() removes the specified vendor from the database.
+     */
+    @Test
+    void deleteByIdRemovesVendor() {
+        // 1. Arrange: Insert a vendor to delete
+        Vendor saved = vendorRepository.save(createDummyVendor("Delete Me"));
+        UUID id = saved.getId();
+
+        // 2. Act
+        vendorRepository.deleteById(id);
+
+        // 3. Assert
+        List<Vendor> all = vendorRepository.findAll();
+        assertThat(all).isEmpty();
+        assertThat(vendorRepository.count()).isEqualTo(0);
+    }
+
+    /**
+     * Creates a dummy Vendor entity with the specified name.
+     * @param name Vendor name
+     * @return Vendor
+     */
+    private Vendor createDummyVendor(String name) {
+        return Vendor.builder().vendorName(name).isActive(true).build();
     }
 }

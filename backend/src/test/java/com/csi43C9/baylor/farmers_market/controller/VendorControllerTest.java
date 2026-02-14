@@ -18,15 +18,15 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -100,6 +100,10 @@ class VendorControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
+    /**
+     * Verifies that the endpoint returns the requested vendor when found.
+     * @throws Exception if mock MVC request fails.
+     */
     @Test
     @WithMockUser
     void getVendorByIdReturnsOk() throws Exception {
@@ -115,6 +119,10 @@ class VendorControllerTest {
                 .andExpect(jsonPath("$.vendorName").value("Test Vendor"));
     }
 
+    /**
+     * Verifies that the endpoint returns 404 Not Found when the vendor is not found.
+     * @throws Exception if mock MVC request fails.
+     */
     @Test
     @WithMockUser
     void getVendorByIdNotFoundReturns404() throws Exception {
@@ -124,6 +132,10 @@ class VendorControllerTest {
                 .andExpect(status().isNotFound());
     }
 
+    /**
+     * Verifies that the endpoint returns a paged response containing all vendors.
+     * @throws Exception if mock MVC request fails.
+     */
     @Test
     @WithMockUser
     void getAllVendorsReturnsPagedResponse() throws Exception {
@@ -136,6 +148,23 @@ class VendorControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").isArray())
                 .andExpect(jsonPath("$.totalElements").value(0));
+    }
+
+    /**
+     * Verifies that the delete endpoint triggers the service's delete method.
+     * @throws Exception if mock MVC request fails.
+     */
+    @Test
+    @WithMockUser
+    void deleteVendorReturnsNoContent() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        // Act & Assert
+        mockMvc.perform(delete("/api/vendor/" + id))
+                .andExpect(status().isNoContent());
+
+        // Verify the service was triggered
+        verify(vendorService).delete(id);
     }
 
 

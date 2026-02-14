@@ -2,6 +2,7 @@ package com.csi43C9.baylor.farmers_market.entity;
 
 import com.csi43C9.baylor.farmers_market.entity.base.IdentifiableUuid;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.util.UUID;
@@ -10,6 +11,7 @@ import java.util.UUID;
  * Entity representing a Vendor in the farmers market system.
  * This class maps directly to the 'vendors' table schema.
  */
+@Builder
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

@@ -51,6 +51,9 @@ class VendorServiceTest {
         verify(vendorRepository).save(any(Vendor.class));
     }
 
+    /**
+     * Verifies that the service calculates the correct page size and total number of pages.
+     */
     @Test
     void getVendorsCalculatesPagingCorrectly() {
         // Arrange
@@ -66,10 +69,23 @@ class VendorServiceTest {
         assertThat(result.getData()).hasSize(1);
     }
 
+    /**
+     * Verifies that the service calls the repository's findById() method with the correct ID.
+     */
     @Test
     void getVendorByIdCallsRepository() {
         UUID id = UUID.randomUUID();
         vendorService.get(id);
         verify(vendorRepository).findById(id);
+    }
+
+    /**
+     * Verifies that the service calls the repository's deleteById() method with the correct ID.
+     */
+    @Test
+    void deleteVendorCallsRepository() {
+        UUID id = UUID.randomUUID();
+        vendorService.delete(id);
+        verify(vendorRepository).deleteById(id);
     }
 }
