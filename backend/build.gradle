@@ -10,10 +10,6 @@ checkstyle {
     configFile = file('config/checkstyle/checkstyle.xml')
 }
 
-ext {
-    set('testcontainers.version', "1.19.8")
-}
-
 group = 'com.csi43C9.baylor'
 version = '0.0.1-SNAPSHOT'
 description = 'Demo project for Spring Boot'
