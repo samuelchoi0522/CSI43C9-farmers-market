@@ -7,6 +7,9 @@ import org.springframework.jdbc.core.RowMapper;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+/**
+ * RowMapper implementation for mapping database rows to Vendor entities.
+ */
 public class VendorRowMapper implements RowMapper<Vendor> {
     @Override
     public Vendor mapRow(ResultSet rs, int rowNum) throws SQLException {
