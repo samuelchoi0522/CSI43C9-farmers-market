@@ -1,5 +1,6 @@
 package com.csi43C9.baylor.farmers_market.controller;
 
+import com.csi43C9.baylor.farmers_market.dto.PagedResponse;
 import com.csi43C9.baylor.farmers_market.dto.vendor.SaveVendorRequest;
 import com.csi43C9.baylor.farmers_market.entity.Vendor;
 import com.csi43C9.baylor.farmers_market.security.SecurityConfig;
@@ -17,7 +18,10 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
+import java.util.Collections;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -95,4 +99,44 @@ class VendorControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    @WithMockUser
+    void getVendorByIdReturnsOk() throws Exception {
+        UUID id = UUID.randomUUID();
+        Vendor vendor = new Vendor();
+        vendor.setId(id);
+        vendor.setVendorName("Test Vendor");
+
+        when(vendorService.get(id)).thenReturn(Optional.of(vendor));
+
+        mockMvc.perform(get("/api/vendor/" + id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.vendorName").value("Test Vendor"));
+    }
+
+    @Test
+    @WithMockUser
+    void getVendorByIdNotFoundReturns404() throws Exception {
+        when(vendorService.get(any(UUID.class))).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/vendor/" + UUID.randomUUID()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser
+    void getAllVendorsReturnsPagedResponse() throws Exception {
+        PagedResponse<Vendor> response = new PagedResponse<>(
+                Collections.emptyList(), 0, 10, 0L, 0);
+
+        when(vendorService.getVendors(0, 10)).thenReturn(response);
+
+        mockMvc.perform(get("/api/vendor?page=0&size=10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.totalElements").value(0));
+    }
+
+
 }

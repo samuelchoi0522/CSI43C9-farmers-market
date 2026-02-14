@@ -10,6 +10,10 @@ checkstyle {
     configFile = file('config/checkstyle/checkstyle.xml')
 }
 
+ext {
+    set('testcontainers.version', "1.19.8")
+}
+
 group = 'com.csi43C9.baylor'
 version = '0.0.1-SNAPSHOT'
 description = 'Demo project for Spring Boot'
@@ -49,7 +53,6 @@ dependencies {
     testAnnotationProcessor 'org.projectlombok:lombok'
 
     // DB
-    runtimeOnly 'com.h2database:h2'
     runtimeOnly 'com.mysql:mysql-connector-j'
 
     // Testing
@@ -58,6 +61,8 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     testImplementation 'org.springframework.boot:spring-boot-test-autoconfigure'
+
+    testRuntimeOnly 'com.h2database:h2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
