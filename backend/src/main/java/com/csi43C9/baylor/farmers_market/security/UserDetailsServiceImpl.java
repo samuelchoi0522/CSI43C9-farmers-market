@@ -1,7 +1,9 @@
 package com.csi43C9.baylor.farmers_market.security;
 
+import com.csi43C9.baylor.farmers_market.repository.UserRepository;
 import lombok.NonNull;
-import org.springframework.security.core.userdetails.User;
+import lombok.RequiredArgsConstructor;
+import com.csi43C9.baylor.farmers_market.entity.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -21,30 +23,26 @@ import java.util.List;
  * user data from a persistent store (e.g., a database).
  */
 @Service
+@RequiredArgsConstructor
 public class UserDetailsServiceImpl implements UserDetailsService {
-
+    private final UserRepository userRepository;
 
     /**
      * Locates the user based on the username.
      * In the actual implementation, the search may be case-sensitive or case-insensitive depending on how the
      * implementation instance is configured. In this case, the lookup is case-sensitive.
      *
-     * @param username the username identifying the user whose data is required.
+     * @param email the username identifying the user whose data is required.
      * @return a fully populated user record (never {@code null}).
      * @throws UsernameNotFoundException if the user could not be found or the user has no GrantedAuthority.
      */
     @Override
     @NonNull
-    public UserDetails loadUserByUsername(@NonNull String username) throws UsernameNotFoundException {
-        // TODO: fetch the user from the database here.
-        if ("user".equals(username)) {
-            return new User(
-                    "user",
-                    new BCryptPasswordEncoder().encode("password"),
-                    List.of(new SimpleGrantedAuthority("ROLE_USER"))
-            );
-        } else {
-            throw new UsernameNotFoundException("User not found with username: " + username);
-        }
+    public UserDetails loadUserByUsername(@NonNull String email) throws UsernameNotFoundException {
+        // Attempt to find the user by email address
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + email));
+
+        // Create a Spring Security user object from the retrieved user record
+        return new org.springframework.security.core.userdetails.User(user.getEmail(), user.getPasswordHash(), List.of(new SimpleGrantedAuthority("ROLE_USER")));
     }
 }

@@ -1,7 +1,9 @@
 package com.csi43C9.baylor.farmers_market.security;
 
+import com.csi43C9.baylor.farmers_market.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -20,12 +22,15 @@ class UserDetailsServiceImplTest {
 
     private UserDetailsServiceImpl userDetailsService;
 
+    @Mock
+    private UserRepository userRepository;
+
     /**
      * Set up a new instance of UserDetailsServiceImpl before each test.
      */
     @BeforeEach
     void setUp() {
-        userDetailsService = new UserDetailsServiceImpl();
+        userDetailsService = new UserDetailsServiceImpl(userRepository);
     }
 
     /**
