@@ -37,11 +37,18 @@ public class VendorRepository extends AbstractJdbcRepository implements MarketRe
         } else {
             // Return the vendor if successful, otherwise throw an exception.
             int result = update(vendor);
-            if (result == 0) throw new IllegalStateException("Failed to update vendor record.");
+            if (result == 0) {
+                throw new IllegalStateException("Failed to update vendor record.");
+            }
             return vendor;
         }
     }
 
+    /**
+     * Inserts a new vendor record into the database.
+     * @param vendor the vendor to insert
+     * @return the inserted vendor
+     */
     private Vendor insert(Vendor vendor) {
         String sql = """
                 insert into vendors (

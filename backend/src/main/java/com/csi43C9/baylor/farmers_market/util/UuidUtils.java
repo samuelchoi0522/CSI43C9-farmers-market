@@ -1,8 +1,6 @@
 package com.csi43C9.baylor.farmers_market.util;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -18,7 +16,9 @@ public final class UuidUtils {
      * Converts a UUID to a byte array.
      */
     public static byte[] toBytes(UUID uuid) {
-        if (uuid == null) return null;
+        if (uuid == null) {
+            return null;
+        }
         ByteBuffer bb = ByteBuffer.wrap(new byte[16]);
         bb.putLong(uuid.getMostSignificantBits());
         bb.putLong(uuid.getLeastSignificantBits());
@@ -36,7 +36,9 @@ public final class UuidUtils {
      * Converts a byte array back to a UUID.
      */
     public static UUID fromBytes(byte[] bytes) {
-        if (bytes == null || bytes.length != 16) return null;
+        if (bytes == null || bytes.length != 16) {
+            return null;
+        }
         ByteBuffer bb = ByteBuffer.wrap(bytes);
         return new UUID(bb.getLong(), bb.getLong());
     }
