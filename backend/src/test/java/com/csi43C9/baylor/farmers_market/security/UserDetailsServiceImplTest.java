@@ -1,6 +1,6 @@
 package com.csi43C9.baylor.farmers_market.security;
 
-import com.csi43C9.baylor.farmers_market.entity.User; // Assuming your User entity package
+import com.csi43C9.baylor.farmers_market.entity.User;
 import com.csi43C9.baylor.farmers_market.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
