@@ -90,8 +90,11 @@ public class AuthController {
                     // Generate a brand new short-lived Access Token
                     String newAccessToken = jwtUtil.generateToken(userDetails);
 
+                    // Rotate the refresh token
+                    String newRefreshToken = refreshTokenService.createRefreshToken(token.getUser().getId());
+
                     // Return the response
-                    return ResponseEntity.ok(new TokenRefreshResponse(newAccessToken, requestRefreshToken));
+                    return ResponseEntity.ok(new TokenRefreshResponse(newAccessToken, newRefreshToken));
                 })
                 .orElseThrow(() -> new TokenException("Refresh token is not in database!", HttpStatus.NOT_FOUND));
     }
