@@ -7,10 +7,9 @@ import com.csi43C9.baylor.farmers_market.entity.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import java.util.UUID;
 
 /**
  * Custom implementation of Spring Security's {@link UserDetailsService}.
@@ -41,7 +40,16 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         // Attempt to find the user by email address
         User user = userRepository.findByEmail(email).orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + email));
 
-        // Create a Spring Security user object from the retrieved user record
-        return new org.springframework.security.core.userdetails.User(user.getEmail(), user.getPasswordHash(), List.of(new SimpleGrantedAuthority("ROLE_USER")));
+        return UserDetailsImpl.build(user);
+    }
+
+    /**
+     * Loads a user by ID.
+     * @param id the user ID
+     * @return the user details
+     */
+    public UserDetails loadUserById(UUID id) {
+        return UserDetailsImpl.build(userRepository.findById(id)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with id: " + id)));
     }
 }

@@ -1,24 +1,26 @@
 package com.csi43C9.baylor.farmers_market.dto;
 
 import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.Data;
 
 /**
- * Data Transfer Object (DTO) for encapsulating the JWT access token
- * sent to the client after a successful authentication process.
- *
- * <p>This class serves as a simple structure to hold the generated
- * JWT string, allowing for clear and standardized communication of
- * authentication tokens within the application's API responses.
- * It is primarily used by authentication controllers to return
- * the token to the user's browser or client application.
+ * Data Transfer Object (DTO) for encapsulating JWT responses.
  */
-@Getter
-@Setter
-@NoArgsConstructor
+@Data
 @AllArgsConstructor
 public class JwtResponse {
+    /**
+     * The JWT access token.
+     */
     private String accessToken;
+
+    /**
+     * The JWT refresh token.
+     */
+    private String refreshToken;
+
+    /**
+     * The token type.
+     */
+    private final String type = "Bearer";
 }

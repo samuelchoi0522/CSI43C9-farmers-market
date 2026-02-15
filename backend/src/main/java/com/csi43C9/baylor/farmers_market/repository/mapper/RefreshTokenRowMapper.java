@@ -7,6 +7,7 @@ import org.springframework.jdbc.core.RowMapper;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.Instant;
 
 /**
@@ -19,7 +20,12 @@ public class RefreshTokenRowMapper implements RowMapper<RefreshToken> {
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setId(UuidUtils.fromBytes(rs.getBytes("id")));
         refreshToken.setToken(rs.getString("token"));
-        refreshToken.setExpiryDate(rs.getObject("expiry_date", Instant.class));
+
+        // Convert the expiry date to an Instant object
+        Timestamp expiryTimestamp = rs.getTimestamp("expiry_date");
+        if (expiryTimestamp != null) {
+            refreshToken.setExpiryDate(expiryTimestamp.toInstant());
+        }
 
         // Map the user ID to the token's user field'
         User user = new User();
