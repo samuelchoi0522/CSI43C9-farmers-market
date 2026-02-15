@@ -1,9 +1,11 @@
 package com.csi43C9.baylor.farmers_market.service.security;
 
 import com.csi43C9.baylor.farmers_market.entity.security.RefreshToken;
+import com.csi43C9.baylor.farmers_market.exception.TokenException;
 import com.csi43C9.baylor.farmers_market.repository.RefreshTokenRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -40,7 +42,7 @@ public class RefreshTokenService {
     public RefreshToken verifyExpiration(RefreshToken token) {
         if (token.getExpiryDate().isBefore(Instant.now())) {
             refreshTokenRepository.deleteByUserId(token.getUser().getId());
-            throw new IllegalStateException("Refresh token expired.");
+            throw new TokenException("Refresh token has expired. Please make a new login request.", HttpStatus.FORBIDDEN);
         }
         return token;
     }

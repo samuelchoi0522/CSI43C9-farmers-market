@@ -4,9 +4,11 @@ import java.util.Objects;
 
 import com.csi43C9.baylor.farmers_market.dto.tokens.TokenRefreshRequest;
 import com.csi43C9.baylor.farmers_market.dto.tokens.TokenRefreshResponse;
+import com.csi43C9.baylor.farmers_market.exception.TokenException;
 import com.csi43C9.baylor.farmers_market.security.UserDetailsImpl;
 import com.csi43C9.baylor.farmers_market.security.UserDetailsServiceImpl;
 import com.csi43C9.baylor.farmers_market.service.security.RefreshTokenService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -91,7 +93,7 @@ public class AuthController {
                     // Return the response
                     return ResponseEntity.ok(new TokenRefreshResponse(newAccessToken, requestRefreshToken));
                 })
-                .orElseThrow(() -> new IllegalStateException("Refresh token is not in database!"));
+                .orElseThrow(() -> new TokenException("Refresh token is not in database!", HttpStatus.NOT_FOUND));
     }
 
 }

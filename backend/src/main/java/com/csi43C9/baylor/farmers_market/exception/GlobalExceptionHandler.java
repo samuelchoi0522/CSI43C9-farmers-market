@@ -1,27 +1,28 @@
 package com.csi43C9.baylor.farmers_market.exception;
 
+import com.csi43C9.baylor.farmers_market.dto.error.ErrorResponse;
 import lombok.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
  * Global exception handler for all REST controllers. Handles exceptions and returns
- * standardized error responses.
+ * standardized ErrorResponse objects.
  */
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -29,77 +30,84 @@ public class GlobalExceptionHandler {
 
     /**
      * Handles malformed JSON requests.
-     * @param ignoredEx the caught exception.
-     * @return 400 Bad Request
      */
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<@NonNull Map<String, Object>> handleBadRequest(Exception ignoredEx) {
-        return buildResponse(HttpStatus.BAD_REQUEST, "Malformed JSON request or missing body");
+    public ResponseEntity<@NonNull ErrorResponse> handleBadRequest(HttpMessageNotReadableException ignoredEx, WebRequest request) {
+        return buildResponse(HttpStatus.BAD_REQUEST, "Malformed JSON request or missing body", request);
     }
 
     /**
-     * Handles validation errors.
-     * @param ex the caught exception.
-     * @return 400 Bad Request
+     * Handles wrong Content-Type headers (e.g., text/plain vs application/json).
+     */
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<@NonNull ErrorResponse> handleUnsupportedMediaType(HttpMediaTypeNotSupportedException ex, WebRequest request) {
+        String message = String.format("Content-Type '%s' is not supported. Please use 'application/json'.", ex.getContentType());
+        return buildResponse(HttpStatus.UNSUPPORTED_MEDIA_TYPE, message, request);
+    }
+
+    /**
+     * Handles validation errors from @Valid annotations.
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<@NonNull Map<String, Object>> handleValidationErrors(MethodArgumentNotValidException ex) {
+    public ResponseEntity<@NonNull ErrorResponse> handleValidationErrors(MethodArgumentNotValidException ex, WebRequest request) {
         String details = ex.getBindingResult().getFieldErrors().stream()
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
                 .collect(Collectors.joining(", "));
 
-        return buildResponse(HttpStatus.BAD_REQUEST, "Validation Failed: " + details);
+        return buildResponse(HttpStatus.BAD_REQUEST, "Validation Failed: " + details, request);
     }
 
     /**
-     * Handles database constraint violations.
-     * @param ex the caught exception.
-     * @return 409 Conflict
+     * Handles database constraint violations like duplicates.
      */
     @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<@NonNull Map<String, Object>> handleConflict(DataIntegrityViolationException ex) {
+    public ResponseEntity<@NonNull ErrorResponse> handleConflict(DataIntegrityViolationException ex, WebRequest request) {
         logger.error("Database error: ", ex);
-        return buildResponse(HttpStatus.CONFLICT, "Database error: Possible duplicate entry or constraint violation.");
+        return buildResponse(HttpStatus.CONFLICT, "Database error: Possible duplicate entry or constraint violation.", request);
     }
 
     /**
-     * Handles authentication failures.
-     * @param e the caught exception.
-     * @return 401 Unauthorized
+     * Handles login and user lookup failures.
      */
     @ExceptionHandler({BadCredentialsException.class, UsernameNotFoundException.class})
-    public ResponseEntity<@NonNull Map<String, Object>> handleAuthFailure(Exception e) {
+    public ResponseEntity<@NonNull ErrorResponse> handleAuthFailure(Exception e, WebRequest request) {
         logger.debug("Authentication error: ", e);
-        return buildResponse(HttpStatus.UNAUTHORIZED, "Invalid username or password.");
+        return buildResponse(HttpStatus.UNAUTHORIZED, "Invalid username or password.", request);
     }
 
     /**
-     * Fallback handler for any exceptions not specifically caught by other methods.
-     * This typically handles runtime exceptions like NullPointerException or
-     * unexpected database failures.
-     *
-     * @param ex the caught exception.
-     * @param ignoredRequest the current web request.
-     * @return a {@link ResponseEntity} with a 500 Internal Server Error status.
+     * Handles custom TokenExceptions (Missing tokens, expired tokens).
+     */
+    @ExceptionHandler(TokenException.class)
+    public ResponseEntity<@NonNull ErrorResponse> handleTokenException(TokenException ex, WebRequest request) {
+        return buildResponse(ex.getStatus(), ex.getMessage(), request);
+    }
+
+    /**
+     * Fallback handler for all other uncaught exceptions.
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<@NonNull Map<String, Object>> handleAllUncaughtExceptions(Exception ex, WebRequest ignoredRequest) {
+    public ResponseEntity<@NonNull ErrorResponse> handleAllUncaughtExceptions(Exception ex, WebRequest request) {
         logger.error("Unexpected error occurred: ", ex);
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred");
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred", request);
     }
 
     /**
-     * Builds a standardized response body for all exceptions.
-     * @param status the HTTP status code.
-     * @param message the error message.
-     * @return a ResponseEntity with the specified status and body.
+     * Utility method to consistently build the ErrorResponse record.
      */
-    private ResponseEntity<@NonNull Map<String, Object>> buildResponse(HttpStatus status, String message) {
-        Map<String, Object> body = new HashMap<>();
-        body.put("timestamp", LocalDateTime.now());
-        body.put("status", status.value());
-        body.put("error", status.getReasonPhrase());
-        body.put("message", message);
-        return new ResponseEntity<>(body, status);
+    private ResponseEntity<@NonNull ErrorResponse> buildResponse(HttpStatus status, String message, WebRequest request) {
+        String path = "";
+        if (request instanceof ServletWebRequest servletRequest) {
+            path = servletRequest.getRequest().getRequestURI();
+        }
+
+        ErrorResponse errorResponse = new ErrorResponse(
+                status.value(),
+                status.getReasonPhrase(),
+                message,
+                path,
+                LocalDateTime.now()
+        );
+        return new ResponseEntity<>(errorResponse, status);
     }
 }
