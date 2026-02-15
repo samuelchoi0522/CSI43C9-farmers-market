@@ -63,14 +63,12 @@ class UserDetailsServiceImplTest {
      */
     @Test
     void testLoadUserByUsernameUserNotFound() {
-        String username = "nonexistentuser";
+        String username = "nonexistent-user";
 
         // Stub the repository to return an empty Optional
         when(userRepository.findByEmail(username)).thenReturn(Optional.empty());
 
-        assertThrows(UsernameNotFoundException.class, () -> {
-            userDetailsService.loadUserByUsername(username);
-        });
+        assertThrows(UsernameNotFoundException.class, () -> userDetailsService.loadUserByUsername(username));
     }
 
     /**
@@ -78,12 +76,10 @@ class UserDetailsServiceImplTest {
      */
     @Test
     void testLoadUserByUsernameUserNotFoundMessage() {
-        String username = "nonexistentuser";
+        String username = "nonexistent-user";
         when(userRepository.findByEmail(username)).thenReturn(Optional.empty());
 
-        UsernameNotFoundException exception = assertThrows(UsernameNotFoundException.class, () -> {
-            userDetailsService.loadUserByUsername(username);
-        });
+        UsernameNotFoundException exception = assertThrows(UsernameNotFoundException.class, () -> userDetailsService.loadUserByUsername(username));
 
         assertThat(exception.getMessage()).isEqualTo("User not found with username: " + username);
     }
