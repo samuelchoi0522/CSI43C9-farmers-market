@@ -45,3 +45,10 @@ create table if not exists users (
     updated_at timestamp on update now() null
 );
 create index users_email_index on users (email);
+create table if not exists refresh_tokens (
+    id BINARY(16) primary key,
+    user_id BINARY(16) not null,
+    token VARCHAR(255) not null unique,
+    expiry_date TIMESTAMP not null,
+    constraint fk_user foreign key (user_id) references users (id) on delete cascade
+);
