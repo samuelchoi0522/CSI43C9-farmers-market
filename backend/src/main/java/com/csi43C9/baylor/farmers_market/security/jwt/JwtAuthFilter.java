@@ -62,23 +62,18 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 String username = jwtUtil.extractUsername(jwt);
                 logger.debug("Extracted username from JWT for URI {}: {}", requestUri, username);
 
-
+                // Check if the user is already authenticated in the current context.
                 if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    logger.debug("Security context is null, attempting to authenticate for URI: {}", requestUri);
+                    // Authenticate the user if they're not already authenticated'
                     UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
                     if (jwtUtil.validateToken(jwt, userDetails)) {
-                        logger.debug("JWT validated successfully for user {} on URI {}", username, requestUri);
                         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                                 userDetails, null, userDetails.getAuthorities());
                         authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
                         SecurityContextHolder.getContext().setAuthentication(authentication);
-                        logger.info("Authenticated user {} set in security context for URI: {}", username, requestUri);
                     } else {
                         logger.warn("JWT validation failed for user {} on URI {}", username, requestUri);
                     }
-                } else if (username != null) {
-                    logger.debug("Security context already contains authentication for user {} on URI: {}", username, requestUri);
                 } else {
                     logger.warn("Username could not be extracted from JWT for URI: {}", requestUri);
                 }
