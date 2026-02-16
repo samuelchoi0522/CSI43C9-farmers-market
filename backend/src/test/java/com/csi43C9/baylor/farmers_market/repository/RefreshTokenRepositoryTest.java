@@ -73,7 +73,7 @@ class RefreshTokenRepositoryTest {
      * Test that save() updates an existing token if one already exists for the given user ID.
      */
     @Test
-    void saveUpdatesExistingToken_OnDuplicateKey() {
+    void saveUpdatesExistingTokenOnDuplicateKey() {
         // Arrange: Insert initial token
         String initialToken = "token-1";
         refreshTokenRepository.save(testUserId, initialToken, Instant.now());

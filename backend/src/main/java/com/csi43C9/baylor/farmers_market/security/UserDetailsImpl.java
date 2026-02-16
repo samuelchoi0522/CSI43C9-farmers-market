@@ -45,5 +45,7 @@ public class UserDetailsImpl implements UserDetails {
     }
 
     // Standard boilerplate overrides
-    @Override public boolean isAccountNonExpired() { return true; }
+    @Override public boolean isAccountNonExpired() {
+        return true;
+    }
 }

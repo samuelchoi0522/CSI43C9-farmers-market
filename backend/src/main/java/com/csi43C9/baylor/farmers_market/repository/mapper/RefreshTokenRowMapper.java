@@ -8,7 +8,6 @@ import org.springframework.jdbc.core.RowMapper;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.time.Instant;
 
 /**
  * RowMapper implementation for mapping database rows to RefreshToken entities.
