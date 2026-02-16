@@ -1,6 +1,5 @@
 package com.csi43C9.baylor.farmers_market.repository.mapper;
 
-import com.csi43C9.baylor.farmers_market.entity.User;
 import com.csi43C9.baylor.farmers_market.entity.security.RefreshToken;
 import com.csi43C9.baylor.farmers_market.util.UuidUtils;
 import org.springframework.jdbc.core.RowMapper;
@@ -19,17 +18,13 @@ public class RefreshTokenRowMapper implements RowMapper<RefreshToken> {
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setId(UuidUtils.fromBytes(rs.getBytes("id")));
         refreshToken.setToken(rs.getString("token"));
+        refreshToken.setUserId(UuidUtils.fromBytes(rs.getBytes("user_id")));
 
         // Convert the expiry date to an Instant object
         Timestamp expiryTimestamp = rs.getTimestamp("expiry_date");
         if (expiryTimestamp != null) {
             refreshToken.setExpiryDate(expiryTimestamp.toInstant());
         }
-
-        // Map the user ID to the token's user field'
-        User user = new User();
-        user.setId(UuidUtils.fromBytes(rs.getBytes("user_id")));
-        refreshToken.setUser(user);
 
         return refreshToken;
     }

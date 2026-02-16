@@ -96,7 +96,7 @@ class RefreshTokenServiceTest {
         user.setId(userId);
 
         RefreshToken token = new RefreshToken();
-        token.setUser(user);
+        token.setUserId(user.getId());
         token.setExpiryDate(Instant.now().minusSeconds(3600)); // Expired 1 hour ago
 
         TokenException exception = assertThrows(TokenException.class, () ->

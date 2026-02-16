@@ -102,7 +102,7 @@ class RefreshTokenRepositoryTest {
         Optional<RefreshToken> result = refreshTokenRepository.findByToken(tokenString);
 
         assertThat(result).isPresent();
-        assertThat(result.get().getUser().getId()).isEqualTo(testUserId);
+        assertThat(result.get().getUserId()).isEqualTo(testUserId);
     }
 
     /**

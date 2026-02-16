@@ -92,7 +92,7 @@ class AuthControllerTest {
         user.setEmail("user@test.com");
 
         RefreshToken storedToken = new RefreshToken();
-        storedToken.setUser(user);
+        storedToken.setUserId(user.getId());
 
         // Mock finding token
         when(refreshTokenService.findByToken(requestToken)).thenReturn(Optional.of(storedToken));

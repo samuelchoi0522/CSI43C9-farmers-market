@@ -1,6 +1,5 @@
 package com.csi43C9.baylor.farmers_market.entity.security;
 
-import com.csi43C9.baylor.farmers_market.entity.User;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -26,7 +25,7 @@ public class RefreshToken {
     /**
      * The user associated with this refresh token.
      */
-    private User user;
+    private UUID userId;
 
     /**
      * A JWT token that can be used to authenticate a user for a short period of time.

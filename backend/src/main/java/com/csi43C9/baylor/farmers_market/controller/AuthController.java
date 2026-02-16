@@ -85,13 +85,13 @@ public class AuthController {
                 .map(refreshTokenService::verifyExpiration)
                 .map(token -> {
                     // Load the user from the DB using the UUID stored in the refresh token
-                    UserDetails userDetails = userDetailsService.loadUserById(token.getUser().getId());
+                    UserDetails userDetails = userDetailsService.loadUserById(token.getUserId());
 
                     // Generate a brand new short-lived Access Token
                     String newAccessToken = jwtUtil.generateToken(userDetails);
 
                     // Rotate the refresh token
-                    String newRefreshToken = refreshTokenService.createRefreshToken(token.getUser().getId());
+                    String newRefreshToken = refreshTokenService.createRefreshToken(token.getUserId());
 
                     // Return the response
                     return ResponseEntity.ok(new TokenRefreshResponse(newAccessToken, newRefreshToken));
