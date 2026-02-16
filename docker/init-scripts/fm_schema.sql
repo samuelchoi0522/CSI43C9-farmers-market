@@ -37,3 +37,18 @@ create table if not exists vendor_transactions (
 );
 create index vt_vendor_id_date_index on vendor_transactions (vendor_id, market_date);
 create index vt_vendor_name_date_index on vendor_transactions (vendor_name, market_date);
+create table if not exists users (
+    id binary(16) not null primary key,
+    email varchar(255) not null unique,
+    password_hash varchar(255) not null,
+    created_at timestamp default now(),
+    updated_at timestamp on update now() null
+);
+create index users_email_index on users (email);
+create table if not exists refresh_tokens (
+    id BINARY(16) primary key,
+    user_id BINARY(16) not null,
+    token VARCHAR(255) not null unique,
+    expiry_date TIMESTAMP not null,
+    constraint fk_user foreign key (user_id) references users (id) on delete cascade
+);
