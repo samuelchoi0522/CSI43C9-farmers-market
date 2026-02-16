@@ -12,6 +12,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -82,5 +83,40 @@ class UserDetailsServiceImplTest {
         UsernameNotFoundException exception = assertThrows(UsernameNotFoundException.class, () -> userDetailsService.loadUserByUsername(username));
 
         assertThat(exception.getMessage()).isEqualTo("User not found with username: " + username);
+    }
+
+    /**
+     * Verifies that the service correctly loads a user by ID from the repository and returns a UserDetails object.
+     */
+    @Test
+    void testLoadUserByIdUserFound() {
+        // Arrange
+        UUID id = UUID.randomUUID();
+        User mockUser = new User();
+        mockUser.setId(id);
+        mockUser.setEmail("idUser");
+        mockUser.setPasswordHash("hashedPass");
+
+        when(userRepository.findById(id)).thenReturn(Optional.of(mockUser));
+
+        // Act
+        UserDetails userDetails = userDetailsService.loadUserById(id);
+
+        // Assert
+        assertThat(userDetails).isNotNull();
+        assertThat(userDetails.getUsername()).isEqualTo("idUser");
+    }
+
+    /**
+     * Verifies that the service throws a UsernameNotFoundException when the user is not found
+     */
+    @Test
+    void testLoadUserByIdUserNotFound() {
+        UUID id = UUID.randomUUID();
+        when(userRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThrows(UsernameNotFoundException.class, () ->
+                userDetailsService.loadUserById(id)
+        );
     }
 }
