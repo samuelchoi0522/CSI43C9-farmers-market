@@ -38,6 +38,7 @@ public class Vendor implements IdentifiableUuid {
     private String products;
 
     /** Whether the vendor is active at the market. */
+    @Builder.Default
     private boolean isActive = true;
 
     /** Whether the vendor is a farmer. */
