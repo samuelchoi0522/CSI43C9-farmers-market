@@ -8,7 +8,6 @@ import com.csi43C9.baylor.farmers_market.repository.VendorRepository;
 import io.github.cdimascio.dotenv.Dotenv;
 import net.datafaker.Faker;
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.WebApplicationType;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
@@ -25,7 +24,7 @@ public class Seeder {
     private final Faker faker = new Faker();
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
     // Change this number to change the number of vendors seeded
-    private final int VENDOR_COUNT = 20;
+    private static final int VENDOR_COUNT = 20;
 
     static void main(String[] args) {
         // Load environment variables from .env file
@@ -35,9 +34,8 @@ public class Seeder {
         // Start Spring Web Application
         SpringApplication app = new SpringApplication(FarmersMarketApplication.class);
         app.setDefaultProperties(Collections.singletonMap("server.port", "0"));
-        ConfigurableApplicationContext context = app.run(args);
 
-        try {
+        try (ConfigurableApplicationContext context = app.run(args)) {
             // Retrieve the repositories
             VendorRepository vendorRepository = context.getBean(VendorRepository.class);
             UserRepository userRepository = context.getBean(UserRepository.class);
@@ -48,9 +46,6 @@ public class Seeder {
             //seeder.populateUser(userRepository);
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-            // Close the context when done
-            context.close();
         }
     }
 
