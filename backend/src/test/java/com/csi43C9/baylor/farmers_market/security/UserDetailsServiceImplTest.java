@@ -1,72 +1,122 @@
 package com.csi43C9.baylor.farmers_market.security;
 
-import org.junit.jupiter.api.BeforeEach;
+import com.csi43C9.baylor.farmers_market.entity.User;
+import com.csi43C9.baylor.farmers_market.repository.UserRepository;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
+import java.util.Optional;
+import java.util.UUID;
+
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
 
-/*
- * Unit tests for the UserDetailsServiceImpl, which is responsible for loading user-specific
- * data during the authentication process. These tests verify that the service correctly
- * retrieves user details for existing users and throws the appropriate exceptions for
- * non-existent users, ensuring proper integration with Spring Security.
+/**
+ * Unit tests for {@link UserDetailsServiceImpl}.
  */
+@ExtendWith(MockitoExtension.class)
 class UserDetailsServiceImplTest {
 
+    @Mock
+    private UserRepository userRepository;
+
+    @InjectMocks
     private UserDetailsServiceImpl userDetailsService;
 
     /**
-     * Set up a new instance of UserDetailsServiceImpl before each test.
-     */
-    @BeforeEach
-    void setUp() {
-        userDetailsService = new UserDetailsServiceImpl();
-    }
-
-    /**
-     * Tests the scenario where a user with a given username is found by the service.
-     * Verifies that the returned UserDetails object is not null, contains the correct username,
-     * and that the password is a non-null, BCrypt-encrypted string matching the expected password.
+     * Verifies that the service correctly loads a user by username
+     * from the repository and returns a UserDetails object.
      */
     @Test
     void testLoadUserByUsernameUserFound() {
-        UserDetails userDetails = userDetailsService.loadUserByUsername("user");
-        assertThat(userDetails).isNotNull();
-        assertThat(userDetails.getUsername()).isEqualTo("user");
-        assertThat(userDetails.getPassword()).isNotNull();
+        // 1. Arrange: Create a fake user with a BCrypt hashed password
+        String username = "user";
+        String rawPassword = "password";
+        String encodedPassword = new BCryptPasswordEncoder().encode(rawPassword);
 
-        // Verify that the password stored in UserDetails is correctly BCrypt-encrypted
-        // and matches the expected raw password "password".
+        User mockUser = new User();
+        mockUser.setEmail(username);
+        mockUser.setPasswordHash(encodedPassword);
+
+        // Stub the repository to return our mockUser when findByUsername is called
+        when(userRepository.findByEmail(username)).thenReturn(Optional.of(mockUser));
+
+        // 2. Act
+        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+
+        // 3. Assert
+        assertThat(userDetails).isNotNull();
+        assertThat(userDetails.getUsername()).isEqualTo(username);
+
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-        assertTrue(encoder.matches("password", userDetails.getPassword()));
+        assertThat(encoder.matches(rawPassword, userDetails.getPassword())).isTrue();
     }
 
     /**
-     * Tests the scenario where a user with a non-existent username is requested.
-     * Verifies that a UsernameNotFoundException is thrown, indicating the user could not be found.
+     * Verifies that the service throws a UsernameNotFoundException
      */
     @Test
     void testLoadUserByUsernameUserNotFound() {
-        assertThrows(UsernameNotFoundException.class, () -> {
-            userDetailsService.loadUserByUsername("nonexistentuser");
-        });
+        String username = "nonexistent-user";
+
+        // Stub the repository to return an empty Optional
+        when(userRepository.findByEmail(username)).thenReturn(Optional.empty());
+
+        assertThrows(UsernameNotFoundException.class, () -> userDetailsService.loadUserByUsername(username));
     }
 
     /**
-     * Tests that when a user is not found, the UsernameNotFoundException contains the
-     * expected error message, which includes the username that was not found.
+     * Verifies that the service throws a UsernameNotFoundException with the correct message
      */
     @Test
     void testLoadUserByUsernameUserNotFoundMessage() {
-        String username = "nonexistentuser";
-        UsernameNotFoundException exception = assertThrows(UsernameNotFoundException.class, () -> {
-            userDetailsService.loadUserByUsername(username);
-        });
+        String username = "nonexistent-user";
+        when(userRepository.findByEmail(username)).thenReturn(Optional.empty());
+
+        UsernameNotFoundException exception = assertThrows(UsernameNotFoundException.class, () -> userDetailsService.loadUserByUsername(username));
+
         assertThat(exception.getMessage()).isEqualTo("User not found with username: " + username);
+    }
+
+    /**
+     * Verifies that the service correctly loads a user by ID from the repository and returns a UserDetails object.
+     */
+    @Test
+    void testLoadUserByIdUserFound() {
+        // Arrange
+        UUID id = UUID.randomUUID();
+        User mockUser = new User();
+        mockUser.setId(id);
+        mockUser.setEmail("idUser");
+        mockUser.setPasswordHash("hashedPass");
+
+        when(userRepository.findById(id)).thenReturn(Optional.of(mockUser));
+
+        // Act
+        UserDetails userDetails = userDetailsService.loadUserById(id);
+
+        // Assert
+        assertThat(userDetails).isNotNull();
+        assertThat(userDetails.getUsername()).isEqualTo("idUser");
+    }
+
+    /**
+     * Verifies that the service throws a UsernameNotFoundException when the user is not found
+     */
+    @Test
+    void testLoadUserByIdUserNotFound() {
+        UUID id = UUID.randomUUID();
+        when(userRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThrows(UsernameNotFoundException.class, () ->
+                userDetailsService.loadUserById(id)
+        );
     }
 }

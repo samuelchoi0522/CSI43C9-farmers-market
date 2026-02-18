@@ -1,5 +1,6 @@
 package com.csi43C9.baylor.farmers_market;
 
+import io.github.cdimascio.dotenv.Dotenv;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -21,13 +22,14 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class FarmersMarketApplication {
 
-
-	/**
-	 * The main method, which serves as the entry point for the Spring Boot application.
-	 *
-	 * @param args command line arguments passed to the application.
-	 */
+    /**
+     * Main entry point. Loads .env variables into system properties
+     * so application.properties can resolve ${VARIABLE_NAME}.
+     */
 	public static void main(String[] args) {
+        Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
+        dotenv.entries().forEach(e -> System.setProperty(e.getKey(), e.getValue()));
+
 		SpringApplication.run(FarmersMarketApplication.class, args);
 	}
 
