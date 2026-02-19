@@ -7,3 +7,9 @@ services:
     environment:
       MARIADB_DATABASE: ${FARMERS_MARKET_DB}
       MARIADB_ROOT_PASSWORD: ${FARMERS_MARKET_DB_PASSWORD}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./init-scripts:/docker-entrypoint-initdb.d
+
+volumes:
+  mariadb_data:

@@ -1,44 +1,281 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+    --background: #ffffff;
+    --foreground: #171717;
+}
+
+/* Ensure dark mode works with class strategy */
+@media (prefers-color-scheme: dark) {
+    :root:not(.dark) {
+        color-scheme: light;
+    }
 }
 
 @theme {
-  --color-primary: #2D5A27;
-  --color-accent: #8BA888;
-  --color-background-light: #F9FAF2;
-  --color-background-dark: #121412;
-  --font-family-sans: var(--font-inter), "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-family-display: var(--font-fraunces), "Fraunces", ui-serif, serif;
-  --radius-default: 0.75rem;
+    --color-primary: #2D5A27;
+    --color-accent: #8BA888;
+    --color-background-light: #F9FAF2;
+    --color-background-dark: #121412;
+    --color-dashboard-primary: #10b981;
+    --color-dashboard-bg-light: #f8fafc;
+    --color-dashboard-bg-dark: #0f172a;
+    --font-family-sans: var(--font-inter), "Inter", ui-sans-serif, system-ui, sans-serif;
+    --font-family-display: var(--font-fraunces), "Fraunces", ui-serif, serif;
+    --radius-default: 0.75rem;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+    :root {
+        --background: #0a0a0a;
+        --foreground: #ededed;
+    }
+}
+
+html {
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-inter), sans-serif;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-inter), sans-serif;
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .market-bg {
-  background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url(https://lh3.googleusercontent.com/aida-public/AB6AXuA9I07QkwrqpQC84vxAnzVnlbSElZGH2-0HBWwhpvqSPXb3TjWjeb22uWiltm1ndGNYwdCK49fIprq21rfTR070QvmIMXN5z8aRbV0cQpaWh78ZcEWPGjJF87ZgaeHPwT3Gf4QjMWbC_13mPayvbBVZviHZp-uNZ-aaqLkCj4Og4baxa5Pkm-Qd0WdoJPqDatQMMUHHUZ02XfYtfNufqV_vB2X4PK4sMHGZEFTb1jadcsAnzZ-22cDXZHVoIueecwI28f2e3lOez742);
-  background-size: cover;
-  background-position: center;
+    background-image: linear-gradient(rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.3)), url(https://lh3.googleusercontent.com/aida-public/AB6AXuA9I07QkwrqpQC84vxAnzVnlbSElZGH2-0HBWwhpvqSPXb3TjWjeb22uWiltm1ndGNYwdCK49fIprq21rfTR070QvmIMXN5z8aRbV0cQpaWh78ZcEWPGjJF87ZgaeHPwT3Gf4QjMWbC_13mPayvbBVZviHZp-uNZ-aaqLkCj4Og4baxa5Pkm-Qd0WdoJPqDatQMMUHHUZ02XfYtfNufqV_vB2X4PK4sMHGZEFTb1jadcsAnzZ-22cDXZHVoIueecwI28f2e3lOez742);
+    background-size: cover;
+    background-position: center;
+    transition: background-image 0.3s ease;
+}
+
+.dark .market-bg {
+    background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url(https://lh3.googleusercontent.com/aida-public/AB6AXuA9I07QkwrqpQC84vxAnzVnlbSElZGH2-0HBWwhpvqSPXb3TjWjeb22uWiltm1ndGNYwdCK49fIprq21rfTR070QvmIMXN5z8aRbV0cQpaWh78ZcEWPGjJF87ZgaeHPwT3Gf4QjMWbC_13mPayvbBVZviHZp-uNZ-aaqLkCj4Og4baxa5Pkm-Qd0WdoJPqDatQMMUHHUZ02XfYtfNufqV_vB2X4PK4sMHGZEFTb1jadcsAnzZ-22cDXZHVoIueecwI28f2e3lOez742);
 }
 
 .glass-panel {
-  backdrop-filter: blur(12px);
-  background-color: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(12px);
+    background-color: rgba(255, 255, 255, 0.9);
+    transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .dark .glass-panel {
-  background-color: rgba(24, 28, 24, 0.9);
+    background-color: rgba(24, 28, 24, 0.9);
+}
+
+/* Force text colors in light mode with smooth transitions */
+:root:not(.dark) .font-display:not(.text-white) {
+    color: #1a1a1a !important;
+    transition: color 0.3s ease;
+}
+
+/* Keep white text white in all modes */
+.font-display.text-white,
+h1.text-white,
+h1.font-display.text-white,
+:root:not(.dark) h1.font-display.text-white,
+:root.dark h1.font-display.text-white {
+    color: #ffffff !important;
+    transition: color 0.3s ease;
+}
+
+:root:not(.dark) .text-gray-900,
+:root:not(.dark) h1.text-gray-900 {
+    color: #1a1a1a !important;
+    transition: color 0.3s ease;
+}
+
+:root:not(.dark) .text-gray-800,
+:root:not(.dark) p.text-gray-800 {
+    color: #2a2a2a !important;
+    transition: color 0.3s ease;
+}
+
+:root:not(.dark) .text-gray-700,
+:root:not(.dark) label.text-gray-700,
+:root:not(.dark) a.text-gray-700 {
+    color: #374151 !important;
+    transition: color 0.3s ease;
+}
+
+:root:not(.dark) .text-gray-600,
+:root:not(.dark) p.text-gray-600 {
+    color: #4b5563 !important;
+    transition: color 0.3s ease;
+}
+
+:root:not(.dark) a.text-gray-800 {
+    color: #1f2937 !important;
+    transition: color 0.3s ease;
+}
+
+/* Add smooth transitions to common elements */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+span,
+a,
+label,
+input,
+button,
+div {
+    transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Global button cursor pointer */
+button {
+    cursor: pointer;
+}
+
+/* Scrollbar hiding utility */
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Ensure dark mode class works */
+html.dark,
+.dark {
+    color-scheme: dark;
+}
+
+/* Force dark mode styles to work - Tailwind v4 fallback */
+/* Use both html.dark and .dark selectors to match Tailwind's generated classes */
+html.dark .bg-slate-50,
+.dark .bg-slate-50 {
+    background-color: rgb(15 23 42);
+    /* slate-900 */
+}
+
+html.dark .bg-white,
+.dark .bg-white {
+    background-color: rgb(15 23 42);
+    /* slate-900 */
+}
+
+html.dark .bg-slate-800,
+.dark .bg-slate-800 {
+    background-color: rgb(30 41 59);
+    /* slate-800 */
+}
+
+html.dark .text-slate-900,
+.dark .text-slate-900 {
+    color: rgb(241 245 249);
+    /* slate-100 */
+}
+
+html.dark .text-slate-100,
+.dark .text-slate-100 {
+    color: rgb(241 245 249);
+    /* slate-100 */
+}
+
+html.dark .text-slate-500,
+.dark .text-slate-500 {
+    color: rgb(148 163 184);
+    /* slate-400 */
+}
+
+html.dark .text-slate-400,
+.dark .text-slate-400 {
+    color: rgb(148 163 184);
+    /* slate-400 */
+}
+
+html.dark .border-slate-200,
+.dark .border-slate-200 {
+    border-color: rgb(30 41 59);
+    /* slate-800 */
+}
+
+html.dark .border-slate-700,
+.dark .border-slate-700 {
+    border-color: rgb(51 65 85);
+    /* slate-700 */
+}
+
+html.dark .border-slate-800,
+.dark .border-slate-800 {
+    border-color: rgb(30 41 59);
+    /* slate-800 */
+}
+
+html.dark .hover\:bg-slate-800:hover,
+.dark .hover\:bg-slate-800:hover {
+    background-color: rgb(30 41 59);
+    /* slate-800 */
+}
+
+/* Ensure light mode uses correct colors - these should be the default */
+html:not(.dark) .bg-slate-50 {
+    background-color: rgb(248 250 252) !important;
+    /* slate-50 */
+}
+
+html:not(.dark) .bg-white {
+    background-color: rgb(255 255 255) !important;
+    /* white */
+}
+
+html:not(.dark) .text-slate-900 {
+    color: rgb(15 23 42) !important;
+    /* slate-900 */
+}
+
+html:not(.dark) .text-slate-500 {
+    color: rgb(100 116 139) !important;
+    /* slate-500 */
+}
+
+html:not(.dark) .text-slate-400 {
+    color: rgb(148 163 184) !important;
+    /* slate-400 */
+}
+
+html:not(.dark) .border-slate-200 {
+    border-color: rgb(226 232 240) !important;
+    /* slate-200 */
+}
+
+html:not(.dark) .border-slate-700 {
+    border-color: rgb(51 65 85) !important;
+    /* slate-700 */
+}
+
+html:not(.dark) .border-slate-800 {
+    border-color: rgb(30 41 59) !important;
+    /* slate-800 */
+}
+
+/* 
+ * Consistent hover effects across the website
+ * 
+ * For buttons and interactive elements, use:
+ * - Light mode: hover:bg-slate-50/15 (15% opacity)
+ * - Dark mode: dark:hover:bg-slate-700/50 (50% opacity)
+ * 
+ * Example:
+ * className="hover:bg-slate-50/15 dark:hover:bg-slate-700/50 transition-colors"
+ * 
+ * Or use the Button component from app/components/Button.tsx for consistent styling
+ */
+
+/* Light mode table row hover - FIXED: increased opacity from 0.05 to 0.5 for visibility */
+html:not(.dark) tbody tr.light-hover-bg {
+    background-color: rgba(248, 250, 252, 0.5) !important;
+}
+
+/* Also target with :hover for better specificity */
+html:not(.dark) tbody tr.light-hover-bg:hover {
+    background-color: rgba(248, 250, 252, 0.5) !important;
 }
