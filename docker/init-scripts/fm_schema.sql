@@ -52,3 +52,68 @@ create table if not exists refresh_tokens (
     expiry_date TIMESTAMP not null,
     constraint fk_user foreign key (user_id) references users (id) on delete cascade
 );
+
+/*
+* will allow us to store presets for vendor item percentages.
+*/
+create table if not exists vendor_percentage_presets (
+    preset_id binary(16) not null primary key,
+    vendor_id binary(16) not null,
+    preset_name varchar(255) not null,
+    notes text null,
+    pct_handmade decimal(5, 2) not null default 0.00,
+    pct_agricultural decimal(5, 2) not null default 0.00,
+    pct_prepared_food decimal(5, 2) not null default 0.00,
+    pct_cottage_goods decimal(5, 2) not null default 0.00,
+    pct_manufactured decimal(5, 2) not null default 0.00,
+    foreign key (vendor_id) references vendors (id),
+    constraint check_total_percentage check (
+    (pct_handmade + pct_agricultural + pct_prepared_food +
+    pct_cottage_goods + pct_manufactured) = 100.00
+    )
+);
+
+create table if not exists category_labels (
+   id bigint auto_increment primary key,
+   name varchar(255) not null
+);
+
+create table if not exists vendor_category_labels (
+    vendor_id binary(16) not null,
+    label_id bigint not null,
+    primary key (vendor_id, label_id),
+    foreign key (vendor_id) references vendors (id),
+    foreign key (label_id) references category_labels (id)
+);
+
+create table if not exists vendor_daily_market_records (
+    vendor_id binary(16) not null,
+    record_date date not null,
+    pct_handmade decimal(5, 2) not null default 0.00,
+    pct_agricultural decimal(5, 2) not null default 0.00,
+    pct_prepared_food decimal(5, 2) not null default 0.00,
+    pct_cottage_goods decimal(5, 2) not null default 0.00,
+    pct_manufactured decimal(5, 2) not null default 0.00,
+    primary key (vendor_id, record_date),
+    foreign key (vendor_id) references vendors (id),
+    constraint check_core_total check (
+    (pct_handmade + pct_agricultural +
+    pct_prepared_food + pct_cottage_goods + pct_manufactured) = 100.00
+    )
+);
+
+create index idx_record_date on vendor_daily_market_records (vendor_id, record_date);
+
+/*
+* Table representing all other labels (and percentages of those labels?) for a vendor
+* Percentage Rules still need to be defined.
+*/
+create table if not exists vendor_daily_custom_labels (
+    vendor_id binary(16) not null,
+    record_date date not null,
+    label_id bigint not null,
+    percentage decimal(5, 2) not null check (percentage >= 0 and percentage <= 100),
+    primary key (vendor_id, record_date, label_id),
+    foreign key (vendor_id, record_date) references vendor_daily_market_records (vendor_id, record_date) on delete cascade,
+    foreign key (label_id) references category_labels (id)
+);
