@@ -30,20 +30,21 @@ export default function SidebarNavigation({
         <h1 className="font-bold text-xl tracking-tight">MarketOS</h1>
       </div>
       
-      <nav className="flex-1 px-4 space-y-2">
-        {navigationItems.map((item) => {
+      <nav className="flex-1 px-4 space-y-2 animate-stagger">
+        {navigationItems.map((item, index) => {
           const isActive = item.id === activeItem;
           return (
             <a
               key={item.id}
-              className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-colors ${
+              className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 ease-out hover-lift ${
                 isActive
-                  ? "bg-[#10b981]/10 text-[#10b981] font-medium"
-                  : "text-slate-900 dark:text-slate-400 hover:bg-slate-50/15 dark:hover:bg-slate-700/15"
+                  ? "bg-[#10b981]/10 text-[#10b981] font-medium shadow-sm"
+                  : "text-slate-900 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
               }`}
               href="#"
+              style={{ animationDelay: `${index * 0.05}s` }}
             >
-              <span className={`material-icons text-lg leading-none ${isActive ? "" : "text-slate-900 dark:text-slate-400"}`}>
+              <span className={`material-icons text-lg leading-none transition-transform duration-200 ${isActive ? "" : "text-slate-900 dark:text-slate-400"} ${!isActive ? "group-hover:scale-110" : ""}`}>
                 {item.icon}
               </span>
               {item.label}

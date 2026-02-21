@@ -15,10 +15,41 @@ export default function DarkModeToggle({
 }: DarkModeToggleProps) {
   const [isDark, setIsDark] = useState(() => {
     if (typeof window === "undefined") return false;
+    
+    // First, check localStorage for saved preference
+    try {
+      const storedDarkMode = localStorage.getItem("darkMode");
+      if (storedDarkMode !== null) {
+        return storedDarkMode === "true";
+      }
+    } catch (e) {
+      console.error("Failed to read darkMode from localStorage:", e);
+    }
+    
+    // Fallback to checking the DOM (should match the script in layout.tsx)
     return document.documentElement.classList.contains("dark");
   });
 
   useEffect(() => {
+    // Initialize from localStorage on mount (only once)
+    try {
+      const storedDarkMode = localStorage.getItem("darkMode");
+      if (storedDarkMode !== null) {
+        const shouldBeDark = storedDarkMode === "true";
+        const currentlyDark = document.documentElement.classList.contains("dark");
+        if (shouldBeDark !== currentlyDark) {
+          if (shouldBeDark) {
+            document.documentElement.classList.add("dark");
+          } else {
+            document.documentElement.classList.remove("dark");
+          }
+          setIsDark(shouldBeDark);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to read darkMode from localStorage:", e);
+    }
+    
     // Listen for changes to the dark class on the html element
     const checkDarkMode = () => {
       const isCurrentlyDark = document.documentElement.classList.contains("dark");
@@ -39,7 +70,7 @@ export default function DarkModeToggle({
       observer.disconnect();
       window.removeEventListener("darkModeChange", checkDarkMode);
     };
-  }, []);
+  }, []); // Empty dependency array - only run on mount
 
   const toggleDarkMode = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -49,23 +80,24 @@ export default function DarkModeToggle({
     const currentlyDark = htmlElement.classList.contains("dark");
     const newDarkMode = !currentlyDark;
     
-    console.log("[DarkModeToggle] Clicked! Current:", currentlyDark, "New:", newDarkMode);
-    
     // Immediately update DOM and localStorage
-    if (newDarkMode) {
-      htmlElement.classList.add("dark");
-      localStorage.setItem("darkMode", "true");
-      console.log("[DarkModeToggle] Added dark class");
-    } else {
-      htmlElement.classList.remove("dark");
-      localStorage.setItem("darkMode", "false");
-      console.log("[DarkModeToggle] Removed dark class");
+    try {
+      if (newDarkMode) {
+        htmlElement.classList.add("dark");
+        localStorage.setItem("darkMode", "true");
+      } else {
+        htmlElement.classList.remove("dark");
+        localStorage.setItem("darkMode", "false");
+      }
+    } catch (e) {
+      console.error("Failed to save darkMode to localStorage:", e);
+      // Still update the DOM even if localStorage fails
+      if (newDarkMode) {
+        htmlElement.classList.add("dark");
+      } else {
+        htmlElement.classList.remove("dark");
+      }
     }
-    
-    // Verify the class was added/removed
-    const hasDarkClass = htmlElement.classList.contains("dark");
-    console.log("[DarkModeToggle] HTML element now has dark class:", hasDarkClass);
-    console.log("[DarkModeToggle] HTML classes:", htmlElement.className);
     
     // Update state - this will trigger a re-render
     setIsDark(newDarkMode);
@@ -73,21 +105,6 @@ export default function DarkModeToggle({
     // Dispatch custom event for other components
     const event = new CustomEvent("darkModeChange", { detail: { isDark: newDarkMode } });
     window.dispatchEvent(event);
-    
-    // Double-check after a brief delay
-    requestAnimationFrame(() => {
-      const stillHasDark = htmlElement.classList.contains("dark");
-      console.log("[DarkModeToggle] After animation frame - has dark class:", stillHasDark);
-      if (stillHasDark !== newDarkMode) {
-        console.error("[DarkModeToggle] MISMATCH! Expected:", newDarkMode, "Got:", stillHasDark);
-        // Force it
-        if (newDarkMode) {
-          htmlElement.classList.add("dark");
-        } else {
-          htmlElement.classList.remove("dark");
-        }
-      }
-    });
   }, []);
 
   // Default positioning classes based on position prop
@@ -114,18 +131,16 @@ export default function DarkModeToggle({
     <button
       onClick={toggleDarkMode}
       type="button"
-      className={`${getPositionClasses()} p-2 rounded-full bg-white dark:bg-zinc-800 shadow-md z-[9999] text-gray-600 dark:text-gray-300 hover:scale-110 transition-transform flex items-center justify-center cursor-pointer ${className}`}
+      className={`${getPositionClasses()} p-2 rounded-full bg-white dark:bg-zinc-800 shadow-md z-[9999] text-gray-600 dark:text-gray-300 hover:scale-110 active:scale-95 transition-all duration-200 ease-out hover:shadow-lg flex items-center justify-center cursor-pointer hover-lift ${className}`}
       style={{ 
         backgroundColor: isDark ? undefined : '#ffffff',
         pointerEvents: 'auto'
       }}
       aria-label="Toggle dark mode"
     >
-      {!isDark ? (
-        <span className="material-icons leading-none">dark_mode</span>
-      ) : (
-        <span className="material-icons leading-none">light_mode</span>
-      )}
+      <span className={`material-icons leading-none transition-all duration-300 ${!isDark ? 'rotate-0' : 'rotate-180'}`}>
+        {!isDark ? 'dark_mode' : 'light_mode'}
+      </span>
     </button>
   );
 }

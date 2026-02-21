@@ -5,14 +5,17 @@ import DarkModeToggle from "../components/DarkModeToggle";
 import SidebarNavigation from "../components/SidebarNavigation";
 import CategoryRevenueChart from "../components/CategoryRevenueChart";
 import Button from "../components/Button";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { useAuth } from "@/contexts/AuthContext";
 
-export default function DashboardPage() {
+function DashboardContent() {
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(() => {
         if (typeof window === "undefined") return false;
         return document.documentElement.classList.contains("dark");
     });
-    const userName = "Admin User"; // This would come from auth context/API
+    const { user, logout } = useAuth();
+    const userName = user?.username || "Admin User";
 
     useEffect(() => {
         // Listen for dark mode changes to trigger re-renders
@@ -91,9 +94,7 @@ export default function DashboardPage() {
     }, [showUserMenu]);
 
     const handleLogout = () => {
-        // TODO: Implement actual logout logic (clear tokens, redirect, etc.)
-        console.log("Logging out...");
-        // Example: window.location.href = "/login";
+        logout();
     };
 
     return (
@@ -104,10 +105,10 @@ export default function DashboardPage() {
 
             {/* Main Content */}
             <main className="flex-1 overflow-y-auto p-4 lg:p-8">
-                <header className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                <header className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 animate-slide-up">
                     <div>
-                        <h2 className="text-2xl font-bold">Financial Overview</h2>
-                        <p className="text-slate-700 dark:text-slate-400">Market Performance for {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                        <h2 className="text-2xl font-bold animate-fade-in">Financial Overview</h2>
+                        <p className="text-slate-700 dark:text-slate-400 animate-fade-in" style={{ animationDelay: '0.1s' }}>Market Performance for {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
                     </div>
                     <div className="flex items-center gap-3">
                         <Button variant="outline" className="flex items-center gap-2">
@@ -162,11 +163,11 @@ export default function DashboardPage() {
                 </header>
 
                 {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 animate-stagger">
+                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover-lift transition-all duration-200">
                         <div className="flex items-center justify-between mb-4">
                             <div
-                                className="dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-2 rounded-xl flex items-center justify-center"
+                                className="dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
                                 style={{ backgroundColor: isDarkMode ? undefined : 'rgba(219, 234, 254, 0.5)' }}
                             >
                                 <span className="material-icons leading-none">credit_card</span>
@@ -179,21 +180,23 @@ export default function DashboardPage() {
                         <p className="text-3xl font-bold mt-1">$18,432.50</p>
                     </div>
 
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover-lift transition-all duration-200">
                         <div className="flex items-center justify-between mb-4">
-                            <div className="bg-[#10b981]/10 text-[#10b981] p-2 rounded-xl flex items-center justify-center">
+                            <div className="bg-[#10b981]/10 text-[#10b981] p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110">
                                 <span className="material-icons leading-none">attach_money</span>
                             </div>
-                            <span className="text-xs font-bold text-slate-700 dark:text-slate-500 uppercase">87% Collected</span>
+                            <span className="text-xs font-bold text-[#10b981] flex items-center gap-1">
+                                <span className="material-icons text-sm leading-none">trending_up</span> +12%
+                            </span>
                         </div>
                         <p className="text-slate-700 dark:text-slate-400 text-sm font-medium">Total Fees Collected</p>
                         <p className="text-3xl font-bold mt-1">$2,840.00</p>
                     </div>
 
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover-lift transition-all duration-200">
                         <div className="flex items-center justify-between mb-4">
                             <div
-                                className="dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 p-2 rounded-xl flex items-center justify-center"
+                                className="dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
                                 style={{ backgroundColor: isDarkMode ? undefined : 'rgba(254, 243, 199, 0.5)' }}
                             >
                                 <span className="material-icons leading-none">folder</span>
@@ -209,7 +212,7 @@ export default function DashboardPage() {
                 <CategoryRevenueChart />
 
                 {/* Vendor Tracking Table */}
-                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden animate-slide-up" style={{ animationDelay: '0.2s' }}>
                     <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <h3 className="font-bold text-lg">Vendor Tracking</h3>
                         <div className="flex items-center gap-2">
@@ -241,14 +244,12 @@ export default function DashboardPage() {
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                                 <tr
-                                    className="transition-colors dark:hover:bg-slate-700/50"
+                                    className="transition-all duration-200 ease-out dark:hover:bg-slate-700/50 hover-lift"
                                     onMouseEnter={(e) => {
                                         const isDark = document.documentElement.classList.contains("dark");
                                         const target = e.currentTarget;
                                         if (!isDark) {
-                                            // Add class first, then set inline style as backup
                                             target.classList.add('light-hover-bg');
-                                            // Also set inline style with proper visibility (FIXED: changed from 0.05 to 0.5)
                                             target.style.setProperty('background-color', 'rgba(248, 250, 252, 0.5)', 'important');
                                         }
                                     }}
@@ -277,7 +278,7 @@ export default function DashboardPage() {
                                     </td>
                                 </tr>
                                 <tr
-                                    className="transition-colors dark:hover:bg-slate-700/50"
+                                    className="transition-all duration-200 ease-out dark:hover:bg-slate-700/50 hover-lift"
                                     onMouseEnter={(e) => {
                                         const isDark = document.documentElement.classList.contains("dark");
                                         if (!isDark) {
@@ -309,7 +310,7 @@ export default function DashboardPage() {
                                     </td>
                                 </tr>
                                 <tr
-                                    className="transition-colors dark:hover:bg-slate-700/50"
+                                    className="transition-all duration-200 ease-out dark:hover:bg-slate-700/50 hover-lift"
                                     onMouseEnter={(e) => {
                                         const isDark = document.documentElement.classList.contains("dark");
                                         if (!isDark) {
@@ -341,7 +342,7 @@ export default function DashboardPage() {
                                     </td>
                                 </tr>
                                 <tr
-                                    className="transition-colors dark:hover:bg-slate-700/50"
+                                    className="transition-all duration-200 ease-out dark:hover:bg-slate-700/50 hover-lift"
                                     onMouseEnter={(e) => {
                                         const isDark = document.documentElement.classList.contains("dark");
                                         if (!isDark) {
@@ -373,7 +374,7 @@ export default function DashboardPage() {
                                     </td>
                                 </tr>
                                 <tr
-                                    className="transition-colors dark:hover:bg-slate-700/50"
+                                    className="transition-all duration-200 ease-out dark:hover:bg-slate-700/50 hover-lift"
                                     onMouseEnter={(e) => {
                                         const isDark = document.documentElement.classList.contains("dark");
                                         if (!isDark) {
@@ -487,5 +488,13 @@ export default function DashboardPage() {
                 </div>
             </main>
         </div>
+    );
+}
+
+export default function DashboardPage() {
+    return (
+        <ProtectedRoute>
+            <DashboardContent />
+        </ProtectedRoute>
     );
 }

@@ -1,32 +1,63 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import DarkModeToggle from "./components/DarkModeToggle";
 import Button from "./components/Button";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function LoginPage() {
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { login, isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      router.push("/dashboard");
+    }
+  }, [isAuthenticated, isLoading, router]);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // Handle form submission here
-    console.log("Form submitted");
+    setError(null);
+    setIsSubmitting(true);
+
+    try {
+      await login({
+        username: email,
+        password: password,
+      });
+      // Redirect will happen automatically via AuthContext
+    } catch (err: any) {
+      setError(
+        err.message || "Invalid credentials. Please check your email and password."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <div className="bg-[#F9FAF2] dark:bg-[#121412] font-sans transition-colors duration-300">
+    <div className="bg-[#F9FAF2] dark:bg-[#121412] font-sans transition-colors duration-300 animate-fade-in">
       <DarkModeToggle />
       
       <div className="min-h-screen flex items-center justify-center market-bg p-4">
         <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-full mb-4 shadow-lg">
+          <div className="text-center mb-8 animate-slide-up">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-full mb-4 shadow-lg animate-scale-in hover-lift">
               <span className="material-icons text-white text-3xl">local_farm</span>
             </div>
-            <h1 className="font-display text-4xl font-bold text-white tracking-tight" style={{ color: '#ffffff' }}>
-              Harvest Hub
+            <h1 className="font-display text-4xl font-bold text-white tracking-tight animate-fade-in" style={{ color: '#ffffff', animationDelay: '0.1s' }}>
+              MarketOS
             </h1>
-            <p className="text-white/80 mt-2 font-medium">Market Manager Portal</p>
+            <p className="text-white/80 mt-2 font-medium animate-fade-in" style={{ animationDelay: '0.2s' }}>Market Manager Portal</p>
           </div>
 
-          <div className="glass-panel dark:border dark:border-white/10 p-8 rounded-2xl shadow-2xl">
+          <div className="glass-panel dark:border dark:border-white/10 p-8 rounded-2xl shadow-2xl animate-slide-up backdrop-blur-transition" style={{ animationDelay: '0.3s' }}>
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                 Welcome back
@@ -49,12 +80,15 @@ export default function LoginPage() {
                     <span className="material-icons text-[20px]">email</span>
                   </div>
                   <input
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm"
+                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 text-sm hover:border-gray-400 dark:hover:border-zinc-600"
                     id="email"
                     name="email"
                     placeholder="manager@yourmarket.org"
                     required
                     type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={isSubmitting}
                   />
                 </div>
               </div>
@@ -79,12 +113,15 @@ export default function LoginPage() {
                     <span className="material-icons text-[20px]">lock</span>
                   </div>
                   <input
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm"
+                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 text-sm hover:border-gray-400 dark:hover:border-zinc-600"
                     id="password"
                     name="password"
                     placeholder="••••••••"
                     required
                     type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={isSubmitting}
                   />
                 </div>
               </div>
@@ -105,20 +142,27 @@ export default function LoginPage() {
                 </label>
               </div>
 
+              {error && (
+                <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 animate-slide-up animate-scale-in">
+                  <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                </div>
+              )}
+
               <Button
                 variant="primary"
                 size="lg"
-                className="w-full flex justify-center shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transform hover:translate-y-[-1px] active:translate-y-[0px] bg-primary hover:bg-green-800"
+                className="w-full flex justify-center shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transform hover:translate-y-[-1px] active:translate-y-[0px] bg-primary hover:bg-green-800 disabled:opacity-50 disabled:cursor-not-allowed"
                 type="submit"
+                disabled={isSubmitting}
               >
-                SIGN IN TO DASHBOARD
+                {isSubmitting ? "SIGNING IN..." : "SIGN IN TO DASHBOARD"}
               </Button>
             </form>
           </div>
 
           <div className="mt-8 text-center">
             <p className="text-[#2a2a2a] dark:text-white/60 text-xs uppercase tracking-widest font-medium">
-              © {new Date().getFullYear()} Harvest Hub Platform. All rights reserved.
+              © {new Date().getFullYear()} MarketOS Platform. All rights reserved.
             </p>
           </div>
         </div>
