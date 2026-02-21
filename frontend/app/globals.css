@@ -216,6 +216,12 @@ html.dark .hover\:bg-slate-800:hover,
     /* slate-800 */
 }
 
+/* Sidebar navigation hover - light green in light mode */
+html:not(.dark) aside nav a.hover-lift:hover {
+    background-color: rgba(16, 185, 129, 0.1) !important;
+    /* light green hover for sidebar menu items in light mode */
+}
+
 /* Ensure light mode uses correct colors - these should be the default */
 html:not(.dark) .bg-slate-50 {
     background-color: rgb(248 250 252) !important;
@@ -240,6 +246,11 @@ html:not(.dark) .text-slate-500 {
 html:not(.dark) .text-slate-400 {
     color: rgb(148 163 184) !important;
     /* slate-400 */
+}
+
+html:not(.dark) .text-slate-700 {
+    color: rgb(51 65 85) !important;
+    /* slate-700 */
 }
 
 html:not(.dark) .border-slate-200 {
@@ -355,10 +366,30 @@ html:not(.dark) tbody tr.light-hover-bg:hover {
 /* Shimmer loading animation */
 @keyframes shimmer {
     0% {
-        background-position: -1000px 0;
+        transform: translateX(-100%);
     }
     100% {
-        background-position: 1000px 0;
+        transform: translateX(100%);
+    }
+}
+
+/* Progress bar fill animation */
+@keyframes progressFill {
+    from {
+        width: 0;
+    }
+}
+
+/* Percentage change animation */
+@keyframes percentageChange {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.15);
+    }
+    100% {
+        transform: scale(1);
     }
 }
 
@@ -385,6 +416,14 @@ html:not(.dark) tbody tr.light-hover-bg:hover {
 
 .animate-pulse-slow {
     animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-shimmer {
+    animation: shimmer 2s ease-in-out infinite;
+}
+
+.animate-percentage-change {
+    animation: percentageChange 0.4s ease-out;
 }
 
 /* Stagger animation delays for children */

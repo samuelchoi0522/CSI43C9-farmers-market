@@ -22,6 +22,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const hasVerifiedSession = useRef(false);
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Extract username from JWT token (simple base64 decode)
   const getUsernameFromToken = useCallback((token: string): string | null => {
@@ -116,6 +117,87 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(user);
     });
   }, [pathname, isLoading, verifySession]);
+
+  // Refresh token proactively
+  const refreshTokenProactively = useCallback(async () => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const accessToken = localStorage.getItem('accessToken');
+    const refreshTokenValue = localStorage.getItem('refreshToken');
+
+    if (!accessToken || !refreshTokenValue) {
+      return;
+    }
+
+    // Check if token is expired or will expire soon (within 2 minutes)
+    const isExpired = isTokenExpired(accessToken);
+    const willExpireSoon = (() => {
+      try {
+        const payload = JSON.parse(atob(accessToken.split('.')[1]));
+        if (payload.exp) {
+          const expirationTime = payload.exp * 1000;
+          const timeUntilExpiration = expirationTime - Date.now();
+          // Refresh if token expires within 2 minutes
+          return timeUntilExpiration < 2 * 60 * 1000;
+        }
+        return false;
+      } catch {
+        return true;
+      }
+    })();
+
+    if (isExpired || willExpireSoon) {
+      try {
+        const response = await refreshToken(refreshTokenValue);
+        localStorage.setItem('accessToken', response.accessToken);
+        localStorage.setItem('refreshToken', response.refreshToken);
+        
+        const username = getUsernameFromToken(response.accessToken);
+        if (username) {
+          setUser({ username });
+        }
+      } catch {
+        // Refresh failed, clear tokens and logout
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        setIsAuthenticated(false);
+        setUser(null);
+        router.push('/');
+      }
+    }
+  }, [isTokenExpired, getUsernameFromToken, router]);
+
+  // Set up proactive token refresh every 10 minutes
+  useEffect(() => {
+    if (!isAuthenticated) {
+      // Clear interval if not authenticated
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+        refreshIntervalRef.current = null;
+      }
+      return;
+    }
+
+    // Refresh immediately on mount if authenticated (using setTimeout to avoid synchronous setState)
+    setTimeout(() => {
+      refreshTokenProactively();
+    }, 0);
+
+    // Set up interval to refresh every 10 minutes (600000 ms)
+    refreshIntervalRef.current = setInterval(() => {
+      refreshTokenProactively();
+    }, 10 * 60 * 1000);
+
+    // Cleanup interval on unmount or when auth state changes
+    return () => {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+        refreshIntervalRef.current = null;
+      }
+    };
+  }, [isAuthenticated, refreshTokenProactively]);
 
   const handleLogin = useCallback(async (credentials: LoginRequest) => {
     try {

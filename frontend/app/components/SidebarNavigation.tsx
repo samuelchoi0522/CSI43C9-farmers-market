@@ -41,7 +41,7 @@ export default function SidebarNavigation({
               className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 ease-out hover-lift ${
                 isActive
                   ? "bg-[#10b981]/10 text-[#10b981] font-medium shadow-sm"
-                  : "text-slate-900 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  : "text-slate-900 dark:text-slate-400 hover:bg-[#10b981]/10 dark:hover:bg-slate-800"
               }`}
               style={{ animationDelay: `${index * 0.05}s` }}
             >

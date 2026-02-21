@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import DarkModeToggle from "../components/DarkModeToggle";
 import SidebarNavigation from "../components/SidebarNavigation";
 import Button from "../components/Button";
@@ -24,6 +25,7 @@ interface Vendor {
 }
 
 function VendorsContent() {
+    const router = useRouter();
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(() => {
         if (typeof window === "undefined") return false;
@@ -341,7 +343,11 @@ function VendorsContent() {
                             <span className="material-icons text-lg leading-none">download</span>
                             Export List
                         </Button>
-                        <Button variant="primary" className="flex items-center gap-2">
+                        <Button 
+                            variant="primary" 
+                            className="flex items-center gap-2"
+                            onClick={() => router.push("/vendors/add")}
+                        >
                             <span className="material-icons text-lg leading-none">add</span>
                             Add Vendor
                         </Button>
