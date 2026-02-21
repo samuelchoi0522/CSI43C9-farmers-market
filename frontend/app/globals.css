@@ -222,6 +222,31 @@ html:not(.dark) aside nav a.hover-lift:hover {
     /* light green hover for sidebar menu items in light mode */
 }
 
+/* Button hover - light green in light mode (excludes Material UI buttons and dark mode toggle) */
+html:not(.dark) button.hover-lift:hover:not(.MuiButton-root):not([aria-label="Toggle dark mode"]) {
+    background-color: rgba(16, 185, 129, 0.1) !important;
+    /* light green hover for buttons in light mode */
+}
+
+/* Dark mode toggle button - keep white background on hover in light mode */
+html:not(.dark) button[aria-label="Toggle dark mode"]:hover {
+    background-color: #ffffff !important;
+}
+
+/* Material UI primary button - ensure green color on hover */
+html:not(.dark) button.MuiButton-containedPrimary:hover,
+html:not(.dark) button.MuiButton-containedPrimary:focus,
+html:not(.dark) button.MuiButton-containedPrimary:active {
+    background-color: #059669 !important;
+    color: #ffffff !important;
+}
+
+/* Table row hover - light green in light mode */
+html:not(.dark) tr.hover-lift:hover {
+    background-color: rgba(16, 185, 129, 0.1) !important;
+    /* light green hover for table rows in light mode */
+}
+
 /* Ensure light mode uses correct colors - these should be the default */
 html:not(.dark) .bg-slate-50 {
     background-color: rgb(248 250 252) !important;

@@ -11,11 +11,11 @@ interface SidebarNavigationProps {
 }
 
 export default function SidebarNavigation({ 
-  activeItem = "Financial Overview",
+  activeItem = "Dashboard",
   className = ""
 }: SidebarNavigationProps) {
   const navigationItems = [
-    { id: "Financial Overview", label: "Financial Overview", icon: "dashboard", href: "/dashboard" },
+    { id: "Dashboard", label: "Dashboard", icon: "dashboard", href: "/dashboard" },
     { id: "Vendors", label: "Vendors", icon: "store", href: "/vendors" },
     { id: "Daily Reports", label: "Daily Reports", icon: "description", href: "#" },
     { id: "Vendor Analytics", label: "Vendor Analytics", icon: "analytics", href: "#" },

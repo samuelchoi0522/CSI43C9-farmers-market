@@ -626,7 +626,7 @@ function AddVendorContent() {
                                             <button
                                                 type="button"
                                                 onClick={() => formatText('bold')}
-                                                className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors"
+                                                className="p-1.5 hover:bg-[#10b981]/10 dark:hover:bg-slate-700 rounded transition-colors"
                                                 title="Bold"
                                             >
                                                 <span className="material-icons text-sm leading-none">format_bold</span>
@@ -634,7 +634,7 @@ function AddVendorContent() {
                                             <button
                                                 type="button"
                                                 onClick={() => formatText('italic')}
-                                                className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors"
+                                                className="p-1.5 hover:bg-[#10b981]/10 dark:hover:bg-slate-700 rounded transition-colors"
                                                 title="Italic"
                                             >
                                                 <span className="material-icons text-sm leading-none">format_italic</span>
@@ -642,7 +642,7 @@ function AddVendorContent() {
                                             <button
                                                 type="button"
                                                 onClick={() => formatText('list')}
-                                                className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors"
+                                                className="p-1.5 hover:bg-[#10b981]/10 dark:hover:bg-slate-700 rounded transition-colors"
                                                 title="Unordered List"
                                             >
                                                 <span className="material-icons text-sm leading-none">format_list_bulleted</span>
@@ -650,7 +650,7 @@ function AddVendorContent() {
                                             <button
                                                 type="button"
                                                 onClick={() => formatText('link')}
-                                                className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors"
+                                                className="p-1.5 hover:bg-[#10b981]/10 dark:hover:bg-slate-700 rounded transition-colors"
                                                 title="Link"
                                             >
                                                 <span className="material-icons text-sm leading-none">link</span>

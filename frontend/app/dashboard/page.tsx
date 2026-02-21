@@ -101,24 +101,16 @@ function DashboardContent() {
         <div className="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-screen flex transition-colors duration-300">
             <DarkModeToggle position="fixed" className="bottom-6 right-6 top-auto" />
 
-            <SidebarNavigation activeItem="Financial Overview" />
+            <SidebarNavigation activeItem="Dashboard" />
 
             {/* Main Content */}
             <main className="flex-1 overflow-y-auto p-4 lg:p-8">
                 <header className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 animate-slide-up">
                     <div>
-                        <h2 className="text-2xl font-bold animate-fade-in">Financial Overview</h2>
+                        <h2 className="text-2xl font-bold animate-fade-in">Dashboard</h2>
                         <p className="text-slate-700 dark:text-slate-400 animate-fade-in" style={{ animationDelay: '0.1s' }}>Market Performance for {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
                     </div>
                     <div className="flex items-center gap-3">
-                        <Button variant="outline" className="flex items-center gap-2">
-                            <span className="material-icons text-lg leading-none">download</span>
-                            Financial Report
-                        </Button>
-                        <Button variant="primary" className="flex items-center gap-2">
-                            <span className="material-icons text-lg leading-none">description</span>
-                            Log Collection
-                        </Button>
                         {/* User Menu */}
                         <div className="relative user-menu-container">
                             <Button
@@ -266,7 +258,7 @@ function DashboardContent() {
                                         <span className="font-semibold">Alba&apos;s Pupusas</span>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100/50 text-slate-700 dark:bg-slate-700 dark:text-slate-200">Absent</span>
+                                        <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-[#8f8f8f] text-[#454545] dark:bg-slate-700 dark:text-slate-200">Absent</span>
                                     </td>
                                     <td className="px-6 py-4 text-sm">Ready-to-Eat</td>
                                     <td className="px-6 py-4 font-mono text-sm">$45.00</td>

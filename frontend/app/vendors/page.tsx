@@ -285,7 +285,7 @@ function VendorsContent() {
     const getStatusBadge = (vendor: Vendor) => {
         if (!vendor.isActive) {
             return (
-                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100/50 text-slate-700 dark:bg-slate-700 dark:text-slate-200">
+                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200">
                     Inactive
                 </span>
             );
