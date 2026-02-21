@@ -1,15 +1,12 @@
 package com.csi43C9.baylor.farmers_market.controller;
 
-import java.util.Objects;
-
+import com.csi43C9.baylor.farmers_market.dto.tokens.TokenRefreshRequest;
+import com.csi43C9.baylor.farmers_market.service.AuthService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,10 +14,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.csi43C9.baylor.farmers_market.dto.JwtResponse;
 import com.csi43C9.baylor.farmers_market.dto.LoginRequest;
-import com.csi43C9.baylor.farmers_market.security.jwt.JwtUtil;
 
 import lombok.AllArgsConstructor;
-import lombok.NonNull;
 
 
 /**
@@ -34,9 +29,7 @@ import lombok.NonNull;
 @AllArgsConstructor
 public class AuthController {
 
-    private final AuthenticationManager authenticationManager;
-    private final JwtUtil jwtUtil;
-
+    private final AuthService authService;
 
     /**
      * Authenticates a user based on the provided login request.
@@ -49,35 +42,17 @@ public class AuthController {
      */
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest) {
-
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
-
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        if (Objects.isNull(userDetails)) {
-            return ResponseEntity.badRequest().body("Invalid username or password.");
-        }
-        String jwt = jwtUtil.generateToken(userDetails);
-
-        return ResponseEntity.ok(new JwtResponse(jwt));
+        return authService.authenticateUser(loginRequest);
     }
-
 
     /**
-     * A protected endpoint for testing authentication.
-     * This method retrieves the authenticated user's details from the {@link SecurityContextHolder}
-     * and returns a personalized greeting. It is used to verify that a user is successfully authenticated.
-     *
-     * @return a {@link ResponseEntity} with a greeting message to the authenticated user.
+     * Refreshes an expired JWT token.
+     * @param request the request body containing the refresh token.
+     * @return a {@link ResponseEntity} containing the new JWT token.
      */
-    @GetMapping("/hello")
-    public ResponseEntity<@NonNull String> hello() {
-        UserDetails userDetails = (UserDetails) Objects.requireNonNull(SecurityContextHolder.getContext().getAuthentication()).getPrincipal();
-        if (Objects.isNull(userDetails)) {
-            return ResponseEntity.badRequest().body("User not authenticated.");
-        }
-        String username = userDetails.getUsername();
-        return ResponseEntity.ok("Hello, " + username + "! This is a protected endpoint.");
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refreshToken(@RequestBody TokenRefreshRequest request) {
+        return authService.refreshToken(request.refreshToken());
     }
+
 }
