@@ -30,6 +30,34 @@ mariadb -h localhost -P 3307 -u root -p
 USE farmers_market_db;
 ```
 
+### Importing Data
+
+**Environment Variables:**
+
+All database connection settings are configured via environment variables:
+
+- `DB_HOST` - Database host/IP (default: localhost)
+- `DB_PORT` - Database port (default: 3307)
+- `DB_NAME` - Database name (default: farmers_market_db)
+- `DB_USER` - Database username (required)
+- `DB_PASSWORD` - Database password (required)
+
+**Run Import Scripts:**
+
+```bash
+# Navigate to importing directory
+cd importing
+
+# Install libraries
+pip install -r requirements.txt
+
+# Import vendor profiles
+python import_vendors.py </path/to/excel_sheet>
+
+# Import vendor transactions
+python import_transactions.py </path/to/folder_with_excel_sheets/>
+```
+
 ### 2. Backend Setup
 
 ```bash
@@ -244,3 +272,4 @@ CSI43C9-farmers-market/
 ## License
 
 [Add your license here]
+
