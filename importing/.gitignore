@@ -1,0 +1,36 @@
+# Environment variables
+.env
+
+# Python
+*.pyc
+*.pyo
+__pycache__/
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.venv
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Excel temp files
+~$*.xlsx
+~$*.xls
