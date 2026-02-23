@@ -216,6 +216,37 @@ html.dark .hover\:bg-slate-800:hover,
     /* slate-800 */
 }
 
+/* Sidebar navigation hover - light green in light mode */
+html:not(.dark) aside nav a.hover-lift:hover {
+    background-color: rgba(16, 185, 129, 0.1) !important;
+    /* light green hover for sidebar menu items in light mode */
+}
+
+/* Button hover - light green in light mode (excludes Material UI buttons and dark mode toggle) */
+html:not(.dark) button.hover-lift:hover:not(.MuiButton-root):not([aria-label="Toggle dark mode"]) {
+    background-color: rgba(16, 185, 129, 0.1) !important;
+    /* light green hover for buttons in light mode */
+}
+
+/* Dark mode toggle button - keep white background on hover in light mode */
+html:not(.dark) button[aria-label="Toggle dark mode"]:hover {
+    background-color: #ffffff !important;
+}
+
+/* Material UI primary button - ensure green color on hover */
+html:not(.dark) button.MuiButton-containedPrimary:hover,
+html:not(.dark) button.MuiButton-containedPrimary:focus,
+html:not(.dark) button.MuiButton-containedPrimary:active {
+    background-color: #059669 !important;
+    color: #ffffff !important;
+}
+
+/* Table row hover - light green in light mode */
+html:not(.dark) tr.hover-lift:hover {
+    background-color: rgba(16, 185, 129, 0.1) !important;
+    /* light green hover for table rows in light mode */
+}
+
 /* Ensure light mode uses correct colors - these should be the default */
 html:not(.dark) .bg-slate-50 {
     background-color: rgb(248 250 252) !important;
@@ -240,6 +271,11 @@ html:not(.dark) .text-slate-500 {
 html:not(.dark) .text-slate-400 {
     color: rgb(148 163 184) !important;
     /* slate-400 */
+}
+
+html:not(.dark) .text-slate-700 {
+    color: rgb(51 65 85) !important;
+    /* slate-700 */
 }
 
 html:not(.dark) .border-slate-200 {
@@ -278,4 +314,200 @@ html:not(.dark) tbody tr.light-hover-bg {
 /* Also target with :hover for better specificity */
 html:not(.dark) tbody tr.light-hover-bg:hover {
     background-color: rgba(248, 250, 252, 0.5) !important;
+}
+
+/* ============================================
+   SMOOTH ANIMATIONS
+   ============================================ */
+
+/* Fade in animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Slide in from bottom */
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Slide in from right */
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Slide in from left */
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Scale in animation */
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Pulse animation */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+/* Shimmer loading animation */
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* Progress bar fill animation */
+@keyframes progressFill {
+    from {
+        width: 0;
+    }
+}
+
+/* Percentage change animation */
+@keyframes percentageChange {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.15);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Animation utility classes */
+.animate-fade-in {
+    animation: fadeIn 0.4s ease-out;
+}
+
+.animate-slide-up {
+    animation: slideInUp 0.5s ease-out;
+}
+
+.animate-slide-right {
+    animation: slideInRight 0.5s ease-out;
+}
+
+.animate-slide-left {
+    animation: slideInLeft 0.5s ease-out;
+}
+
+.animate-scale-in {
+    animation: scaleIn 0.3s ease-out;
+}
+
+.animate-pulse-slow {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-shimmer {
+    animation: shimmer 2s ease-in-out infinite;
+}
+
+.animate-percentage-change {
+    animation: percentageChange 0.4s ease-out;
+}
+
+/* Stagger animation delays for children */
+.animate-stagger > * {
+    animation: fadeIn 0.5s ease-out both;
+}
+
+.animate-stagger > *:nth-child(1) { animation-delay: 0.05s; }
+.animate-stagger > *:nth-child(2) { animation-delay: 0.1s; }
+.animate-stagger > *:nth-child(3) { animation-delay: 0.15s; }
+.animate-stagger > *:nth-child(4) { animation-delay: 0.2s; }
+.animate-stagger > *:nth-child(5) { animation-delay: 0.25s; }
+.animate-stagger > *:nth-child(6) { animation-delay: 0.3s; }
+.animate-stagger > *:nth-child(7) { animation-delay: 0.35s; }
+.animate-stagger > *:nth-child(8) { animation-delay: 0.4s; }
+
+/* Smooth transitions for all interactive elements */
+a, button, input, select, textarea {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Enhanced hover effects with smooth transitions */
+.hover-lift {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.dark .hover-lift:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Smooth focus transitions */
+input:focus, textarea:focus, select:focus {
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+/* Smooth backdrop blur transitions */
+.backdrop-blur-transition {
+    transition: backdrop-filter 0.3s ease, background-color 0.3s ease;
+}
+
+/* Smooth scale on click */
+.click-scale:active {
+    transform: scale(0.98);
+    transition: transform 0.1s ease;
+}
+
+/* Smooth opacity transitions */
+.opacity-transition {
+    transition: opacity 0.3s ease;
+}
+
+/* Smooth height transitions for collapsible content */
+.height-transition {
+    transition: height 0.3s ease, opacity 0.3s ease;
+    overflow: hidden;
 }
