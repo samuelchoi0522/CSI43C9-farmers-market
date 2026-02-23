@@ -223,20 +223,35 @@ export default function App() {
     }
 
     setIsSaving(true);
-    
+
     try {
-      // Replace this URL with your actual backend endpoint
-      const API_ENDPOINT = '/api/sales-records'; // TODO: Update with your actual endpoint
-      
+      const API_ENDPOINT = 'http://localhost:8080/api/vendor-transaction/batch';
+
+      const payload = records.map((record) => ({
+        vendorId: record.vendor_id,
+        vendorName: record.vendor_name,
+        marketDate: record.market_date, // "YYYY-MM-DD" string is OK for LocalDate
+        present: record.present,
+        snap: record.snap,
+        dufb: record.dufb,
+        wdfmTokens: record.wdfm_tokens,
+        voucher: record.voucher,
+        reimbursementDue: record.reimbursement_due,
+        reportedSales: record.reported_sales,
+        estProduceSales: record.est_produce_sales,
+        estNumTransactions: record.est_num_transactions,
+      }));
+
+      // We may change where we store jwt token
+      const token = localStorage.getItem('accessToken');
+
       const response = await fetch(API_ENDPOINT, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          market_date: currentMarketDate,
-          records: records,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
