@@ -21,7 +21,7 @@ import lombok.AllArgsConstructor;
 /**
  * Controller for handling user authentication.
  * This class provides endpoints for authentication-related operations, including user login.
- * It is annotated with {@link RestController}, meaning it is a controller where every method returns a domain object instead of a view.
+ * It is annotated with {@link RestController}, meaning it is a controller where every method returns a domain object instead of a view
  */
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController

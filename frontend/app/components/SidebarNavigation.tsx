@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import Button from "./Button";
 
 interface SidebarNavigationProps {
@@ -10,15 +11,15 @@ interface SidebarNavigationProps {
 }
 
 export default function SidebarNavigation({ 
-  activeItem = "Financial Overview",
+  activeItem = "Dashboard",
   className = ""
 }: SidebarNavigationProps) {
   const navigationItems = [
-    { id: "Financial Overview", label: "Financial Overview", icon: "dashboard" },
-    { id: "Daily Reports", label: "Daily Reports", icon: "description" },
-    { id: "Vendor Analytics", label: "Vendor Analytics", icon: "analytics" },
-    { id: "Tax Compliance", label: "Tax Compliance", icon: "receipt" },
-    { id: "Revenue Audits", label: "Revenue Audits", icon: "assessment" },
+    { id: "Dashboard", label: "Dashboard", icon: "dashboard", href: "/dashboard" },
+    { id: "Vendors", label: "Vendors", icon: "store", href: "/vendors" },
+    { id: "Daily Reports", label: "Daily Reports", icon: "description", href: "#" },
+    { id: "Vendor Analytics", label: "Vendor Analytics", icon: "analytics", href: "#" },
+    { id: "Revenue Audits", label: "Revenue Audits", icon: "assessment", href: "#" },
   ];
 
   return (
@@ -30,24 +31,25 @@ export default function SidebarNavigation({
         <h1 className="font-bold text-xl tracking-tight">MarketOS</h1>
       </div>
       
-      <nav className="flex-1 px-4 space-y-2">
-        {navigationItems.map((item) => {
+      <nav className="flex-1 px-4 space-y-2 animate-stagger">
+        {navigationItems.map((item, index) => {
           const isActive = item.id === activeItem;
           return (
-            <a
+            <Link
               key={item.id}
-              className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-colors ${
+              href={item.href}
+              className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 ease-out hover-lift ${
                 isActive
-                  ? "bg-[#10b981]/10 text-[#10b981] font-medium"
-                  : "text-slate-900 dark:text-slate-400 hover:bg-slate-50/15 dark:hover:bg-slate-700/15"
+                  ? "bg-[#10b981]/10 text-[#10b981] font-medium shadow-sm"
+                  : "text-slate-900 dark:text-slate-400 hover:bg-[#10b981]/10 dark:hover:bg-slate-800"
               }`}
-              href="#"
+              style={{ animationDelay: `${index * 0.05}s` }}
             >
-              <span className={`material-icons text-lg leading-none ${isActive ? "" : "text-slate-900 dark:text-slate-400"}`}>
+              <span className={`material-icons text-lg leading-none transition-transform duration-200 ${isActive ? "" : "text-slate-900 dark:text-slate-400"} ${!isActive ? "group-hover:scale-110" : ""}`}>
                 {item.icon}
               </span>
               {item.label}
-            </a>
+            </Link>
           );
         })}
       </nav>

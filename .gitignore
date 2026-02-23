@@ -67,3 +67,6 @@ bin/
 /logs/
 README.md
 frontend/yarn.lock
+
+# MacOS
+.DS_Store

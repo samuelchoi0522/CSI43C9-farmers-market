@@ -38,20 +38,21 @@ public class Vendor implements IdentifiableUuid {
     private String products;
 
     /** Whether the vendor is active at the market. */
-    private boolean isActive;
+    @Builder.Default
+    private Boolean isActive = true;
 
     /** Whether the vendor is a farmer. */
-    private boolean isFarmer;
+    private Boolean isFarmer;
 
     /** Whether the vendor sells produce. */
-    private boolean isProduce;
+    private Boolean isProduce;
 
     /** Whether the business is woman-owned. */
-    private boolean womanOwned;
+    private Boolean womanOwned;
 
     /** Whether the business is BIPOC-owned. */
-    private boolean bipocOwned;
+    private Boolean bipocOwned;
 
     /** Whether the business is veteran-owned. */
-    private boolean veteranOwned;
+    private Boolean veteranOwned;
 }
