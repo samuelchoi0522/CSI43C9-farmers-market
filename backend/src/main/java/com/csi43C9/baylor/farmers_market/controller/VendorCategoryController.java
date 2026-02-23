@@ -1,25 +1,20 @@
 package com.csi43C9.baylor.farmers_market.controller;
 
-import com.csi43C9.baylor.farmers_market.dto.VendorLabelRequest;
+import com.csi43C9.baylor.farmers_market.dto.vendor.CategoryLabelDto;
+import com.csi43C9.baylor.farmers_market.dto.vendor.VendorLabelRequest;
 import com.csi43C9.baylor.farmers_market.service.VendorCategoryService;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
 
 /**
- * REST Controller for managing the categories (labels) associated with a specific vendor.
- * <p>
- * This controller provides endpoints to retrieve the current categories for a vendor,
- * add new categories in bulk, and remove specific categories.
- * All endpoints require the user to be authenticated.
+ * REST Controller for managing the general categories (labels) associated with a specific vendor.
+ * Maps to the `vendor_category_labels` and `category_labels` tables.
  */
 @RestController
 @RequestMapping("/vendors/{vendorId}/categories")
@@ -33,44 +28,45 @@ public class VendorCategoryController {
     }
 
     /**
-     * Retrieves the list of category label IDs currently associated with a vendor.
-     *
-     * @param vendorId the UUID of the vendor to fetch categories for
-     * @return a list of Long IDs representing the categories assigned to the vendor
+     * Retrieves the list of category labels currently associated with a vendor.
+     * * @param vendorId the UUID of the vendor
+     * @return a list of CategoryLabelDto (containing both ID and Name)
      */
     @GetMapping
-    public List<Long> getVendorCategoryIds(@PathVariable UUID vendorId) {
-        return service.getLabelIdsForVendor(vendorId);
+    public ResponseEntity<List<CategoryLabelDto>> getVendorCategories(@PathVariable UUID vendorId) {
+        List<CategoryLabelDto> categories = service.getLabelsForVendor(vendorId);
+        return ResponseEntity.ok(categories);
     }
 
     /**
      * Adds a list of categories to a vendor.
-     * <p>
-     * This endpoint accepts a list of label IDs and associates them with the specified vendor.
-     * If a label is already associated with the vendor, it is ignored (idempotent for duplicates).
+     * Maps to inserts on `vendor_category_labels`.
      *
-     * @param vendorId the UUID of the vendor to add categories to
-     * @param request  the request body containing the list of label IDs to add
+     * @param vendorId the UUID of the vendor
+     * @param request  request body containing the list of label IDs
      */
     @PostMapping
-    public void addCategories(
+    public ResponseEntity<Void> addCategories(
             @PathVariable UUID vendorId,
-            @RequestBody VendorLabelRequest request
+            @Valid @RequestBody VendorLabelRequest request
     ) {
         service.addLabelsToVendor(vendorId, request.getLabelIds());
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     /**
      * Removes a specific category assignment from a vendor.
+     * Maps to a delete on `vendor_category_labels`.
      *
      * @param vendorId the UUID of the vendor
-     * @param labelId  the ID of the specific category label to remove
+     * @param labelId  the ID of the category label
      */
     @DeleteMapping("/{labelId}")
-    public void removeCategory(
+    public ResponseEntity<Void> removeCategory(
             @PathVariable UUID vendorId,
-            @PathVariable long labelId
+            @PathVariable Long labelId
     ) {
         service.removeLabelFromVendor(vendorId, labelId);
+        return ResponseEntity.noContent().build();
     }
 }

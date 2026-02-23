@@ -53,30 +53,30 @@ public class SaveVendorRequest {
     /**
      * Flag indicating if the vendor is a primary farmer/producer.
      */
-    private boolean isFarmer;
+    private Boolean isFarmer;
 
     /**
      * Flag indicating if the vendor primarily sells produce.
      */
-    private boolean isProduce;
+    private Boolean isProduce;
 
     /**
      * Flag indicating if the vendor is active at the market.
      */
-    private boolean isActive;
+    private Boolean isActive;
 
     /**
      * Diversity indicator: True if the business is woman-owned.
      */
-    private boolean womanOwned;
+    private Boolean womanOwned;
 
     /**
      * Diversity indicator: True if the business is BIPOC-owned.
      */
-    private boolean bipocOwned;
+    private Boolean bipocOwned;
 
     /**
      * Diversity indicator: True if the business is veteran-owned.
      */
-    private boolean veteranOwned;
+    private Boolean veteranOwned;
 }

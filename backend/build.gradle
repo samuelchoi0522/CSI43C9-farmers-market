@@ -50,6 +50,7 @@ dependencies {
 
     // DB
     runtimeOnly 'com.mysql:mysql-connector-j'
+    implementation 'net.datafaker:datafaker:2.5.4'
 
     // Testing
     testImplementation 'org.springframework.boot:spring-boot-starter-test'

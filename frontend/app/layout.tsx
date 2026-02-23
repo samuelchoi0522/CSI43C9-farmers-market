@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Fraunces } from "next/font/google";
 import "./globals.css";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -15,8 +16,8 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "Market Manager Login | Harvest Hub",
-  description: "Harvest Hub Market Manager Portal",
+  title: "Market Manager Login | MarketOS",
+  description: "MarketOS Market Manager Portal",
 };
 
 export default function RootLayout({
@@ -35,10 +36,20 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
-                const darkMode = localStorage.getItem("darkMode");
-                if (darkMode === "true") {
-                  document.documentElement.classList.add("dark");
-                } else {
+                try {
+                  const storedDarkMode = localStorage.getItem("darkMode");
+                  if (storedDarkMode === null) {
+                    // If no preference, default to light mode and save it
+                    document.documentElement.classList.remove("dark");
+                    localStorage.setItem("darkMode", "false");
+                  } else if (storedDarkMode === "true") {
+                    document.documentElement.classList.add("dark");
+                  } else {
+                    document.documentElement.classList.remove("dark");
+                  }
+                } catch (e) {
+                  console.error("Failed to access localStorage for dark mode:", e);
+                  // Fallback to light mode if localStorage is unavailable
                   document.documentElement.classList.remove("dark");
                 }
               })();
@@ -49,7 +60,9 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${fraunces.variable} antialiased`}
       >
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

@@ -1,5 +1,6 @@
 package com.csi43C9.baylor.farmers_market.repository;
 
+import com.csi43C9.baylor.farmers_market.dto.vendor.CategoryLabelDto;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -11,7 +12,7 @@ import java.util.UUID;
  * Repository for managing the many-to-many relationship between Vendors and Category Labels.
  * <p>
  * This class handles the direct database operations for the {@code vendor_category_labels} table,
- * providing methods to link labels to vendors, remove links, and retrieve associated label IDs.
+ * providing methods to link labels to vendors, remove links, and retrieve associated labels.
  * It handles the necessary conversion between Java {@link UUID} objects and the
  * {@code BINARY(16)} format used in the database schema.
  */
@@ -25,20 +26,24 @@ public class VendorCategoryRepository {
     }
 
     /**
-     * Retrieves all label IDs currently associated with a specific vendor.
+     * Retrieves all category labels (ID and Name) currently associated with a specific vendor.
      *
      * @param vendorId the unique UUID of the vendor
-     * @return a list of Long IDs representing the labels associated with the vendor;
+     * @return a list of CategoryLabelDto representing the labels associated with the vendor;
      * returns an empty list if no labels are found
      */
-    public List<Long> findLabelIdsByVendor(UUID vendorId) {
+    public List<CategoryLabelDto> findLabelsByVendor(UUID vendorId) {
         String sql = """
-            SELECT label_id
-            FROM vendor_category_labels
-            WHERE vendor_id = ?
+            SELECT cl.id, cl.name
+            FROM vendor_category_labels vcl
+            JOIN category_labels cl ON vcl.label_id = cl.id
+            WHERE vcl.vendor_id = ?
         """;
 
-        return jdbc.queryForList(sql, Long.class, uuidToBytes(vendorId));
+        return jdbc.query(sql, (rs, rowNum) -> new CategoryLabelDto(
+                rs.getLong("id"),
+                rs.getString("name")
+        ), uuidToBytes(vendorId));
     }
 
     /**
@@ -53,7 +58,6 @@ public class VendorCategoryRepository {
      * If the list is null or empty, the operation returns immediately.
      */
     public void insertVendorLabels(UUID vendorId, List<Long> labelIds) {
-        // Only proceed if there is data to insert
         if (labelIds == null || labelIds.isEmpty()) {
             return;
         }
@@ -75,7 +79,7 @@ public class VendorCategoryRepository {
      * @param vendorId the unique UUID of the vendor
      * @param labelId  the ID of the label to remove
      */
-    public void deleteVendorLabel(UUID vendorId, long labelId) {
+    public void deleteVendorLabel(UUID vendorId, Long labelId) {
         String sql = """
             DELETE FROM vendor_category_labels
             WHERE vendor_id = ?
