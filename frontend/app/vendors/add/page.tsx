@@ -61,12 +61,13 @@ function AddVendorContent() {
         let completed = 0;
         let total = 0;
 
-        // Basic Info (4 fields)
+        // Basic Info (5 fields)
         // Vendor Name is required, so it counts double
-        total += 5; // 2 for vendorName, 1 each for others
+        total += 6; // 2 for vendorName, 1 each for others
         if (formData.vendorName.trim()) completed += 2; // Required field counts double
         if (formData.pointPerson.trim()) completed++;
         if (formData.email.trim()) completed++;
+        if (formData.location.trim()) completed++;
         if (formData.miles.trim() && formData.miles !== "0") completed++;
 
         // Products (2 fields)
@@ -405,6 +406,10 @@ function AddVendorContent() {
                                             <p className="text-sm font-medium">{formData.email ? formData.email : <span className="text-slate-400 italic">Not provided</span>}</p>
                                         </div>
                                         <div>
+                                            <p className="text-xs text-slate-700 dark:text-slate-400 mb-1">Location</p>
+                                            <p className="text-sm font-medium">{formData.location ? formData.location : <span className="text-slate-400 italic">Not provided</span>}</p>
+                                        </div>
+                                        <div>
                                             <p className="text-xs text-slate-700 dark:text-slate-400 mb-1">Miles from Market</p>
                                             <p className="text-sm font-medium">{formData.miles || "0"} mi</p>
                                         </div>
@@ -585,6 +590,21 @@ function AddVendorContent() {
                                         {errors.email && (
                                             <p className="mt-1 text-sm text-red-500">{errors.email}</p>
                                         )}
+                                    </div>
+
+                                    <div>
+                                        <label htmlFor="location" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                            Location
+                                        </label>
+                                        <input
+                                            type="text"
+                                            id="location"
+                                            name="location"
+                                            value={formData.location}
+                                            onChange={handleInputChange}
+                                            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-[#10b981] focus:border-[#10b981] outline-none transition-colors"
+                                            placeholder="e.g. Downtown Plaza, Main Street"
+                                        />
                                     </div>
 
                                     <div>
