@@ -84,13 +84,13 @@ public class Seeder {
             v.setEmail(faker.internet().emailAddress());
             v.setLocation(faker.address().fullAddress());
             v.setMiles(faker.number().randomDigit());
-            v.setFarmer(faker.bool().bool());
-            v.setProduce(faker.bool().bool());
+            v.setIsFarmer(faker.bool().bool());
+            v.setIsProduce(faker.bool().bool());
             v.setWomanOwned(faker.bool().bool());
             v.setBipocOwned(faker.bool().bool());
             v.setVeteranOwned(faker.bool().bool());
 
-            v.setActive(true);
+            v.setIsActive(true);
             vendorRepository.save(v);
         }
         System.out.println("Done seeding!");
