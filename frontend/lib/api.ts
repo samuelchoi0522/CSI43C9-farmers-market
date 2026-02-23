@@ -13,7 +13,8 @@ export interface LoginRequest {
 export interface JwtResponse {
   accessToken: string;
   refreshToken: string;
-  type: string;
+  type?: string; // Optional - login returns "type", refresh returns "tokenType"
+  tokenType?: string; // Optional - refresh endpoint returns this instead of "type"
 }
 
 export interface ApiError {
@@ -21,12 +22,81 @@ export interface ApiError {
   status?: number;
 }
 
+// Flag to prevent infinite refresh loops
+let isRefreshing = false;
+let refreshPromise: Promise<JwtResponse | null> | null = null;
+
+/**
+ * Refreshes the access token using the refresh token
+ * This is a direct fetch call to avoid circular dependencies with apiRequest
+ */
+async function refreshAccessToken(): Promise<JwtResponse | null> {
+  // If already refreshing, wait for the existing refresh to complete
+  if (isRefreshing && refreshPromise) {
+    return refreshPromise;
+  }
+
+  isRefreshing = true;
+  refreshPromise = (async () => {
+    try {
+      const refreshTokenValue = typeof window !== 'undefined' 
+        ? localStorage.getItem('refreshToken') 
+        : null;
+
+      if (!refreshTokenValue) {
+        return null;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refreshToken: refreshTokenValue }),
+      });
+
+      if (!response.ok) {
+        // Refresh failed, clear tokens
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+        }
+        return null;
+      }
+
+      const data: JwtResponse = await response.json();
+      
+      // Store new tokens
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('accessToken', data.accessToken);
+        localStorage.setItem('refreshToken', data.refreshToken);
+      }
+
+      return data;
+    } catch {
+      // Refresh failed, clear tokens
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+      }
+      return null;
+    } finally {
+      isRefreshing = false;
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
+
 /**
  * Makes an API request with authentication headers
+ * Automatically refreshes token on 401 errors and retries the request
  */
 async function apiRequest<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  isRetry = false
 ): Promise<T> {
   const token = typeof window !== 'undefined' 
     ? localStorage.getItem('accessToken') 
@@ -63,13 +133,30 @@ async function apiRequest<T>(
       ...options,
       headers,
     });
-  } catch (fetchError) {
+  } catch {
     // Network error or CORS issue
     const error: ApiError = {
       message: `Network error: Unable to connect to ${API_BASE_URL}. Please check if the server is running and CORS is configured.`,
       status: 0,
     };
     throw error;
+  }
+
+  // If we get a 401 and haven't already retried, try to refresh the token
+  if (response.status === 401 && !isRetry && endpoint !== '/api/auth/refresh') {
+    const refreshed = await refreshAccessToken();
+    
+    if (refreshed) {
+      // Retry the original request with the new token
+      return apiRequest<T>(endpoint, options, true);
+    } else {
+      // Refresh failed, throw error
+      const error: ApiError = {
+        message: 'Session expired. Please log in again.',
+        status: 401,
+      };
+      throw error;
+    }
   }
 
   if (!response.ok) {
@@ -109,6 +196,8 @@ export async function login(credentials: LoginRequest): Promise<JwtResponse> {
 
 /**
  * Refresh token API call
+ * Note: This uses apiRequest, but apiRequest will not auto-refresh for this endpoint
+ * to avoid circular calls. For automatic refresh, use the internal refreshAccessToken function.
  */
 export async function refreshToken(refreshToken: string): Promise<JwtResponse> {
   return apiRequest<JwtResponse>('/api/auth/refresh', {
@@ -119,13 +208,10 @@ export async function refreshToken(refreshToken: string): Promise<JwtResponse> {
 
 /**
  * Check if the current session is valid by making an authenticated request
- * This can be any protected endpoint - we'll use a simple check
+ * Validates the token by making a lightweight request to a protected endpoint
  */
 export async function checkSession(): Promise<boolean> {
   try {
-    // Try to make a request that requires authentication
-    // If the backend has a /api/auth/me or similar endpoint, use that
-    // Otherwise, we can validate the token exists and is not expired
     const token = typeof window !== 'undefined' 
       ? localStorage.getItem('accessToken') 
       : null;
@@ -134,11 +220,15 @@ export async function checkSession(): Promise<boolean> {
       return false;
     }
 
-    // For now, we'll just check if token exists
-    // In a real app, you might want to decode and check expiration
-    // or make a request to a protected endpoint
+    // Validate token by making a lightweight request to a protected endpoint
+    // Using GET /api/vendor with minimal page size to validate without fetching much data
+    await apiRequest<unknown>('/api/vendor?page=0&size=1', {
+      method: 'GET',
+    });
+
     return true;
-  } catch (error) {
+  } catch {
+    // If the request fails (401, 403, network error, etc.), session is invalid
     return false;
   }
 }
