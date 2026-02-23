@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import DarkModeToggle from "../components/DarkModeToggle";
 import SidebarNavigation from "../components/SidebarNavigation";
@@ -32,12 +32,11 @@ function VendorsContent() {
         return document.documentElement.classList.contains("dark");
     });
     const [searchQuery, setSearchQuery] = useState("");
-    const [filteredVendors, setFilteredVendors] = useState<Vendor[]>([]);
     const { user, logout } = useAuth();
     const userName = user?.username || "Admin User";
 
-    // Mock vendor data
-    const mockVendors: Vendor[] = [
+    // Mock vendor data - moved outside component to avoid recreation on each render
+    const mockVendors: Vendor[] = useMemo(() => [
         {
             id: "1",
             name: "Alba's Pupusas",
@@ -218,7 +217,23 @@ function VendorsContent() {
             bipocOwned: false,
             veteranOwned: true,
         },
-    ];
+    ], []);
+
+    // Compute filtered vendors based on search query
+    const filteredVendors = useMemo(() => {
+        if (searchQuery.trim() === "") {
+            return mockVendors;
+        }
+        const query = searchQuery.toLowerCase();
+        return mockVendors.filter(
+            (vendor) =>
+                vendor.name.toLowerCase().includes(query) ||
+                vendor.pointPerson.toLowerCase().includes(query) ||
+                vendor.email.toLowerCase().includes(query) ||
+                vendor.location.toLowerCase().includes(query) ||
+                vendor.products.toLowerCase().includes(query)
+        );
+    }, [searchQuery, mockVendors]);
 
     useEffect(() => {
         const checkDarkMode = () => {
@@ -226,8 +241,8 @@ function VendorsContent() {
             setIsDarkMode(isDark);
         };
 
-        const isDark = document.documentElement.classList.contains("dark");
-        setIsDarkMode(isDark);
+        // Initial state is already set via useState initializer, so we don't need to set it here
+        // Just set up the observer and event listener
 
         const observer = new MutationObserver(checkDarkMode);
         observer.observe(document.documentElement, {
@@ -259,24 +274,6 @@ function VendorsContent() {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [showUserMenu]);
-
-    useEffect(() => {
-        if (searchQuery.trim() === "") {
-            setFilteredVendors(mockVendors);
-        } else {
-            const query = searchQuery.toLowerCase();
-            setFilteredVendors(
-                mockVendors.filter(
-                    (vendor) =>
-                        vendor.name.toLowerCase().includes(query) ||
-                        vendor.pointPerson.toLowerCase().includes(query) ||
-                        vendor.email.toLowerCase().includes(query) ||
-                        vendor.location.toLowerCase().includes(query) ||
-                        vendor.products.toLowerCase().includes(query)
-                )
-            );
-        }
-    }, [searchQuery]);
 
     const handleLogout = () => {
         logout();
