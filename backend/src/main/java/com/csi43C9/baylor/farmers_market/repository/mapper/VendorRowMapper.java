@@ -21,9 +21,9 @@ public class VendorRowMapper implements RowMapper<Vendor> {
         vendor.setLocation(rs.getString("location"));
         vendor.setMiles(rs.getObject("miles", Integer.class));
         vendor.setProducts(rs.getString("products"));
-        vendor.setActive(rs.getBoolean("is_active"));
-        vendor.setFarmer(rs.getBoolean("is_farmer"));
-        vendor.setProduce(rs.getBoolean("is_produce"));
+        vendor.setIsActive(rs.getBoolean("is_active"));
+        vendor.setIsFarmer(rs.getBoolean("is_farmer"));
+        vendor.setIsProduce(rs.getBoolean("is_produce"));
         vendor.setWomanOwned(rs.getBoolean("woman_owned"));
         vendor.setBipocOwned(rs.getBoolean("bipoc_owned"));
         vendor.setVeteranOwned(rs.getBoolean("veteran_owned"));
