@@ -23,43 +23,8 @@ function DashboardContent() {
             // Force re-render when dark mode changes
             const isDark = document.documentElement.classList.contains("dark");
             setIsDarkMode(isDark);
-            console.log("[Dashboard] Dark mode changed:", isDark);
-            console.log("[Dashboard] HTML classes:", document.documentElement.className);
-
-            // Check table row hover styles
-            setTimeout(() => {
-                const tableRows = document.querySelectorAll('tbody tr');
-                tableRows.forEach((row, index) => {
-                    const computedStyle = window.getComputedStyle(row);
-                    console.log(`[Dashboard] Table row ${index}:`, {
-                        backgroundColor: computedStyle.backgroundColor,
-                        classes: row.className,
-                        isDark: isDark
-                    });
-                });
-            }, 100);
         };
 
-        // Initial check
-        const isDark = document.documentElement.classList.contains("dark");
-        console.log("[Dashboard] Initial dark mode state:", isDark);
-        console.log("[Dashboard] Initial HTML classes:", document.documentElement.className);
-
-        // Check table row hover styles after a short delay to ensure DOM is ready
-        setTimeout(() => {
-            const tableRows = document.querySelectorAll('tbody tr');
-            console.log("[Dashboard] Found table rows:", tableRows.length);
-            tableRows.forEach((row, index) => {
-                const computedStyle = window.getComputedStyle(row);
-                console.log(`[Dashboard] Initial Table row ${index}:`, {
-                    backgroundColor: computedStyle.backgroundColor,
-                    classes: row.className,
-                    hoverBackground: window.getComputedStyle(row, ':hover').backgroundColor
-                });
-            });
-        }, 1000);
-
-        // Listen for dark mode changes
         const observer = new MutationObserver(checkDarkMode);
         observer.observe(document.documentElement, {
             attributes: true,
@@ -137,7 +102,6 @@ function DashboardContent() {
                                 <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-2 z-50">
                                     <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-700">
                                         <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{userName}</p>
-                                        <p className="text-xs text-slate-600 dark:text-slate-400">admin@markethub.com</p>
                                     </div>
                                     <Button
                                         onClick={handleLogout}

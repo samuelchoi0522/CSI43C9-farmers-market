@@ -7,6 +7,7 @@ import SidebarNavigation from "../../components/SidebarNavigation";
 import Button from "../../components/Button";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
+import { createVendor } from "@/lib/api";
 
 interface VendorFormData {
     vendorName: string;
@@ -249,11 +250,31 @@ function AddVendorContent() {
         setIsSubmitting(true);
 
         try {
-            // TODO: Replace with actual API call when backend is ready
-            // await createVendor(formData);
-            
-            // Simulate API call
-            await new Promise((resolve) => setTimeout(resolve, 1000));
+            // Combine products and productDetails for the products field
+            const productsText = [
+                formData.products,
+                formData.productDetails
+            ].filter(Boolean).join('\n\n');
+
+            // Convert miles from string to number
+            const milesNumber = formData.miles && formData.miles !== "0" 
+                ? parseInt(formData.miles, 10) 
+                : undefined;
+
+            await createVendor({
+                vendorName: formData.vendorName,
+                pointPerson: formData.pointPerson || undefined,
+                email: formData.email || undefined,
+                location: formData.location || undefined,
+                miles: milesNumber,
+                products: productsText || undefined,
+                isFarmer: formData.isFarmer,
+                isProduce: formData.isProduce,
+                isActive: formData.isActive,
+                womanOwned: formData.womanOwned,
+                bipocOwned: formData.bipocOwned,
+                veteranOwned: formData.veteranOwned,
+            });
 
             // Redirect to vendors list
             router.push("/vendors");
@@ -310,7 +331,6 @@ function AddVendorContent() {
                             <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-2 z-50">
                                 <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-700">
                                     <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{userName}</p>
-                                    <p className="text-xs text-slate-600 dark:text-slate-400">admin@markethub.com</p>
                                 </div>
                                 <Button
                                     onClick={handleLogout}

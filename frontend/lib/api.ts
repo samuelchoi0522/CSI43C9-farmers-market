@@ -1,4 +1,9 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+// Use production URL when running `yarn start` (production mode)
+// Use localhost when running `yarn dev` (development mode)
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
+  (process.env.NODE_ENV === 'production' 
+    ? 'https://wacofarmersmarket.xyz' 
+    : 'http://localhost:8080');
 
 export interface LoginRequest {
   username: string;
@@ -27,19 +32,45 @@ async function apiRequest<T>(
     ? localStorage.getItem('accessToken') 
     : null;
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(options.headers as Record<string, string>),
-  };
-
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  const headers = new Headers();
+  
+  // Copy existing headers if provided
+  if (options.headers) {
+    if (options.headers instanceof Headers) {
+      options.headers.forEach((value, key) => {
+        headers.set(key, value);
+      });
+    } else if (Array.isArray(options.headers)) {
+      options.headers.forEach(([key, value]) => {
+        headers.set(key, value);
+      });
+    } else {
+      Object.entries(options.headers).forEach(([key, value]) => {
+        headers.set(key, value);
+      });
+    }
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  headers.set('Content-Type', 'application/json');
+
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers,
+    });
+  } catch (fetchError) {
+    // Network error or CORS issue
+    const error: ApiError = {
+      message: `Network error: Unable to connect to ${API_BASE_URL}. Please check if the server is running and CORS is configured.`,
+      status: 0,
+    };
+    throw error;
+  }
 
   if (!response.ok) {
     const error: ApiError = {
@@ -120,5 +151,46 @@ export async function authenticatedRequest<T>(
   options: RequestInit = {}
 ): Promise<T> {
   return apiRequest<T>(endpoint, options);
+}
+
+export interface CreateVendorRequest {
+  vendorName: string;
+  pointPerson?: string;
+  email?: string;
+  location?: string;
+  miles?: number;
+  products?: string;
+  isFarmer: boolean;
+  isProduce: boolean;
+  isActive: boolean;
+  womanOwned: boolean;
+  bipocOwned: boolean;
+  veteranOwned: boolean;
+}
+
+export interface Vendor {
+  uuid: string;
+  vendorName: string;
+  pointPerson?: string;
+  email?: string;
+  location?: string;
+  miles?: number;
+  products?: string;
+  isFarmer: boolean;
+  isProduce: boolean;
+  isActive: boolean;
+  womanOwned: boolean;
+  bipocOwned: boolean;
+  veteranOwned: boolean;
+}
+
+/**
+ * Create a new vendor
+ */
+export async function createVendor(request: CreateVendorRequest): Promise<Vendor> {
+  return apiRequest<Vendor>('/api/vendor', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
 }
 
