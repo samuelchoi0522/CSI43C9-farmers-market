@@ -91,11 +91,13 @@ public class VendorService {
             vendor.setLocation(request.getLocation());
             vendor.setMiles(request.getMiles());
             vendor.setProducts(request.getProducts());
-            vendor.setFarmer(request.isFarmer());
-            vendor.setProduce(request.isProduce());
-            vendor.setWomanOwned(request.isWomanOwned());
-            vendor.setBipocOwned(request.isBipocOwned());
-            vendor.setVeteranOwned(request.isVeteranOwned());
+
+            // Safely unbox: null becomes false
+            vendor.setIsFarmer(Boolean.TRUE.equals(request.getIsFarmer()));
+            vendor.setIsProduce(Boolean.TRUE.equals(request.getIsProduce()));
+            vendor.setWomanOwned(Boolean.TRUE.equals(request.getWomanOwned()));
+            vendor.setBipocOwned(Boolean.TRUE.equals(request.getBipocOwned()));
+            vendor.setVeteranOwned(Boolean.TRUE.equals(request.getVeteranOwned()));
             return vendor;
         }
 

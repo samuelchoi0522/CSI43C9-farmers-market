@@ -5,14 +5,17 @@ import DarkModeToggle from "../components/DarkModeToggle";
 import SidebarNavigation from "../components/SidebarNavigation";
 import CategoryRevenueChart from "../components/CategoryRevenueChart";
 import Button from "../components/Button";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { useAuth } from "@/contexts/AuthContext";
 
-export default function DashboardPage() {
+function DashboardContent() {
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(() => {
         if (typeof window === "undefined") return false;
         return document.documentElement.classList.contains("dark");
     });
-    const userName = "Admin User"; // This would come from auth context/API
+    const { user, logout } = useAuth();
+    const userName = user?.username || "Admin User";
 
     useEffect(() => {
         // Listen for dark mode changes to trigger re-renders
@@ -20,43 +23,8 @@ export default function DashboardPage() {
             // Force re-render when dark mode changes
             const isDark = document.documentElement.classList.contains("dark");
             setIsDarkMode(isDark);
-            console.log("[Dashboard] Dark mode changed:", isDark);
-            console.log("[Dashboard] HTML classes:", document.documentElement.className);
-
-            // Check table row hover styles
-            setTimeout(() => {
-                const tableRows = document.querySelectorAll('tbody tr');
-                tableRows.forEach((row, index) => {
-                    const computedStyle = window.getComputedStyle(row);
-                    console.log(`[Dashboard] Table row ${index}:`, {
-                        backgroundColor: computedStyle.backgroundColor,
-                        classes: row.className,
-                        isDark: isDark
-                    });
-                });
-            }, 100);
         };
 
-        // Initial check
-        const isDark = document.documentElement.classList.contains("dark");
-        console.log("[Dashboard] Initial dark mode state:", isDark);
-        console.log("[Dashboard] Initial HTML classes:", document.documentElement.className);
-
-        // Check table row hover styles after a short delay to ensure DOM is ready
-        setTimeout(() => {
-            const tableRows = document.querySelectorAll('tbody tr');
-            console.log("[Dashboard] Found table rows:", tableRows.length);
-            tableRows.forEach((row, index) => {
-                const computedStyle = window.getComputedStyle(row);
-                console.log(`[Dashboard] Initial Table row ${index}:`, {
-                    backgroundColor: computedStyle.backgroundColor,
-                    classes: row.className,
-                    hoverBackground: window.getComputedStyle(row, ':hover').backgroundColor
-                });
-            });
-        }, 1000);
-
-        // Listen for dark mode changes
         const observer = new MutationObserver(checkDarkMode);
         observer.observe(document.documentElement, {
             attributes: true,
@@ -91,33 +59,23 @@ export default function DashboardPage() {
     }, [showUserMenu]);
 
     const handleLogout = () => {
-        // TODO: Implement actual logout logic (clear tokens, redirect, etc.)
-        console.log("Logging out...");
-        // Example: window.location.href = "/login";
+        logout();
     };
 
     return (
         <div className="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-screen flex transition-colors duration-300">
             <DarkModeToggle position="fixed" className="bottom-6 right-6 top-auto" />
 
-            <SidebarNavigation activeItem="Financial Overview" />
+            <SidebarNavigation activeItem="Dashboard" />
 
             {/* Main Content */}
             <main className="flex-1 overflow-y-auto p-4 lg:p-8">
-                <header className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                <header className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 animate-slide-up">
                     <div>
-                        <h2 className="text-2xl font-bold">Financial Overview</h2>
-                        <p className="text-slate-700 dark:text-slate-400">Market Performance for {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                        <h2 className="text-2xl font-bold animate-fade-in">Dashboard</h2>
+                        <p className="text-slate-700 dark:text-slate-400 animate-fade-in" style={{ animationDelay: '0.1s' }}>Market Performance for {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
                     </div>
                     <div className="flex items-center gap-3">
-                        <Button variant="outline" className="flex items-center gap-2">
-                            <span className="material-icons text-lg leading-none">download</span>
-                            Financial Report
-                        </Button>
-                        <Button variant="primary" className="flex items-center gap-2">
-                            <span className="material-icons text-lg leading-none">description</span>
-                            Log Collection
-                        </Button>
                         {/* User Menu */}
                         <div className="relative user-menu-container">
                             <Button
@@ -144,7 +102,6 @@ export default function DashboardPage() {
                                 <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-2 z-50">
                                     <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-700">
                                         <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{userName}</p>
-                                        <p className="text-xs text-slate-600 dark:text-slate-400">admin@markethub.com</p>
                                     </div>
                                     <Button
                                         onClick={handleLogout}
@@ -162,11 +119,11 @@ export default function DashboardPage() {
                 </header>
 
                 {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 animate-stagger">
+                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover-lift transition-all duration-200">
                         <div className="flex items-center justify-between mb-4">
                             <div
-                                className="dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-2 rounded-xl flex items-center justify-center"
+                                className="dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
                                 style={{ backgroundColor: isDarkMode ? undefined : 'rgba(219, 234, 254, 0.5)' }}
                             >
                                 <span className="material-icons leading-none">credit_card</span>
@@ -179,21 +136,23 @@ export default function DashboardPage() {
                         <p className="text-3xl font-bold mt-1">$18,432.50</p>
                     </div>
 
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover-lift transition-all duration-200">
                         <div className="flex items-center justify-between mb-4">
-                            <div className="bg-[#10b981]/10 text-[#10b981] p-2 rounded-xl flex items-center justify-center">
+                            <div className="bg-[#10b981]/10 text-[#10b981] p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110">
                                 <span className="material-icons leading-none">attach_money</span>
                             </div>
-                            <span className="text-xs font-bold text-slate-700 dark:text-slate-500 uppercase">87% Collected</span>
+                            <span className="text-xs font-bold text-[#10b981] flex items-center gap-1">
+                                <span className="material-icons text-sm leading-none">trending_up</span> +12%
+                            </span>
                         </div>
                         <p className="text-slate-700 dark:text-slate-400 text-sm font-medium">Total Fees Collected</p>
                         <p className="text-3xl font-bold mt-1">$2,840.00</p>
                     </div>
 
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover-lift transition-all duration-200">
                         <div className="flex items-center justify-between mb-4">
                             <div
-                                className="dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 p-2 rounded-xl flex items-center justify-center"
+                                className="dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
                                 style={{ backgroundColor: isDarkMode ? undefined : 'rgba(254, 243, 199, 0.5)' }}
                             >
                                 <span className="material-icons leading-none">folder</span>
@@ -209,7 +168,7 @@ export default function DashboardPage() {
                 <CategoryRevenueChart />
 
                 {/* Vendor Tracking Table */}
-                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden animate-slide-up" style={{ animationDelay: '0.2s' }}>
                     <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <h3 className="font-bold text-lg">Vendor Tracking</h3>
                         <div className="flex items-center gap-2">
@@ -241,14 +200,12 @@ export default function DashboardPage() {
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                                 <tr
-                                    className="transition-colors dark:hover:bg-slate-700/50"
+                                    className="transition-all duration-200 ease-out dark:hover:bg-slate-700/50 hover-lift"
                                     onMouseEnter={(e) => {
                                         const isDark = document.documentElement.classList.contains("dark");
                                         const target = e.currentTarget;
                                         if (!isDark) {
-                                            // Add class first, then set inline style as backup
                                             target.classList.add('light-hover-bg');
-                                            // Also set inline style with proper visibility (FIXED: changed from 0.05 to 0.5)
                                             target.style.setProperty('background-color', 'rgba(248, 250, 252, 0.5)', 'important');
                                         }
                                     }}
@@ -265,7 +222,7 @@ export default function DashboardPage() {
                                         <span className="font-semibold">Alba&apos;s Pupusas</span>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100/50 text-slate-700 dark:bg-slate-700 dark:text-slate-200">Absent</span>
+                                        <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-[#8f8f8f] text-[#454545] dark:bg-slate-700 dark:text-slate-200">Absent</span>
                                     </td>
                                     <td className="px-6 py-4 text-sm">Ready-to-Eat</td>
                                     <td className="px-6 py-4 font-mono text-sm">$45.00</td>
@@ -277,7 +234,7 @@ export default function DashboardPage() {
                                     </td>
                                 </tr>
                                 <tr
-                                    className="transition-colors dark:hover:bg-slate-700/50"
+                                    className="transition-all duration-200 ease-out dark:hover:bg-slate-700/50 hover-lift"
                                     onMouseEnter={(e) => {
                                         const isDark = document.documentElement.classList.contains("dark");
                                         if (!isDark) {
@@ -309,7 +266,7 @@ export default function DashboardPage() {
                                     </td>
                                 </tr>
                                 <tr
-                                    className="transition-colors dark:hover:bg-slate-700/50"
+                                    className="transition-all duration-200 ease-out dark:hover:bg-slate-700/50 hover-lift"
                                     onMouseEnter={(e) => {
                                         const isDark = document.documentElement.classList.contains("dark");
                                         if (!isDark) {
@@ -341,7 +298,7 @@ export default function DashboardPage() {
                                     </td>
                                 </tr>
                                 <tr
-                                    className="transition-colors dark:hover:bg-slate-700/50"
+                                    className="transition-all duration-200 ease-out dark:hover:bg-slate-700/50 hover-lift"
                                     onMouseEnter={(e) => {
                                         const isDark = document.documentElement.classList.contains("dark");
                                         if (!isDark) {
@@ -373,7 +330,7 @@ export default function DashboardPage() {
                                     </td>
                                 </tr>
                                 <tr
-                                    className="transition-colors dark:hover:bg-slate-700/50"
+                                    className="transition-all duration-200 ease-out dark:hover:bg-slate-700/50 hover-lift"
                                     onMouseEnter={(e) => {
                                         const isDark = document.documentElement.classList.contains("dark");
                                         if (!isDark) {
@@ -487,5 +444,13 @@ export default function DashboardPage() {
                 </div>
             </main>
         </div>
+    );
+}
+
+export default function DashboardPage() {
+    return (
+        <ProtectedRoute>
+            <DashboardContent />
+        </ProtectedRoute>
     );
 }
