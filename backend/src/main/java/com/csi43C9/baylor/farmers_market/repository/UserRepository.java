@@ -43,7 +43,7 @@ public class UserRepository extends AbstractJdbcRepository implements MarketRepo
     private User insert(User u) {
         String sql = "insert into users (id, email, password_hash) values (?, ?, ?)";
         int result = jdbcTemplate.update(sql,
-                UuidUtils.toBytesObject(u.getId()),
+                UuidUtils.toBytes(u.getId()),
                 u.getEmail(),
                 u.getPasswordHash());
 
@@ -65,7 +65,7 @@ public class UserRepository extends AbstractJdbcRepository implements MarketRepo
         int result = jdbcTemplate.update(sql,
                 u.getEmail(),
                 u.getPasswordHash(),
-                UuidUtils.toBytesObject(u.getId()));
+                UuidUtils.toBytes(u.getId()));
 
         // Check if the update was successful.
         if (result != 1) {
