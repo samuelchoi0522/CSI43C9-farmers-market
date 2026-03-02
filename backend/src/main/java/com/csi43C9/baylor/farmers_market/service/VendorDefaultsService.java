@@ -95,11 +95,6 @@ public class VendorDefaultsService {
      */
     private void validatePercentages(SaveVendorDefaultsRequest request) {
         BigDecimal total = BigDecimal.ZERO;
-        System.out.println(Optional.ofNullable(request.getPctHandmade()).orElse(BigDecimal.ZERO));
-        System.out.println(Optional.ofNullable(request.getPctAgricultural()).orElse(BigDecimal.ZERO));
-        System.out.println(Optional.ofNullable(request.getPctPreparedFood()).orElse(BigDecimal.ZERO));
-        System.out.println(Optional.ofNullable(request.getPctCottageGoods()).orElse(BigDecimal.ZERO));
-        System.out.println(Optional.ofNullable(request.getPctManufactured()).orElse(BigDecimal.ZERO));
 
         total = total.add(Optional.ofNullable(request.getPctHandmade()).orElse(BigDecimal.ZERO));
         total = total.add(Optional.ofNullable(request.getPctAgricultural()).orElse(BigDecimal.ZERO));
