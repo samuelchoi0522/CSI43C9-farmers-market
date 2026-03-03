@@ -84,6 +84,14 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handles business logic errors like invalid percentages or data formats.
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<@NonNull ErrorResponse> handleIllegalArgument(IllegalArgumentException ex, WebRequest request) {
+        return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+    }
+
+    /**
      * Fallback handler for all other uncaught exceptions.
      */
     @ExceptionHandler(Exception.class)
