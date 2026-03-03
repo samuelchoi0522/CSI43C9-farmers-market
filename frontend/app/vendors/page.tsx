@@ -49,8 +49,6 @@ function VendorsContent() {
                         defaultsList = defaultsResponse;
                     } else if (defaultsResponse.data && Array.isArray(defaultsResponse.data)) {
                         defaultsList = defaultsResponse.data;
-                    } else if (defaultsResponse.content && Array.isArray(defaultsResponse.content)) {
-                        defaultsList = defaultsResponse.content;
                     }
                 }
 
