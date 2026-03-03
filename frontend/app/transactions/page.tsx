@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Table as TableIcon, 
   Trash2, 
@@ -14,6 +14,8 @@ import { AddVendorDialog } from '../components/AddVendorDialog'
 import { motion, AnimatePresence } from 'motion/react';
 import { toast, Toaster } from 'sonner';
 import * as XLSX from 'xlsx';
+import { bulkCreateVendorTransactions, type CreateVendorTransactionRequest } from '@/lib/api/transactions';
+import { getVendors, type Vendor as ApiVendor } from '@/lib/api/vendor';
 
 // --- Types ---
 interface Vendor {
@@ -36,19 +38,15 @@ interface SalesRecord {
   reimbursement_due: number;
   est_produce_sales: number;
   est_num_transactions: number;
+  isInvalid?: boolean;
 }
 
-// --- Mock Data ---
-const ALL_VENDORS: Vendor[] = [
-];
-
-const initialRecords: SalesRecord[] = [
-];
+const initialRecords: SalesRecord[] = [];
 
 // Helper to get the most recent Saturday
 const getMostRecentSaturday = () => {
   const d = new Date();
-  const day = d.getDay(); // 0 (Sun) to 6 (Sat)
+  const day = d.getDay();
   const diff = (day + 1) % 7;
   const result = new Date(d);
   result.setDate(d.getDate() - diff);
@@ -70,14 +68,24 @@ export default function App() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [allVendors, setAllVendors] = useState<Vendor[]>([]);
 
-  // Sync all records when market date changes
+  useEffect(() => {
+    getVendors(0, 100)
+      .then(res => {
+        console.log('Vendors response:', res);
+        setAllVendors(res.data.map((v: ApiVendor) => ({ id: v.id, name: v.vendorName })));
+      })
+      .catch(error => {
+        console.error('Failed to load vendors:', error);
+        toast.error('Failed to load vendors.');
+      });
+  }, []);
+
   const handleMarketDateChange = (newDate: string) => {
     setCurrentMarketDate(newDate);
     setRecords(prev => prev.map(r => ({ ...r, market_date: newDate })));
   };
-
-  // --- Handlers ---
 
   const handleImportClick = () => {
     fileInputRef.current?.click();
@@ -97,7 +105,6 @@ export default function App() {
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
         
-        // Use header: 1 to get raw array of arrays, then slice(1) to skip the first row (header)
         const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
         const dataRows = rows.slice(1);
 
@@ -108,20 +115,9 @@ export default function App() {
         }
 
         const importedRecords: SalesRecord[] = dataRows.filter(row => row.length > 0).map((row) => {
-          // Positional mapping based on Excel format:
-          // Col 0: Vendor Name
-          // Col 1: Present? (Y/N)
-          // Col 2: SNAP Voucher
-          // Col 3: DUFB Voucher
-          // Col 4: WDFM Tokens
-          // Col 5: Voucher
-          // Col 6: Reported Sales
-          
-          const vendorName = row[0]?.toString() || 'Unknown Vendor';
-          
-          // Handle Y/N format for Present column
+          const vendorName = row[0]?.toString().trim() || 'Unknown Vendor';
           const presentValue = row[1]?.toString().trim().toUpperCase();
-          const isPresent = presentValue === 'Y' || presentValue === 'YES' || presentValue === 'TRUE' || presentValue === true;
+          const isPresent = presentValue === 'Y' || presentValue === 'YES' || presentValue === 'TRUE';
           
           const snap = parseFloat(row[2] || 0);
           const dufb = parseFloat(row[3] || 0);
@@ -129,12 +125,11 @@ export default function App() {
           const voucher = parseFloat(row[5] || 0);
           const reportedSales = parseFloat(row[6] || 0);
 
-          // Find matching vendor ID if possible
-          const matchedVendor = ALL_VENDORS.find(v => v.name.toLowerCase() === vendorName.toLowerCase());
+          const matchedVendor = allVendors.find(v => v.name.toLowerCase() === vendorName.toLowerCase());
 
           return {
             id: Math.random().toString(36).substr(2, 9),
-            vendor_id: matchedVendor?.id || 'unknown',
+            vendor_id: matchedVendor?.id ?? '',
             vendor_name: vendorName,
             market_date: currentMarketDate,
             present: isPresent,
@@ -146,11 +141,18 @@ export default function App() {
             reported_sales: reportedSales,
             est_produce_sales: 0,
             est_num_transactions: 0,
+            isInvalid: !matchedVendor,
           };
         });
 
         setRecords(prev => [...importedRecords, ...prev]);
-        toast.success(`Successfully imported ${importedRecords.length} records from ${file.name}`);
+
+        const invalidCount = importedRecords.filter(r => r.isInvalid).length;
+        if (invalidCount > 0) {
+          toast.warning(`${invalidCount} vendor(s) could not be matched — highlighted in red. Correct the name(s) before saving.`);
+        } else {
+          toast.success(`Successfully imported ${importedRecords.length} records from ${file.name}`);
+        }
       } catch (error) {
         console.error("Error parsing file:", error);
         toast.error("Failed to process the file. Please ensure it's a valid Excel or CSV file.");
@@ -188,12 +190,11 @@ export default function App() {
       reported_sales: 0,
       est_produce_sales: 0,
       est_num_transactions: 0,
+      isInvalid: false,
     };
 
     setRecords(prev => [newRecord, ...prev]);
-    setTimeout(() => {
-        setEditingId(newRecord.id);
-    }, 50);
+    setTimeout(() => setEditingId(newRecord.id), 50);
     toast.success(`Added ${vendor.name}`);
   };
 
@@ -201,12 +202,29 @@ export default function App() {
     setRecords(prev => prev.map(r => {
       if (r.id !== id) return r;
       const updated = { ...r, ...updates };
+
+      // Re-validate vendor name if it changed
+      if ('vendor_name' in updates) {
+        for(const v of allVendors) {
+          if(v.name.toLowerCase() === updated.vendor_name.toLowerCase()) {
+            console.log(v.id)
+          }
+        }
+        const matchedVendor = allVendors.find(
+          v => v.name.toLowerCase() === updated.vendor_name.toLowerCase()
+        );
+        updated.vendor_id = matchedVendor?.id ?? '';
+        updated.isInvalid = !matchedVendor;
+        //console.log(updated)
+      }
+
       if (
         ('snap' in updates || 'dufb' in updates || 'wdfm_tokens' in updates || 'voucher' in updates) &&
         !('reimbursement_due' in updates)
       ) {
         updated.reimbursement_due = (updated.snap || 0) + (updated.dufb || 0) + (updated.wdfm_tokens || 0) + (updated.voucher || 0);
       }
+
       return updated;
     }));
   };
@@ -222,15 +240,19 @@ export default function App() {
       return;
     }
 
+    const invalidRows = records.filter(r => r.isInvalid || !r.vendor_id);
+    if (invalidRows.length > 0) {
+      toast.error(`Please fix ${invalidRows.length} invalid vendor name(s) before saving.`);
+      return;
+    }
+
     setIsSaving(true);
 
     try {
-      const API_ENDPOINT = 'http://localhost:8080/api/vendor-transaction/batch';
-
-      const payload = records.map((record) => ({
-        vendorId: record.vendor_id,
+      const payload: CreateVendorTransactionRequest[] = records.map((record) => ({
+        vendorId: record.vendor_id,       // guaranteed non-empty by guard above
         vendorName: record.vendor_name,
-        marketDate: record.market_date, // "YYYY-MM-DD" string is OK for LocalDate
+        marketDate: record.market_date,
         present: record.present,
         snap: record.snap,
         dufb: record.dufb,
@@ -242,25 +264,8 @@ export default function App() {
         estNumTransactions: record.est_num_transactions,
       }));
 
-      // We may change where we store jwt token
-      const token = localStorage.getItem('accessToken');
-
-      const response = await fetch(API_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Server responded with ${response.status}`);
-      }
-
-      const data = await response.json();
+      await bulkCreateVendorTransactions(payload);
       toast.success(`Successfully saved ${records.length} sales records!`);
-      console.log('Server response:', data);
     } catch (error) {
       console.error('Error saving to backend:', error);
       toast.error('Failed to save data. Please check your connection and try again.');
@@ -269,18 +274,14 @@ export default function App() {
     }
   };
 
+  const invalidCount = records.filter(r => r.isInvalid).length;
+
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-800 pb-20">
       <style dangerouslySetInnerHTML={{ __html: `
-        /* Remove arrows from number inputs */
         input::-webkit-outer-spin-button,
-        input::-webkit-inner-spin-button {
-          -webkit-appearance: none;
-          margin: 0;
-        }
-        input[type=number] {
-          -moz-appearance: textfield;
-        }
+        input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
       `}} />
       <Toaster position="top-right" />
       <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
@@ -313,7 +314,7 @@ export default function App() {
               {isImporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
               Import Excel
             </button>
-            <AddVendorDialog vendors={ALL_VENDORS} onAdd={handleAddVendor} />
+            <AddVendorDialog vendors={allVendors} onAdd={handleAddVendor} />
           </div>
         </div>
       </header>
@@ -335,12 +336,20 @@ export default function App() {
           </div>
         </div>
 
+        {/* Invalid rows banner */}
+        {invalidCount > 0 && (
+          <div className="mb-4 flex items-center gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm font-medium">
+            <AlertCircle size={16} className="shrink-0" />
+            {invalidCount} row(s) have unrecognized vendor names. Edit the highlighted name(s) to match a vendor in the database before saving.
+          </div>
+        )}
+
         <div className="bg-white border border-gray-200 shadow-sm rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200 text-xs uppercase text-gray-500 font-semibold">
-                  <th className="px-4 py-4 min-w-[180px] sticky left-0 bg-gray-50 z-10 border-r border-gray-200">Vendor Name</th>
+                  <th className="px-4 py-4 min-w-[200px] sticky left-0 bg-gray-50 z-10 border-r border-gray-200">Vendor Name</th>
                   <th className="px-3 py-4 w-20 text-center">Present</th>
                   <th className="px-3 py-4 w-24 text-center bg-blue-50/50">SNAP ($)</th>
                   <th className="px-3 py-4 w-24 text-center bg-blue-50/50">DUFB ($)</th>
@@ -358,8 +367,9 @@ export default function App() {
                   {records.map(record => (
                     <SalesRow 
                       key={record.id} 
-                      record={record} 
+                      record={record}
                       isEditing={editingId === record.id}
+                      isInvalid={!!record.isInvalid}
                       onEdit={() => setEditingId(record.id)}
                       onSave={() => setEditingId(null)}
                       onDelete={() => handleDeleteRecord(record.id)}
@@ -369,10 +379,10 @@ export default function App() {
                 </AnimatePresence>
                 {records.length === 0 && (
                   <tr>
-                    <td colSpan={12} className="px-4 py-20 text-center text-gray-400">
+                    <td colSpan={11} className="px-4 py-20 text-center text-gray-400">
                       <div className="flex flex-col items-center gap-2">
                         <AlertCircle size={32} className="opacity-20" />
-                        <p>No sales records added yet. Click "Add Vendor" to begin or import Excel Sheet.</p>
+                        <p>No sales records added yet. Click "Add Vendor" to begin or import an Excel sheet.</p>
                       </div>
                     </td>
                   </tr>
@@ -386,10 +396,10 @@ export default function App() {
         <div className="mt-8 flex justify-center">
           <button
             onClick={handleSaveToBackend}
-            disabled={isSaving || records.length === 0}
+            disabled={isSaving || records.length === 0 || invalidCount > 0}
             className={`
               flex items-center gap-3 px-8 py-4 rounded-xl font-semibold text-base transition-all shadow-lg
-              ${isSaving || records.length === 0
+              ${isSaving || records.length === 0 || invalidCount > 0
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
                 : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-xl transform hover:scale-105'
               }
@@ -403,7 +413,7 @@ export default function App() {
             ) : (
               <>
                 <Upload size={20} />
-                Upload Spreadsheet
+                {invalidCount > 0 ? `Fix ${invalidCount} invalid vendor(s) to save` : 'Upload Spreadsheet'}
               </>
             )}
           </button>
@@ -416,13 +426,14 @@ export default function App() {
 interface SalesRowProps {
   record: SalesRecord;
   isEditing: boolean;
+  isInvalid: boolean;
   onEdit: () => void;
   onSave: () => void;
   onDelete: () => void;
   onUpdate: (updates: Partial<SalesRecord>) => void;
 }
 
-function SalesRow({ record, isEditing, onEdit, onSave, onDelete, onUpdate }: SalesRowProps) {
+function SalesRow({ record, isEditing, isInvalid, onEdit, onSave, onDelete, onUpdate }: SalesRowProps) {
   const snap = record.snap ?? 0;
   const dufb = record.dufb ?? 0;
   const wdfm_tokens = record.wdfm_tokens ?? 0;
@@ -431,7 +442,6 @@ function SalesRow({ record, isEditing, onEdit, onSave, onDelete, onUpdate }: Sal
   const reimbursement_due = record.reimbursement_due ?? 0;
   const est_produce_sales = record.est_produce_sales ?? 0;
   const est_num_transactions = record.est_num_transactions ?? 0;
-  const market_date = record.market_date ?? "";
   const present = record.present ?? false;
 
   const handleNumberChange = (field: keyof SalesRecord, value: string) => {
@@ -450,12 +460,34 @@ function SalesRow({ record, isEditing, onEdit, onSave, onDelete, onUpdate }: Sal
       onClick={() => !isEditing && onEdit()}
       className={`
         group transition-colors cursor-pointer
-        ${isEditing ? 'bg-blue-50/50' : 'hover:bg-gray-50/80'}
+        ${isInvalid ? 'bg-red-50 border-l-4 border-l-red-400' : ''}
+        ${isEditing && !isInvalid ? 'bg-blue-50/50' : ''}
+        ${!isEditing && !isInvalid ? 'hover:bg-gray-50/80' : ''}
       `}
     >
-      {/* Vendor Name */}
-      <td className="px-4 py-4 font-medium text-gray-900 sticky left-0 bg-inherit z-10 border-r border-gray-100">
-        {record.vendor_name}
+      {/* Vendor Name — always editable when invalid */}
+      <td className="px-4 py-3 font-medium sticky left-0 bg-inherit z-10 border-r border-gray-100">
+        {isEditing || isInvalid ? (
+          <div>
+            <input
+              type="text"
+              className={`w-full px-2 py-1 border rounded outline-none text-sm font-medium
+                ${isInvalid
+                  ? 'border-red-400 bg-white text-red-700 focus:ring-2 focus:ring-red-300'
+                  : 'border-blue-200 focus:ring-2 focus:ring-blue-500'
+                }`}
+              value={record.vendor_name}
+              onChange={(e) => onUpdate({ vendor_name: e.target.value })}
+              onClick={(e) => e.stopPropagation()}
+              placeholder="Enter valid vendor name..."
+            />
+            {isInvalid && (
+              <p className="text-xs text-red-500 mt-1">Vendor not found — check spelling</p>
+            )}
+          </div>
+        ) : (
+          <span className="text-gray-900">{record.vendor_name}</span>
+        )}
       </td>
 
       {/* Present Toggle */}
@@ -469,12 +501,11 @@ function SalesRow({ record, isEditing, onEdit, onSave, onDelete, onUpdate }: Sal
         />
       </td>
 
-      {/* Inputs Group: Reimbursements */}
+      {/* SNAP */}
       <td className="px-2 py-3">
         {isEditing ? (
           <input 
-            type="number" 
-            step="0.01"
+            type="number" step="0.01"
             className="w-full px-2 py-1 text-right border border-blue-200 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm"
             value={snap === 0 && isEditing ? '' : snap}
             onChange={(e) => handleNumberChange('snap', e.target.value)}
@@ -484,11 +515,12 @@ function SalesRow({ record, isEditing, onEdit, onSave, onDelete, onUpdate }: Sal
           <div className="text-right text-gray-600 tabular-nums">{formatCurrency(snap)}</div>
         )}
       </td>
+
+      {/* DUFB */}
       <td className="px-2 py-3">
         {isEditing ? (
           <input 
-            type="number" 
-            step="0.01"
+            type="number" step="0.01"
             className="w-full px-2 py-1 text-right border border-blue-200 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm"
             value={dufb === 0 && isEditing ? '' : dufb}
             onChange={(e) => handleNumberChange('dufb', e.target.value)}
@@ -497,11 +529,12 @@ function SalesRow({ record, isEditing, onEdit, onSave, onDelete, onUpdate }: Sal
           <div className="text-right text-gray-600 tabular-nums">{formatCurrency(dufb)}</div>
         )}
       </td>
+
+      {/* WDFM */}
       <td className="px-2 py-3">
         {isEditing ? (
           <input 
-            type="number" 
-            step="0.01"
+            type="number" step="0.01"
             className="w-full px-2 py-1 text-right border border-blue-200 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm"
             value={wdfm_tokens === 0 && isEditing ? '' : wdfm_tokens}
             onChange={(e) => handleNumberChange('wdfm_tokens', e.target.value)}
@@ -510,11 +543,12 @@ function SalesRow({ record, isEditing, onEdit, onSave, onDelete, onUpdate }: Sal
           <div className="text-right text-gray-600 tabular-nums">{formatCurrency(wdfm_tokens)}</div>
         )}
       </td>
+
+      {/* Voucher */}
       <td className="px-2 py-3">
         {isEditing ? (
           <input 
-            type="number" 
-            step="0.01"
+            type="number" step="0.01"
             className="w-full px-2 py-1 text-right border border-blue-200 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm"
             value={voucher === 0 && isEditing ? '' : voucher}
             onChange={(e) => handleNumberChange('voucher', e.target.value)}
@@ -524,12 +558,11 @@ function SalesRow({ record, isEditing, onEdit, onSave, onDelete, onUpdate }: Sal
         )}
       </td>
 
-      {/* Editable Field: Reimbursement Due */}
+      {/* Reimbursement Due */}
       <td className="px-4 py-3 bg-blue-50/30 border-x border-blue-100">
         {isEditing ? (
           <input 
-            type="number" 
-            step="0.01"
+            type="number" step="0.01"
             className="w-full px-2 py-1 text-right font-bold text-blue-800 border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm"
             value={reimbursement_due === 0 && isEditing ? '' : reimbursement_due}
             onChange={(e) => handleNumberChange('reimbursement_due', e.target.value)}
@@ -545,8 +578,7 @@ function SalesRow({ record, isEditing, onEdit, onSave, onDelete, onUpdate }: Sal
       <td className="px-2 py-3">
         {isEditing ? (
           <input 
-            type="number" 
-            step="0.01"
+            type="number" step="0.01"
             className="w-full px-2 py-1 text-right border border-orange-200 rounded focus:ring-2 focus:ring-orange-500 outline-none text-sm"
             value={reported_sales === 0 && isEditing ? '' : reported_sales}
             onChange={(e) => handleNumberChange('reported_sales', e.target.value)}
@@ -560,8 +592,7 @@ function SalesRow({ record, isEditing, onEdit, onSave, onDelete, onUpdate }: Sal
       <td className="px-2 py-3">
         {isEditing ? (
           <input 
-            type="number" 
-            step="0.01"
+            type="number" step="0.01"
             className="w-full px-2 py-1 text-right border border-green-200 rounded focus:ring-2 focus:ring-green-500 outline-none text-sm"
             value={est_produce_sales === 0 && isEditing ? '' : est_produce_sales}
             onChange={(e) => handleNumberChange('est_produce_sales', e.target.value)}
@@ -575,7 +606,7 @@ function SalesRow({ record, isEditing, onEdit, onSave, onDelete, onUpdate }: Sal
       <td className="px-2 py-3">
         {isEditing ? (
           <input 
-            type="number" 
+            type="number"
             className="w-full px-2 py-1 text-center border border-gray-200 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm"
             value={est_num_transactions === 0 && isEditing ? '' : est_num_transactions}
             onChange={(e) => handleNumberChange('est_num_transactions', e.target.value)}

@@ -42,8 +42,8 @@ public class Seeder {
 
             // Comment out the seeds you don't want to run
             Seeder seeder = new Seeder();
-            //seeder.populateVendors(vendorRepository);
-            seeder.populateUser(userRepository);
+            seeder.populateVendors(vendorRepository);
+            //seeder.populateUser(userRepository);
         } catch (Exception e) {
             e.printStackTrace();
         }

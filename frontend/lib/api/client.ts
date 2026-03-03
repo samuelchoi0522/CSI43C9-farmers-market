@@ -122,12 +122,16 @@ export async function apiRequest<T>(
     headers.set('Authorization', `Bearer ${token}`);
   }
 
+  // TEMP
+  console.log(options)
+
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
       headers,
     });
+    console.log(response)
   } catch {
     // Network error or CORS issue
     const error: ApiError = {

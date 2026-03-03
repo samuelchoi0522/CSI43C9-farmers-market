@@ -16,7 +16,7 @@ export interface CreateVendorRequest {
 }
 
 export interface Vendor {
-  uuid: string;
+  id: string;
   vendorName: string;
   pointPerson?: string;
   email?: string;
@@ -32,11 +32,11 @@ export interface Vendor {
 }
 
 export interface PagedResponse<T> {
-  content: T[];
+  data: T[];
+  pageNumber: number;
+  pageSize: number;
   totalElements: number;
   totalPages: number;
-  size: number;
-  number: number;
 }
 
 /**
