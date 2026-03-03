@@ -3,9 +3,9 @@ package com.csi43C9.baylor.farmers_market.repository;
 import com.csi43C9.baylor.farmers_market.entity.User;
 import com.csi43C9.baylor.farmers_market.repository.base.AbstractJdbcRepository;
 import com.csi43C9.baylor.farmers_market.repository.base.MarketRepository;
+import com.csi43C9.baylor.farmers_market.repository.mapper.UserRowMapper;
 import com.csi43C9.baylor.farmers_market.util.UuidUtils;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -15,6 +15,8 @@ import java.util.UUID;
 
 @Repository
 public class UserRepository extends AbstractJdbcRepository implements MarketRepository<User, UUID> {
+
+    private final UserRowMapper userRowMapper = new UserRowMapper();
 
     protected UserRepository(JdbcTemplate jdbcTemplate) {
         super(jdbcTemplate);
@@ -43,7 +45,7 @@ public class UserRepository extends AbstractJdbcRepository implements MarketRepo
     private User insert(User u) {
         String sql = "insert into users (id, email, password_hash) values (?, ?, ?)";
         int result = jdbcTemplate.update(sql,
-                UuidUtils.toBytesObject(u.getId()),
+                UuidUtils.toBytes(u.getId()),
                 u.getEmail(),
                 u.getPasswordHash());
 
@@ -65,7 +67,7 @@ public class UserRepository extends AbstractJdbcRepository implements MarketRepo
         int result = jdbcTemplate.update(sql,
                 u.getEmail(),
                 u.getPasswordHash(),
-                UuidUtils.toBytesObject(u.getId()));
+                UuidUtils.toBytes(u.getId()));
 
         // Check if the update was successful.
         if (result != 1) {
@@ -83,7 +85,7 @@ public class UserRepository extends AbstractJdbcRepository implements MarketRepo
     public Optional<User> findByEmail(String email) {
         String sql = "select * from users where email = ?";
         try {
-            User user = jdbcTemplate.queryForObject(sql, new BeanPropertyRowMapper<>(User.class), email);
+            User user = jdbcTemplate.queryForObject(sql, userRowMapper, email);
             return Optional.ofNullable(user);
         } catch (EmptyResultDataAccessException e) {
             return Optional.empty();
@@ -99,7 +101,7 @@ public class UserRepository extends AbstractJdbcRepository implements MarketRepo
     public Optional<User> findById(UUID uuid) {
         String sql = "select * from users where id = ?";
         try {
-            User user = jdbcTemplate.queryForObject(sql, new BeanPropertyRowMapper<>(User.class), UuidUtils.toBytesObject(uuid));
+            User user = jdbcTemplate.queryForObject(sql, userRowMapper, UuidUtils.toBytes(uuid));
             return Optional.ofNullable(user);
         } catch (EmptyResultDataAccessException e) {
             return Optional.empty();
@@ -113,7 +115,7 @@ public class UserRepository extends AbstractJdbcRepository implements MarketRepo
     @Override
     public List<User> findAll() {
         String sql = "select * from users";
-        return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(User.class));
+        return jdbcTemplate.query(sql, userRowMapper);
     }
 
     /**
@@ -131,7 +133,7 @@ public class UserRepository extends AbstractJdbcRepository implements MarketRepo
                 offset ? rows fetch next ? rows only
                 """;
         return jdbcTemplate.query(sql,
-                new BeanPropertyRowMapper<>(User.class),
+                userRowMapper,
                 offset,
                 pageSize);
     }
