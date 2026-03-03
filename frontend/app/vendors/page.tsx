@@ -33,190 +33,6 @@ function VendorsContent() {
     const { user, logout } = useAuth();
     const userName = user?.username || "Admin User";
 
-    // Mock vendor data - moved outside component to avoid recreation on each render
-    const mockVendors: VendorWithDefaults[] = useMemo(() => [
-        {
-            id: "1",
-            name: "Alba's Pupusas",
-            pointPerson: "Maria Alba",
-            email: "maria@albaspupusas.com",
-            location: "Downtown Plaza",
-            miles: 5,
-            products: "Ready-to-Eat",
-            isActive: true,
-            isFarmer: false,
-            isProduce: false,
-            womanOwned: true,
-            bipocOwned: true,
-            veteranOwned: false,
-        },
-        {
-            id: "2",
-            name: "Around the World Bakery",
-            pointPerson: "John Smith",
-            email: "john@atwbakery.com",
-            location: "Main Street",
-            miles: 12,
-            products: "Bakery Goods",
-            isActive: true,
-            isFarmer: false,
-            isProduce: false,
-            womanOwned: false,
-            bipocOwned: false,
-            veteranOwned: false,
-        },
-        {
-            id: "3",
-            name: "Ary Land & Cattle",
-            pointPerson: "Robert Ary",
-            email: "robert@aryland.com",
-            location: "Rural Route 7",
-            miles: 45,
-            products: "Fresh Meat",
-            isActive: true,
-            isFarmer: true,
-            isProduce: false,
-            womanOwned: false,
-            bipocOwned: false,
-            veteranOwned: true,
-        },
-        {
-            id: "4",
-            name: "Bonnet Farm",
-            pointPerson: "Sarah Bonnet",
-            email: "sarah@bonnetfarm.com",
-            location: "Countryside",
-            miles: 28,
-            products: "Produce/Plant",
-            isActive: true,
-            isFarmer: true,
-            isProduce: true,
-            womanOwned: true,
-            bipocOwned: false,
-            veteranOwned: false,
-        },
-        {
-            id: "5",
-            name: "Broken Grain Bakery",
-            pointPerson: "David Chen",
-            email: "david@brokengrain.com",
-            location: "Artisan District",
-            miles: 8,
-            products: "Bakery Specialty",
-            isActive: true,
-            isFarmer: false,
-            isProduce: false,
-            womanOwned: false,
-            bipocOwned: true,
-            veteranOwned: false,
-        },
-        {
-            id: "6",
-            name: "Green Valley Organics",
-            pointPerson: "Emily Green",
-            email: "emily@greenvalley.com",
-            location: "Valley View",
-            miles: 35,
-            products: "Produce/Plant",
-            isActive: true,
-            isFarmer: true,
-            isProduce: true,
-            womanOwned: true,
-            bipocOwned: false,
-            veteranOwned: false,
-        },
-        {
-            id: "7",
-            name: "Honeycomb Apiary",
-            pointPerson: "Michael Brown",
-            email: "michael@honeycomb.com",
-            location: "Meadow Lane",
-            miles: 22,
-            products: "Specialty Items",
-            isActive: true,
-            isFarmer: true,
-            isProduce: false,
-            womanOwned: false,
-            bipocOwned: false,
-            veteranOwned: true,
-        },
-        {
-            id: "8",
-            name: "Mountain View Dairy",
-            pointPerson: "Lisa Johnson",
-            email: "lisa@mountainview.com",
-            location: "Mountain Road",
-            miles: 50,
-            products: "Dairy Products",
-            isActive: true,
-            isFarmer: true,
-            isProduce: false,
-            womanOwned: true,
-            bipocOwned: false,
-            veteranOwned: false,
-        },
-        {
-            id: "9",
-            name: "Sunrise Coffee Roasters",
-            pointPerson: "James Wilson",
-            email: "james@sunrisecoffee.com",
-            location: "Downtown Plaza",
-            miles: 3,
-            products: "Beverages",
-            isActive: true,
-            isFarmer: false,
-            isProduce: false,
-            womanOwned: false,
-            bipocOwned: false,
-            veteranOwned: false,
-        },
-        {
-            id: "10",
-            name: "Urban Garden Co-op",
-            pointPerson: "Patricia Martinez",
-            email: "patricia@urbangarden.com",
-            location: "City Center",
-            miles: 2,
-            products: "Produce/Plant",
-            isActive: true,
-            isFarmer: true,
-            isProduce: true,
-            womanOwned: true,
-            bipocOwned: true,
-            veteranOwned: false,
-        },
-        {
-            id: "11",
-            name: "Wildflower Soaps",
-            pointPerson: "Jennifer Lee",
-            email: "jennifer@wildflower.com",
-            location: "Crafts District",
-            miles: 15,
-            products: "Artisan Crafts",
-            isActive: true,
-            isFarmer: false,
-            isProduce: false,
-            womanOwned: true,
-            bipocOwned: true,
-            veteranOwned: false,
-        },
-        {
-            id: "12",
-            name: "Heritage Breads",
-            pointPerson: "Thomas Anderson",
-            email: "thomas@heritagebreads.com",
-            location: "Historic Quarter",
-            miles: 6,
-            products: "Bakery Goods",
-            isActive: true,
-            isFarmer: false,
-            isProduce: false,
-            womanOwned: false,
-            bipocOwned: false,
-            veteranOwned: true,
-        },
-    ], []);
-
     // Fetch all vendors once for stats calculation
     useEffect(() => {
         const fetchAllVendors = async () => {
@@ -281,8 +97,6 @@ function VendorsContent() {
                 // Check if responses are valid
                 if (!vendorsResponse) {
                     console.error('Vendors response is null or undefined');
-                    // Fallback to mock data on error
-                    setVendors(mockVendors);
                     return;
                 }
 
@@ -303,8 +117,6 @@ function VendorsContent() {
                     }
                 } else {
                     console.error('Invalid vendors response structure:', vendorsResponse);
-                    // Fallback to mock data on error
-                    setVendors(mockVendors);
                     return;
                 }
 
@@ -330,8 +142,6 @@ function VendorsContent() {
                 setVendors(vendorsWithDefaults);
             } catch (error) {
                 console.error('Error fetching vendor data:', error);
-                // Fallback to mock data on error
-                setVendors(mockVendors);
             } finally {
                 setLoading(false);
             }
@@ -349,12 +159,11 @@ function VendorsContent() {
 
     // Compute filtered vendors based on search query
     const filteredVendors = useMemo(() => {
-        const vendorsToFilter = vendors.length > 0 ? vendors : mockVendors;
         if (searchQuery.trim() === "") {
-            return vendorsToFilter;
+            return vendors;
         }
         const query = searchQuery.toLowerCase();
-        return vendorsToFilter.filter(
+        return vendors.filter(
             (vendor) =>
                 (vendor.vendorName || (vendor as any).name)?.toLowerCase().includes(query) ||
                 vendor.pointPerson?.toLowerCase().includes(query) ||
@@ -461,7 +270,7 @@ function VendorsContent() {
                     <div>
                         <h2 className="text-2xl font-bold animate-fade-in">Vendors</h2>
                         <p className="text-slate-700 dark:text-slate-400 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-                            Comprehensive list of all registered vendors {searchQuery.trim() === "" ? `(${totalElements > 0 ? totalElements : (allVendors.length > 0 ? allVendors.length : mockVendors.length)} total)` : `(${filteredVendors.length} filtered)`}
+                            Comprehensive list of all registered vendors {searchQuery.trim() === "" ? `(${totalElements > 0 ? totalElements : allVendors.length} total)` : `(${filteredVendors.length} filtered)`}
                         </p>
                     </div>
                     <div className="flex items-center gap-3">
@@ -528,7 +337,7 @@ function VendorsContent() {
                             </div>
                         </div>
                         <p className="text-slate-700 dark:text-slate-400 text-sm font-medium">Total Vendors</p>
-                        <p className="text-3xl font-bold mt-1">{totalElements > 0 ? totalElements : (vendors.length > 0 ? vendors.length : mockVendors.length)}</p>
+                        <p className="text-3xl font-bold mt-1">{totalElements > 0 ? totalElements : allVendors.length}</p>
                     </div>
 
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover-lift transition-all duration-200">
@@ -541,7 +350,7 @@ function VendorsContent() {
                             </div>
                         </div>
                         <p className="text-slate-700 dark:text-slate-400 text-sm font-medium">Farmers</p>
-                        <p className="text-3xl font-bold mt-1">{(allVendors.length > 0 ? allVendors : mockVendors).filter(v => v.isFarmer).length}</p>
+                        <p className="text-3xl font-bold mt-1">{allVendors.filter(v => v.isFarmer).length}</p>
                     </div>
 
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover-lift transition-all duration-200">
@@ -554,7 +363,7 @@ function VendorsContent() {
                             </div>
                         </div>
                         <p className="text-slate-700 dark:text-slate-400 text-sm font-medium">Produce Vendors</p>
-                        <p className="text-3xl font-bold mt-1">{(allVendors.length > 0 ? allVendors : mockVendors).filter(v => v.isProduce).length}</p>
+                        <p className="text-3xl font-bold mt-1">{allVendors.filter(v => v.isProduce).length}</p>
                     </div>
 
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover-lift transition-all duration-200">
@@ -567,7 +376,7 @@ function VendorsContent() {
                             </div>
                         </div>
                         <p className="text-slate-700 dark:text-slate-400 text-sm font-medium">Active Vendors</p>
-                        <p className="text-3xl font-bold mt-1">{(allVendors.length > 0 ? allVendors : mockVendors).filter(v => v.isActive).length}</p>
+                        <p className="text-3xl font-bold mt-1">{allVendors.filter(v => v.isActive).length}</p>
                     </div>
                 </div>
 
@@ -701,7 +510,7 @@ function VendorsContent() {
                             {searchQuery.trim() === "" ? (
                                 <>Showing {vendors.length > 0 ? currentPage * pageSize + 1 : 0} to {Math.min((currentPage + 1) * pageSize, totalElements)} of {totalElements} vendors</>
                             ) : (
-                                <>Showing {filteredVendors.length} of {vendors.length > 0 ? vendors.length : mockVendors.length} vendors (filtered)</>
+                                <>Showing {filteredVendors.length} of {vendors.length} vendors (filtered)</>
                             )}
                         </span>
                         <div className="flex items-center gap-1">
