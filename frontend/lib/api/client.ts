@@ -190,10 +190,10 @@ export async function authenticatedRequest<T>(
 }
 
 export interface PagedResponse<T> {
-  content: T[];
+  data: T[];
   totalElements: number;
   totalPages: number;
-  size: number;
-  number: number;
+  pageSize: number;
+  pageNumber: number;
 }
 

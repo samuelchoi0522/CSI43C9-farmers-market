@@ -7,6 +7,12 @@ import CategoryRevenueChart from "../components/CategoryRevenueChart";
 import Button from "../components/Button";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
+import { getAllVendorDefaults, VendorDefaults } from "@/lib/api/defaults";
+import { getVendors, Vendor } from "@/lib/api/vendor";
+
+interface VendorWithDefaults extends Vendor {
+    defaults?: VendorDefaults;
+}
 
 function DashboardContent() {
     const [showUserMenu, setShowUserMenu] = useState(false);
@@ -14,6 +20,13 @@ function DashboardContent() {
         if (typeof window === "undefined") return false;
         return document.documentElement.classList.contains("dark");
     });
+    const [vendors, setVendors] = useState<VendorWithDefaults[]>([]);
+    const [vendorDefaults, setVendorDefaults] = useState<VendorDefaults[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(0);
+    const [pageSize] = useState(5);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalElements, setTotalElements] = useState(0);
     const { user, logout } = useAuth();
     const userName = user?.username || "Admin User";
 
@@ -57,6 +70,75 @@ function DashboardContent() {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [showUserMenu]);
+
+    // Fetch vendors and vendor defaults
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                const [vendorsResponse, defaultsResponse] = await Promise.all([
+                    getVendors(currentPage, pageSize),
+                    getAllVendorDefaults(0, 100)
+                ]);
+
+                console.log('Vendors response:', vendorsResponse);
+                console.log('Defaults response:', defaultsResponse);
+
+                // Check if responses are valid
+                if (!vendorsResponse) {
+                    console.error('Vendors response is null or undefined');
+                    return;
+                }
+
+                // Handle case where response might be an array directly or PagedResponse
+                let vendorsList: Vendor[] = [];
+                if (Array.isArray(vendorsResponse)) {
+                    vendorsList = vendorsResponse;
+                    console.log('Response is an array, using directly');
+                } else if (vendorsResponse.data && Array.isArray(vendorsResponse.data)) {
+                    vendorsList = vendorsResponse.data;
+                    console.log('Response has data array');
+                    // Update pagination info
+                    if (vendorsResponse.totalPages !== undefined) {
+                        setTotalPages(vendorsResponse.totalPages);
+                    }
+                    if (vendorsResponse.totalElements !== undefined) {
+                        setTotalElements(vendorsResponse.totalElements);
+                    }
+                } else {
+                    console.error('Invalid vendors response structure:', vendorsResponse);
+                    return;
+                }
+
+                // Handle defaults response
+                let defaultsList: VendorDefaults[] = [];
+                if (defaultsResponse) {
+                    if (Array.isArray(defaultsResponse)) {
+                        defaultsList = defaultsResponse;
+                    } else if (defaultsResponse.data && Array.isArray(defaultsResponse.data)) {
+                        defaultsList = defaultsResponse.data;
+                    }
+                }
+
+                setVendorDefaults(defaultsList);
+
+                // Map vendor defaults to vendors
+                const vendorsWithDefaults = vendorsList.map(vendor => {
+                    const defaults = defaultsList.find(d => d.vendorId === vendor.id);
+                    return { ...vendor, defaults };
+                });
+                
+                console.log('Setting vendors:', vendorsWithDefaults);
+                setVendors(vendorsWithDefaults);
+            } catch (error) {
+                console.error('Error fetching vendor data:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [currentPage, pageSize]);
 
     const handleLogout = () => {
         logout();
@@ -180,7 +262,7 @@ function DashboardContent() {
                                     type="text"
                                 />
                             </div>
-                            <Button variant="outline" size="sm" className="p-2">
+                            <Button variant="outline" size="sm" className="p-2 h-[42px] flex items-center justify-center">
                                 <span className="material-icons block leading-none">filter_list</span>
                             </Button>
                         </div>
@@ -193,186 +275,131 @@ function DashboardContent() {
                                     <th className="px-6 py-4">Vendor Name</th>
                                     <th className="px-6 py-4">Status</th>
                                     <th className="px-6 py-4">Category</th>
+                                    <th className="px-6 py-4">Product Defaults</th>
                                     <th className="px-6 py-4">Reimbursement due</th>
                                     <th className="px-6 py-4">Reported Sales</th>
                                     <th className="px-6 py-4 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                                <tr
-                                    className="transition-all duration-200 ease-out dark:hover:bg-slate-700/50 hover-lift"
-                                    onMouseEnter={(e) => {
-                                        const isDark = document.documentElement.classList.contains("dark");
-                                        const target = e.currentTarget;
-                                        if (!isDark) {
-                                            target.classList.add('light-hover-bg');
-                                            target.style.setProperty('background-color', 'rgba(248, 250, 252, 0.5)', 'important');
-                                        }
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        const isDark = document.documentElement.classList.contains("dark");
-                                        const target = e.currentTarget;
-                                        if (!isDark) {
-                                            target.style.removeProperty('background-color');
-                                            target.classList.remove('light-hover-bg');
-                                        }
-                                    }}
-                                >
-                                    <td className="px-6 py-4">
-                                        <span className="font-semibold">Alba&apos;s Pupusas</span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-[#8f8f8f] text-[#454545] dark:bg-slate-700 dark:text-slate-200">Absent</span>
-                                    </td>
-                                    <td className="px-6 py-4 text-sm">Ready-to-Eat</td>
-                                    <td className="px-6 py-4 font-mono text-sm">$45.00</td>
-                                    <td className="px-6 py-4 font-mono text-sm">-</td>
-                                    <td className="px-6 py-4 text-right">
-                                        <Button variant="ghost" size="sm" className="text-sm text-[#10b981] hover:underline font-medium p-0 h-auto">
-                                            Mark Paid
-                                        </Button>
-                                    </td>
-                                </tr>
-                                <tr
-                                    className="transition-all duration-200 ease-out dark:hover:bg-slate-700/50 hover-lift"
-                                    onMouseEnter={(e) => {
-                                        const isDark = document.documentElement.classList.contains("dark");
-                                        if (!isDark) {
-                                            e.currentTarget.style.backgroundColor = 'rgba(248, 250, 252, 0.5)';
-                                        }
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        const isDark = document.documentElement.classList.contains("dark");
-                                        const target = e.currentTarget;
-                                        if (!isDark) {
-                                            target.style.removeProperty('background-color');
-                                            target.classList.remove('light-hover-bg');
-                                        }
-                                    }}
-                                >
-                                    <td className="px-6 py-4">
-                                        <span className="font-semibold">Around the World Bakery</span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-[#10b981]/20 text-[#10b981]">Present</span>
-                                    </td>
-                                    <td className="px-6 py-4 text-sm">Bakery Goods</td>
-                                    <td className="px-6 py-4 font-mono text-sm">$35.00</td>
-                                    <td className="px-6 py-4 font-mono text-sm">$470.00</td>
-                                    <td className="px-6 py-4 text-right">
-                                        <Button variant="ghost" size="sm" className="p-1.5 hover:bg-[#10b981]/10 hover:text-[#10b981] text-slate-400">
-                                            <span className="material-icons text-lg leading-none">description</span>
-                                        </Button>
-                                    </td>
-                                </tr>
-                                <tr
-                                    className="transition-all duration-200 ease-out dark:hover:bg-slate-700/50 hover-lift"
-                                    onMouseEnter={(e) => {
-                                        const isDark = document.documentElement.classList.contains("dark");
-                                        if (!isDark) {
-                                            e.currentTarget.style.backgroundColor = 'rgba(248, 250, 252, 0.5)';
-                                        }
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        const isDark = document.documentElement.classList.contains("dark");
-                                        const target = e.currentTarget;
-                                        if (!isDark) {
-                                            target.style.removeProperty('background-color');
-                                            target.classList.remove('light-hover-bg');
-                                        }
-                                    }}
-                                >
-                                    <td className="px-6 py-4">
-                                        <span className="font-semibold">Ary Land &amp; Cattle</span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-[#10b981]/20 text-[#10b981]">Present</span>
-                                    </td>
-                                    <td className="px-6 py-4 text-sm">Fresh Meat</td>
-                                    <td className="px-6 py-4 font-mono text-sm">$35.00</td>
-                                    <td className="px-6 py-4 font-mono text-sm">$390.00</td>
-                                    <td className="px-6 py-4 text-right">
-                                        <Button variant="ghost" size="sm" className="p-1.5 hover:bg-[#10b981]/10 hover:text-[#10b981] text-slate-400">
-                                            <span className="material-icons text-lg leading-none">description</span>
-                                        </Button>
-                                    </td>
-                                </tr>
-                                <tr
-                                    className="transition-all duration-200 ease-out dark:hover:bg-slate-700/50 hover-lift"
-                                    onMouseEnter={(e) => {
-                                        const isDark = document.documentElement.classList.contains("dark");
-                                        if (!isDark) {
-                                            e.currentTarget.style.backgroundColor = 'rgba(248, 250, 252, 0.5)';
-                                        }
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        const isDark = document.documentElement.classList.contains("dark");
-                                        const target = e.currentTarget;
-                                        if (!isDark) {
-                                            target.style.removeProperty('background-color');
-                                            target.classList.remove('light-hover-bg');
-                                        }
-                                    }}
-                                >
-                                    <td className="px-6 py-4">
-                                        <span className="font-semibold">Bonnet Farm</span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-[#10b981]/20 text-[#10b981]">Present</span>
-                                    </td>
-                                    <td className="px-6 py-4 text-sm">Produce/Plant</td>
-                                    <td className="px-6 py-4 font-mono text-sm">$55.00</td>
-                                    <td className="px-6 py-4 font-mono text-sm">$1,150.00</td>
-                                    <td className="px-6 py-4 text-right">
-                                        <Button variant="ghost" size="sm" className="p-1.5 hover:bg-[#10b981]/10 hover:text-[#10b981] text-slate-400">
-                                            <span className="material-icons text-lg leading-none">description</span>
-                                        </Button>
-                                    </td>
-                                </tr>
-                                <tr
-                                    className="transition-all duration-200 ease-out dark:hover:bg-slate-700/50 hover-lift"
-                                    onMouseEnter={(e) => {
-                                        const isDark = document.documentElement.classList.contains("dark");
-                                        if (!isDark) {
-                                            e.currentTarget.style.backgroundColor = 'rgba(248, 250, 252, 0.5)';
-                                        }
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        const isDark = document.documentElement.classList.contains("dark");
-                                        const target = e.currentTarget;
-                                        if (!isDark) {
-                                            target.style.removeProperty('background-color');
-                                            target.classList.remove('light-hover-bg');
-                                        }
-                                    }}
-                                >
-                                    <td className="px-6 py-4">
-                                        <span className="font-semibold">Broken Grain Bakery</span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-[#10b981]/20 text-[#10b981]">Present</span>
-                                    </td>
-                                    <td className="px-6 py-4 text-sm">Bakery Specialty</td>
-                                    <td className="px-6 py-4 font-mono text-sm">$35.00</td>
-                                    <td className="px-6 py-4 font-mono text-sm text-[#10b981] font-bold">$2,100.00</td>
-                                    <td className="px-6 py-4 text-right">
-                                        <Button variant="ghost" size="sm" className="p-1.5 hover:bg-[#10b981]/10 hover:text-[#10b981] text-slate-400">
-                                            <span className="material-icons text-lg leading-none">description</span>
-                                        </Button>
-                                    </td>
-                                </tr>
+                                {loading ? (
+                                    <tr>
+                                        <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
+                                            Loading vendors...
+                                        </td>
+                                    </tr>
+                                ) : vendors.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
+                                            No vendors found
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    vendors.map((vendor) => (
+                                        <tr
+                                            key={vendor.id}
+                                            className="hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+                                        >
+                                            <td className="px-6 py-4">
+                                                <span className="font-semibold">{vendor.vendorName}</span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                {vendor.isActive ? (
+                                                    <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-[#10b981]/20 text-[#10b981]">Active</span>
+                                                ) : (
+                                                    <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-[#8f8f8f] text-[#454545] dark:bg-slate-700 dark:text-slate-200">Inactive</span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 text-sm">{vendor.products || '-'}</td>
+                                            <td className="px-6 py-4 text-sm">
+                                                {vendor.defaults ? (
+                                                    <div className="flex flex-col gap-1 text-xs">
+                                                        {parseFloat(vendor.defaults.pctAgricultural || '0') > 0 && (
+                                                            <span>Agri: {parseFloat(vendor.defaults.pctAgricultural).toFixed(0)}%</span>
+                                                        )}
+                                                        {parseFloat(vendor.defaults.pctPreparedFood || '0') > 0 && (
+                                                            <span>Food: {parseFloat(vendor.defaults.pctPreparedFood).toFixed(0)}%</span>
+                                                        )}
+                                                        {parseFloat(vendor.defaults.pctHandmade || '0') > 0 && (
+                                                            <span>Handmade: {parseFloat(vendor.defaults.pctHandmade).toFixed(0)}%</span>
+                                                        )}
+                                                        {parseFloat(vendor.defaults.pctCottageGoods || '0') > 0 && (
+                                                            <span>Cottage: {parseFloat(vendor.defaults.pctCottageGoods).toFixed(0)}%</span>
+                                                        )}
+                                                        {parseFloat(vendor.defaults.pctManufactured || '0') > 0 && (
+                                                            <span>Mfg: {parseFloat(vendor.defaults.pctManufactured).toFixed(0)}%</span>
+                                                        )}
+                                                        {!vendor.defaults.pctAgricultural && !vendor.defaults.pctPreparedFood && 
+                                                         !vendor.defaults.pctHandmade && !vendor.defaults.pctCottageGoods && 
+                                                         !vendor.defaults.pctManufactured && (
+                                                            <span className="text-slate-400">No defaults</span>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-slate-400 text-xs">No defaults</span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 font-mono text-sm">-</td>
+                                            <td className="px-6 py-4 font-mono text-sm">-</td>
+                                            <td className="px-6 py-4 text-right">
+                                                <Button variant="ghost" size="sm" className="p-1.5 hover:bg-[#10b981]/10 hover:text-[#10b981] text-slate-400">
+                                                    <span className="material-icons text-lg leading-none">description</span>
+                                                </Button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
                             </tbody>
                         </table>
                     </div>
 
                     <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                        <span className="text-sm text-slate-700 dark:text-slate-500">Showing 1 to 5 of 32 vendors</span>
+                        <span className="text-sm text-slate-700 dark:text-slate-500">
+                            Showing {vendors.length > 0 ? currentPage * pageSize + 1 : 0} to {Math.min((currentPage + 1) * pageSize, totalElements)} of {totalElements} vendors
+                        </span>
                         <div className="flex items-center gap-1">
-                            <Button variant="outline" size="sm" className="p-1 px-3" disabled>Previous</Button>
-                            <Button variant="primary" size="sm" className="p-1 px-3">1</Button>
-                            <Button variant="outline" size="sm" className="p-1 px-3">2</Button>
-                            <Button variant="outline" size="sm" className="p-1 px-3">3</Button>
-                            <Button variant="outline" size="sm" className="p-1 px-3">Next</Button>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="p-1 px-3" 
+                                disabled={currentPage === 0}
+                                onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+                            >
+                                Previous
+                            </Button>
+                            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                                // Show page numbers around current page
+                                let pageNum;
+                                if (totalPages <= 5) {
+                                    pageNum = i;
+                                } else if (currentPage < 3) {
+                                    pageNum = i;
+                                } else if (currentPage > totalPages - 4) {
+                                    pageNum = totalPages - 5 + i;
+                                } else {
+                                    pageNum = currentPage - 2 + i;
+                                }
+                                return (
+                                    <Button
+                                        key={pageNum}
+                                        variant={currentPage === pageNum ? "primary" : "outline"}
+                                        size="sm"
+                                        className="p-1 px-3"
+                                        onClick={() => setCurrentPage(pageNum)}
+                                    >
+                                        {pageNum + 1}
+                                    </Button>
+                                );
+                            })}
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="p-1 px-3"
+                                disabled={currentPage >= totalPages - 1}
+                                onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
+                            >
+                                Next
+                            </Button>
                         </div>
                     </div>
                 </div>
