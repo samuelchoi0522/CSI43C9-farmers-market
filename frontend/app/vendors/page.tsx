@@ -7,21 +7,11 @@ import SidebarNavigation from "../components/SidebarNavigation";
 import Button from "../components/Button";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
+import { getAllVendorDefaults, VendorDefaults } from "@/lib/api/defaults";
+import { getVendors, Vendor } from "@/lib/api/vendor";
 
-interface Vendor {
-    id: string;
-    name: string;
-    pointPerson: string;
-    email: string;
-    location: string;
-    miles: number;
-    products: string;
-    isActive: boolean;
-    isFarmer: boolean;
-    isProduce: boolean;
-    womanOwned: boolean;
-    bipocOwned: boolean;
-    veteranOwned: boolean;
+interface VendorWithDefaults extends Vendor {
+    defaults?: VendorDefaults;
 }
 
 function VendorsContent() {
@@ -32,11 +22,19 @@ function VendorsContent() {
         return document.documentElement.classList.contains("dark");
     });
     const [searchQuery, setSearchQuery] = useState("");
+    const [vendors, setVendors] = useState<VendorWithDefaults[]>([]);
+    const [allVendors, setAllVendors] = useState<VendorWithDefaults[]>([]); // All vendors for stats calculation
+    const [vendorDefaults, setVendorDefaults] = useState<VendorDefaults[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(0);
+    const [pageSize] = useState(10);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalElements, setTotalElements] = useState(0);
     const { user, logout } = useAuth();
     const userName = user?.username || "Admin User";
 
     // Mock vendor data - moved outside component to avoid recreation on each render
-    const mockVendors: Vendor[] = useMemo(() => [
+    const mockVendors: VendorWithDefaults[] = useMemo(() => [
         {
             id: "1",
             name: "Alba's Pupusas",
@@ -219,21 +217,161 @@ function VendorsContent() {
         },
     ], []);
 
+    // Fetch all vendors once for stats calculation
+    useEffect(() => {
+        const fetchAllVendors = async () => {
+            try {
+                const [allVendorsResponse, defaultsResponse] = await Promise.all([
+                    getVendors(0, 1000), // Fetch a large number to get all vendors for stats
+                    getAllVendorDefaults(0, 100)
+                ]);
+
+                // Handle defaults response
+                let defaultsList: VendorDefaults[] = [];
+                if (defaultsResponse) {
+                    if (Array.isArray(defaultsResponse)) {
+                        defaultsList = defaultsResponse;
+                    } else if (defaultsResponse.data && Array.isArray(defaultsResponse.data)) {
+                        defaultsList = defaultsResponse.data;
+                    } else if (defaultsResponse.content && Array.isArray(defaultsResponse.content)) {
+                        defaultsList = defaultsResponse.content;
+                    }
+                }
+
+                setVendorDefaults(defaultsList);
+
+                // Handle all vendors response for stats
+                let allVendorsList: Vendor[] = [];
+                if (allVendorsResponse) {
+                    if (Array.isArray(allVendorsResponse)) {
+                        allVendorsList = allVendorsResponse;
+                    } else if (allVendorsResponse.data && Array.isArray(allVendorsResponse.data)) {
+                        allVendorsList = allVendorsResponse.data;
+                    } else if (allVendorsResponse.content && Array.isArray(allVendorsResponse.content)) {
+                        allVendorsList = allVendorsResponse.content;
+                    }
+                }
+
+                // Map vendor defaults to all vendors
+                const allVendorsWithDefaults = allVendorsList.map(vendor => {
+                    const defaults = defaultsList.find(d => d.vendorId === vendor.id);
+                    return { ...vendor, defaults };
+                });
+                
+                setAllVendors(allVendorsWithDefaults);
+            } catch (error) {
+                console.error('Error fetching all vendors for stats:', error);
+            }
+        };
+
+        fetchAllVendors();
+    }, []);
+
+    // Fetch vendors and vendor defaults for current page
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                const [vendorsResponse, defaultsResponse] = await Promise.all([
+                    getVendors(currentPage, pageSize),
+                    getAllVendorDefaults(0, 100)
+                ]);
+
+                console.log('Vendors response:', vendorsResponse);
+                console.log('Defaults response:', defaultsResponse);
+
+                // Check if responses are valid
+                if (!vendorsResponse) {
+                    console.error('Vendors response is null or undefined');
+                    // Fallback to mock data on error
+                    setVendors(mockVendors);
+                    return;
+                }
+
+                // Handle case where response might be an array directly or PagedResponse
+                let vendorsList: Vendor[] = [];
+                if (Array.isArray(vendorsResponse)) {
+                    vendorsList = vendorsResponse;
+                    console.log('Response is an array, using directly');
+                } else if (vendorsResponse.data && Array.isArray(vendorsResponse.data)) {
+                    vendorsList = vendorsResponse.data;
+                    console.log('Response has data array');
+                    // Update pagination info
+                    if (vendorsResponse.totalPages !== undefined) {
+                        setTotalPages(vendorsResponse.totalPages);
+                    }
+                    if (vendorsResponse.totalElements !== undefined) {
+                        setTotalElements(vendorsResponse.totalElements);
+                    }
+                } else if (vendorsResponse.content && Array.isArray(vendorsResponse.content)) {
+                    // Fallback for old structure
+                    vendorsList = vendorsResponse.content;
+                    console.log('Response has content array (legacy)');
+                } else {
+                    console.error('Invalid vendors response structure:', vendorsResponse);
+                    // Fallback to mock data on error
+                    setVendors(mockVendors);
+                    return;
+                }
+
+                // Handle defaults response
+                let defaultsList: VendorDefaults[] = [];
+                if (defaultsResponse) {
+                    if (Array.isArray(defaultsResponse)) {
+                        defaultsList = defaultsResponse;
+                    } else if (defaultsResponse.data && Array.isArray(defaultsResponse.data)) {
+                        defaultsList = defaultsResponse.data;
+                    } else if (defaultsResponse.content && Array.isArray(defaultsResponse.content)) {
+                        // Fallback for old structure
+                        defaultsList = defaultsResponse.content;
+                    }
+                }
+
+                setVendorDefaults(defaultsList);
+
+                // Map vendor defaults to vendors
+                const vendorsWithDefaults = vendorsList.map(vendor => {
+                    const defaults = defaultsList.find(d => d.vendorId === vendor.id);
+                    return { ...vendor, defaults };
+                });
+                
+                console.log('Setting vendors:', vendorsWithDefaults);
+                setVendors(vendorsWithDefaults);
+            } catch (error) {
+                console.error('Error fetching vendor data:', error);
+                // Fallback to mock data on error
+                setVendors(mockVendors);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [currentPage, pageSize]);
+
+    // Reset to first page when search query changes
+    useEffect(() => {
+        if (searchQuery.trim() !== "") {
+            setCurrentPage(0);
+        }
+    }, [searchQuery]);
+
     // Compute filtered vendors based on search query
     const filteredVendors = useMemo(() => {
+        const vendorsToFilter = vendors.length > 0 ? vendors : mockVendors;
         if (searchQuery.trim() === "") {
-            return mockVendors;
+            return vendorsToFilter;
         }
         const query = searchQuery.toLowerCase();
-        return mockVendors.filter(
+        return vendorsToFilter.filter(
             (vendor) =>
-                vendor.name.toLowerCase().includes(query) ||
-                vendor.pointPerson.toLowerCase().includes(query) ||
-                vendor.email.toLowerCase().includes(query) ||
-                vendor.location.toLowerCase().includes(query) ||
-                vendor.products.toLowerCase().includes(query)
+                (vendor.vendorName || (vendor as any).name)?.toLowerCase().includes(query) ||
+                vendor.pointPerson?.toLowerCase().includes(query) ||
+                vendor.email?.toLowerCase().includes(query) ||
+                vendor.location?.toLowerCase().includes(query) ||
+                vendor.products?.toLowerCase().includes(query)
         );
-    }, [searchQuery, mockVendors]);
+    }, [searchQuery, vendors]);
 
     useEffect(() => {
         const checkDarkMode = () => {
@@ -279,7 +417,7 @@ function VendorsContent() {
         logout();
     };
 
-    const getStatusBadge = (vendor: Vendor) => {
+    const getStatusBadge = (vendor: VendorWithDefaults) => {
         if (!vendor.isActive) {
             return (
                 <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200">
@@ -294,7 +432,7 @@ function VendorsContent() {
         );
     };
 
-    const getOwnershipBadges = (vendor: Vendor) => {
+    const getOwnershipBadges = (vendor: VendorWithDefaults) => {
         const badges = [];
         if (vendor.womanOwned) {
             badges.push(
@@ -332,7 +470,7 @@ function VendorsContent() {
                     <div>
                         <h2 className="text-2xl font-bold animate-fade-in">Vendors</h2>
                         <p className="text-slate-700 dark:text-slate-400 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-                            Comprehensive list of all registered vendors ({filteredVendors.length} total)
+                            Comprehensive list of all registered vendors {searchQuery.trim() === "" ? `(${totalElements > 0 ? totalElements : (allVendors.length > 0 ? allVendors.length : mockVendors.length)} total)` : `(${filteredVendors.length} filtered)`}
                         </p>
                     </div>
                     <div className="flex items-center gap-3">
@@ -399,7 +537,7 @@ function VendorsContent() {
                             </div>
                         </div>
                         <p className="text-slate-700 dark:text-slate-400 text-sm font-medium">Total Vendors</p>
-                        <p className="text-3xl font-bold mt-1">{mockVendors.length}</p>
+                        <p className="text-3xl font-bold mt-1">{totalElements > 0 ? totalElements : (vendors.length > 0 ? vendors.length : mockVendors.length)}</p>
                     </div>
 
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover-lift transition-all duration-200">
@@ -412,7 +550,7 @@ function VendorsContent() {
                             </div>
                         </div>
                         <p className="text-slate-700 dark:text-slate-400 text-sm font-medium">Farmers</p>
-                        <p className="text-3xl font-bold mt-1">{mockVendors.filter(v => v.isFarmer).length}</p>
+                        <p className="text-3xl font-bold mt-1">{(allVendors.length > 0 ? allVendors : mockVendors).filter(v => v.isFarmer).length}</p>
                     </div>
 
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover-lift transition-all duration-200">
@@ -425,7 +563,7 @@ function VendorsContent() {
                             </div>
                         </div>
                         <p className="text-slate-700 dark:text-slate-400 text-sm font-medium">Produce Vendors</p>
-                        <p className="text-3xl font-bold mt-1">{mockVendors.filter(v => v.isProduce).length}</p>
+                        <p className="text-3xl font-bold mt-1">{(allVendors.length > 0 ? allVendors : mockVendors).filter(v => v.isProduce).length}</p>
                     </div>
 
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover-lift transition-all duration-200">
@@ -438,7 +576,7 @@ function VendorsContent() {
                             </div>
                         </div>
                         <p className="text-slate-700 dark:text-slate-400 text-sm font-medium">Active Vendors</p>
-                        <p className="text-3xl font-bold mt-1">{mockVendors.filter(v => v.isActive).length}</p>
+                        <p className="text-3xl font-bold mt-1">{(allVendors.length > 0 ? allVendors : mockVendors).filter(v => v.isActive).length}</p>
                     </div>
                 </div>
 
@@ -457,7 +595,7 @@ function VendorsContent() {
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />
                             </div>
-                            <Button variant="outline" size="sm" className="p-2">
+                            <Button variant="outline" size="sm" className="p-2 h-[42px] flex items-center justify-center">
                                 <span className="material-icons block leading-none">filter_list</span>
                             </Button>
                         </div>
@@ -473,37 +611,80 @@ function VendorsContent() {
                                     <th className="px-6 py-4">Location</th>
                                     <th className="px-6 py-4">Distance</th>
                                     <th className="px-6 py-4">Products</th>
+                                    <th className="px-6 py-4">Product Defaults</th>
                                     <th className="px-6 py-4">Status</th>
                                     <th className="px-6 py-4">Ownership</th>
                                     <th className="px-6 py-4 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                                {filteredVendors.map((vendor) => (
-                                    <tr
-                                        key={vendor.id}
-                                        className="transition-all duration-200 ease-out dark:hover:bg-slate-700/50 hover-lift"
-                                        onMouseEnter={(e) => {
-                                            const isDark = document.documentElement.classList.contains("dark");
-                                            if (!isDark) {
-                                                e.currentTarget.style.backgroundColor = 'rgba(248, 250, 252, 0.5)';
-                                            }
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            const isDark = document.documentElement.classList.contains("dark");
-                                            if (!isDark) {
-                                                e.currentTarget.style.removeProperty('background-color');
-                                            }
-                                        }}
-                                    >
-                                        <td className="px-6 py-4">
-                                            <span className="font-semibold">{vendor.name}</span>
+                                {loading ? (
+                                    <tr>
+                                        <td colSpan={10} className="px-6 py-8 text-center text-slate-500">
+                                            Loading vendors...
                                         </td>
-                                        <td className="px-6 py-4 text-sm">{vendor.pointPerson}</td>
-                                        <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">{vendor.email}</td>
-                                        <td className="px-6 py-4 text-sm">{vendor.location}</td>
-                                        <td className="px-6 py-4 text-sm">{vendor.miles} mi</td>
-                                        <td className="px-6 py-4 text-sm">{vendor.products}</td>
+                                    </tr>
+                                ) : filteredVendors.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={10} className="px-6 py-8 text-center text-slate-500">
+                                            No vendors found
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    filteredVendors.map((vendor) => (
+                                        <tr
+                                            key={vendor.id}
+                                            className="transition-all duration-200 ease-out dark:hover:bg-slate-700/50 hover-lift cursor-pointer"
+                                            onClick={() => router.push(`/vendor/${vendor.id}`)}
+                                            onMouseEnter={(e) => {
+                                                const isDark = document.documentElement.classList.contains("dark");
+                                                if (!isDark) {
+                                                    e.currentTarget.style.backgroundColor = 'rgba(248, 250, 252, 0.5)';
+                                                }
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                const isDark = document.documentElement.classList.contains("dark");
+                                                if (!isDark) {
+                                                    e.currentTarget.style.removeProperty('background-color');
+                                                }
+                                            }}
+                                        >
+                                        <td className="px-6 py-4">
+                                            <span className="font-semibold">{vendor.vendorName || vendor.name}</span>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm">{vendor.pointPerson || '-'}</td>
+                                        <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">{vendor.email || '-'}</td>
+                                        <td className="px-6 py-4 text-sm">{vendor.location || '-'}</td>
+                                        <td className="px-6 py-4 text-sm">{vendor.miles ? `${vendor.miles} mi` : '-'}</td>
+                                        <td className="px-6 py-4 text-sm">{vendor.products || '-'}</td>
+                                        <td className="px-6 py-4 text-sm">
+                                            {vendor.defaults ? (
+                                                <div className="flex flex-col gap-1 text-xs">
+                                                    {parseFloat(vendor.defaults.pctAgricultural || '0') > 0 && (
+                                                        <span>Agri: {parseFloat(vendor.defaults.pctAgricultural).toFixed(0)}%</span>
+                                                    )}
+                                                    {parseFloat(vendor.defaults.pctPreparedFood || '0') > 0 && (
+                                                        <span>Food: {parseFloat(vendor.defaults.pctPreparedFood).toFixed(0)}%</span>
+                                                    )}
+                                                    {parseFloat(vendor.defaults.pctHandmade || '0') > 0 && (
+                                                        <span>Handmade: {parseFloat(vendor.defaults.pctHandmade).toFixed(0)}%</span>
+                                                    )}
+                                                    {parseFloat(vendor.defaults.pctCottageGoods || '0') > 0 && (
+                                                        <span>Cottage: {parseFloat(vendor.defaults.pctCottageGoods).toFixed(0)}%</span>
+                                                    )}
+                                                    {parseFloat(vendor.defaults.pctManufactured || '0') > 0 && (
+                                                        <span>Mfg: {parseFloat(vendor.defaults.pctManufactured).toFixed(0)}%</span>
+                                                    )}
+                                                    {!vendor.defaults.pctAgricultural && !vendor.defaults.pctPreparedFood && 
+                                                     !vendor.defaults.pctHandmade && !vendor.defaults.pctCottageGoods && 
+                                                     !vendor.defaults.pctManufactured && (
+                                                        <span className="text-slate-400">No defaults</span>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <span className="text-slate-400 text-xs">No defaults</span>
+                                            )}
+                                        </td>
                                         <td className="px-6 py-4">{getStatusBadge(vendor)}</td>
                                         <td className="px-6 py-4">
                                             <div className="flex flex-wrap gap-1">
@@ -516,29 +697,81 @@ function VendorsContent() {
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex items-center justify-end gap-2">
-                                                <Button variant="ghost" size="sm" className="p-1.5 hover:bg-[#10b981]/10 hover:text-[#10b981] text-slate-400">
-                                                    <span className="material-icons text-lg leading-none">edit</span>
-                                                </Button>
-                                                <Button variant="ghost" size="sm" className="p-1.5 hover:bg-[#10b981]/10 hover:text-[#10b981] text-slate-400">
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm" 
+                                                    className="p-1.5 hover:bg-[#10b981]/10 hover:text-[#10b981] text-slate-400"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        router.push(`/vendor/${vendor.id}`);
+                                                    }}
+                                                >
                                                     <span className="material-icons text-lg leading-none">visibility</span>
                                                 </Button>
                                             </div>
                                         </td>
                                     </tr>
-                                ))}
+                                    ))
+                                )}
                             </tbody>
                         </table>
                     </div>
 
                     <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
                         <span className="text-sm text-slate-700 dark:text-slate-500">
-                            Showing {filteredVendors.length} of {mockVendors.length} vendors
+                            {searchQuery.trim() === "" ? (
+                                <>Showing {vendors.length > 0 ? currentPage * pageSize + 1 : 0} to {Math.min((currentPage + 1) * pageSize, totalElements)} of {totalElements} vendors</>
+                            ) : (
+                                <>Showing {filteredVendors.length} of {vendors.length > 0 ? vendors.length : mockVendors.length} vendors (filtered)</>
+                            )}
                         </span>
                         <div className="flex items-center gap-1">
-                            <Button variant="outline" size="sm" className="p-1 px-3" disabled>Previous</Button>
-                            <Button variant="primary" size="sm" className="p-1 px-3">1</Button>
-                            <Button variant="outline" size="sm" className="p-1 px-3">2</Button>
-                            <Button variant="outline" size="sm" className="p-1 px-3">Next</Button>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="p-1 px-3" 
+                                disabled={currentPage === 0 || searchQuery.trim() !== ""}
+                                onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+                            >
+                                Previous
+                            </Button>
+                            {searchQuery.trim() === "" ? (
+                                Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                                    // Show page numbers around current page
+                                    let pageNum;
+                                    if (totalPages <= 5) {
+                                        pageNum = i;
+                                    } else if (currentPage < 3) {
+                                        pageNum = i;
+                                    } else if (currentPage > totalPages - 4) {
+                                        pageNum = totalPages - 5 + i;
+                                    } else {
+                                        pageNum = currentPage - 2 + i;
+                                    }
+                                    return (
+                                        <Button
+                                            key={pageNum}
+                                            variant={currentPage === pageNum ? "primary" : "outline"}
+                                            size="sm"
+                                            className="p-1 px-3"
+                                            onClick={() => setCurrentPage(pageNum)}
+                                        >
+                                            {pageNum + 1}
+                                        </Button>
+                                    );
+                                })
+                            ) : (
+                                <Button variant="primary" size="sm" className="p-1 px-3">1</Button>
+                            )}
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="p-1 px-3"
+                                disabled={currentPage >= totalPages - 1 || searchQuery.trim() !== ""}
+                                onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
+                            >
+                                Next
+                            </Button>
                         </div>
                     </div>
                 </div>
