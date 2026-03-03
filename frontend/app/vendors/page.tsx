@@ -163,7 +163,7 @@ function VendorsContent() {
         const query = searchQuery.toLowerCase();
         return vendors.filter(
             (vendor) =>
-                (vendor.vendorName || (vendor as any).name)?.toLowerCase().includes(query) ||
+                vendor.vendorName?.toLowerCase().includes(query) ||
                 vendor.pointPerson?.toLowerCase().includes(query) ||
                 vendor.email?.toLowerCase().includes(query) ||
                 vendor.location?.toLowerCase().includes(query) ||
@@ -436,7 +436,7 @@ function VendorsContent() {
                                             onClick={() => router.push(`/vendor/${vendor.id}`)}
                                         >
                                         <td className="px-6 py-4">
-                                            <span className="font-semibold">{vendor.vendorName || vendor.name}</span>
+                                            <span className="font-semibold">{vendor.vendorName}</span>
                                         </td>
                                         <td className="px-6 py-4 text-sm">{vendor.pointPerson || '-'}</td>
                                         <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">{vendor.email || '-'}</td>
