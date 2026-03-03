@@ -123,6 +123,9 @@ function AddVendorContent() {
                 }
             });
 
+            // Round to 2 decimal places to avoid floating point precision issues
+            sumPercentages = Math.round(sumPercentages * 100) / 100;
+
             if (allPercentagesValid && sumPercentages === 100) {
                 completed++; // +1 for the valid sum
             }
@@ -300,6 +303,9 @@ function AddVendorContent() {
                 sumPercentages += value;
             }
         });
+
+        // Round to 2 decimal places to avoid floating point precision issues
+        sumPercentages = Math.round(sumPercentages * 100) / 100;
 
         if (Object.keys(newErrors).length === 0) {
             const hasNonZeroPercentage = percentageFieldKeys.some(key => parseFloat(formData[key as keyof VendorFormData] as string) !== 0);
