@@ -17,6 +17,7 @@ export default function SidebarNavigation({
   const navigationItems = [
     { id: "Dashboard", label: "Dashboard", icon: "dashboard", href: "/dashboard" },
     { id: "Vendors", label: "Vendors", icon: "store", href: "/vendors" },
+    { id: "Transactions", label: "Transactions", icon: "receipt", href: "/transactions" },
     { id: "Daily Reports", label: "Daily Reports", icon: "description", href: "#" },
     { id: "Vendor Analytics", label: "Vendor Analytics", icon: "analytics", href: "#" },
     { id: "Revenue Audits", label: "Revenue Audits", icon: "assessment", href: "#" },
