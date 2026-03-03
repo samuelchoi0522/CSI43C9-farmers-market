@@ -247,8 +247,6 @@ function VendorsContent() {
                         allVendorsList = allVendorsResponse;
                     } else if (allVendorsResponse.data && Array.isArray(allVendorsResponse.data)) {
                         allVendorsList = allVendorsResponse.data;
-                    } else if (allVendorsResponse.content && Array.isArray(allVendorsResponse.content)) {
-                        allVendorsList = allVendorsResponse.content;
                     }
                 }
 
@@ -303,10 +301,6 @@ function VendorsContent() {
                     if (vendorsResponse.totalElements !== undefined) {
                         setTotalElements(vendorsResponse.totalElements);
                     }
-                } else if (vendorsResponse.content && Array.isArray(vendorsResponse.content)) {
-                    // Fallback for old structure
-                    vendorsList = vendorsResponse.content;
-                    console.log('Response has content array (legacy)');
                 } else {
                     console.error('Invalid vendors response structure:', vendorsResponse);
                     // Fallback to mock data on error
@@ -321,9 +315,6 @@ function VendorsContent() {
                         defaultsList = defaultsResponse;
                     } else if (defaultsResponse.data && Array.isArray(defaultsResponse.data)) {
                         defaultsList = defaultsResponse.data;
-                    } else if (defaultsResponse.content && Array.isArray(defaultsResponse.content)) {
-                        // Fallback for old structure
-                        defaultsList = defaultsResponse.content;
                     }
                 }
 

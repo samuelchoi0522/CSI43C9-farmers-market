@@ -105,10 +105,6 @@ function DashboardContent() {
                     if (vendorsResponse.totalElements !== undefined) {
                         setTotalElements(vendorsResponse.totalElements);
                     }
-                } else if (vendorsResponse.content && Array.isArray(vendorsResponse.content)) {
-                    // Fallback for old structure
-                    vendorsList = vendorsResponse.content;
-                    console.log('Response has content array (legacy)');
                 } else {
                     console.error('Invalid vendors response structure:', vendorsResponse);
                     return;
@@ -121,9 +117,6 @@ function DashboardContent() {
                         defaultsList = defaultsResponse;
                     } else if (defaultsResponse.data && Array.isArray(defaultsResponse.data)) {
                         defaultsList = defaultsResponse.data;
-                    } else if (defaultsResponse.content && Array.isArray(defaultsResponse.content)) {
-                        // Fallback for old structure
-                        defaultsList = defaultsResponse.content;
                     }
                 }
 
