@@ -37,8 +37,8 @@ create table if not exists vendor_transactions
     foreign key (vendor_id) references vendors (id),
     constraint vt_vendor_id_market_date_uindex unique (vendor_id, market_date)
 );
-create index vt_vendor_id_date_index on vendor_transactions (vendor_id, market_date);
-create index vt_vendor_name_date_index on vendor_transactions (vendor_name, market_date);
+create index if not exists vt_vendor_id_date_index on vendor_transactions (vendor_id, market_date);;
+create index if not exists vt_vendor_name_date_index on vendor_transactions (vendor_name, market_date);
 create table if not exists users
 (
     id            binary(16)                not null primary key,
@@ -47,7 +47,7 @@ create table if not exists users
     created_at    timestamp default now(),
     updated_at    timestamp on update now() null
 );
-create index users_email_index on users (email);
+create index if not exists users_email_index on users (email);
 create table if not exists refresh_tokens
 (
     id          binary(16) primary key,
@@ -59,15 +59,16 @@ create table if not exists refresh_tokens
 create table if not exists vendor_defaults
 (
     id                binary(16) primary key,
-    vendor_id         binary(16)    unique not null,
-    pct_handmade      DECIMAL(5, 2) not null default 0.00,
-    pct_agricultural  DECIMAL(5, 2) not null default 0.00,
-    pct_prepared_food DECIMAL(5, 2) not null default 0.00,
-    pct_cottage_goods DECIMAL(5, 2) not null default 0.00,
-    pct_manufactured  DECIMAL(5, 2) not null default 0.00,
+    vendor_id         binary(16) unique not null,
+    pct_handmade      DECIMAL(5, 2)     not null default 0.00,
+    pct_agricultural  DECIMAL(5, 2)     not null default 0.00,
+    pct_prepared_food DECIMAL(5, 2)     not null default 0.00,
+    pct_cottage_goods DECIMAL(5, 2)     not null default 0.00,
+    pct_manufactured  DECIMAL(5, 2)     not null default 0.00,
     constraint fk_vendor foreign key (vendor_id) references vendors (id) on delete cascade,
     constraint check_core_total check (
-        (pct_handmade + pct_agricultural + pct_prepared_food +
-         pct_cottage_goods + pct_manufactured) = 100.00
+        (
+            pct_handmade + pct_agricultural + pct_prepared_food + pct_cottage_goods + pct_manufactured
+            ) = 100.00
         )
 )
