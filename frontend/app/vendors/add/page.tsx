@@ -846,7 +846,7 @@ function AddVendorContent() {
                             {/* Vendor Classifications */}
                             <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
                                 <div className="p-6 border-b border-slate-200 dark:border-slate-700">
-                                    <h3 className="font-bold text-lg">Vendor Classifications (Optional)</h3>
+                                    <h3 className="font-bold text-lg">Vendor Classifications</h3>
                                 </div>
                                 <div className="p-6 space-y-4">
                                     {/* Toggle Switch Component */}
@@ -885,7 +885,7 @@ function AddVendorContent() {
                             {/* Vendor Defaults Percentages */}
                             <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
                                 <div className="p-6 border-b border-slate-200 dark:border-slate-700">
-                                    <h3 className="font-bold text-lg">Product Category Percentages</h3>
+                                    <h3 className="font-bold text-lg">Product Category Percentages (Optional)</h3>
                                     <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
                                         Define the percentage breakdown of products sold by this vendor. The total must equal 100%.
                                     </p>
