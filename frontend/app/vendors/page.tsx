@@ -625,20 +625,8 @@ function VendorsContent() {
                                     filteredVendors.map((vendor) => (
                                         <tr
                                             key={vendor.id}
-                                            className="transition-all duration-200 ease-out dark:hover:bg-slate-700/50 hover-lift cursor-pointer"
+                                            className="hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors cursor-pointer"
                                             onClick={() => router.push(`/vendor/${vendor.id}`)}
-                                            onMouseEnter={(e) => {
-                                                const isDark = document.documentElement.classList.contains("dark");
-                                                if (!isDark) {
-                                                    e.currentTarget.style.backgroundColor = 'rgba(248, 250, 252, 0.5)';
-                                                }
-                                            }}
-                                            onMouseLeave={(e) => {
-                                                const isDark = document.documentElement.classList.contains("dark");
-                                                if (!isDark) {
-                                                    e.currentTarget.style.removeProperty('background-color');
-                                                }
-                                            }}
                                         >
                                         <td className="px-6 py-4">
                                             <span className="font-semibold">{vendor.vendorName || vendor.name}</span>

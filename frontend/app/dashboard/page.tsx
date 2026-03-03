@@ -298,23 +298,7 @@ function DashboardContent() {
                                     vendors.map((vendor) => (
                                         <tr
                                             key={vendor.id}
-                                            className="transition-all duration-200 ease-out dark:hover:bg-slate-700/50 hover-lift"
-                                            onMouseEnter={(e) => {
-                                                const isDark = document.documentElement.classList.contains("dark");
-                                                const target = e.currentTarget;
-                                                if (!isDark) {
-                                                    target.classList.add('light-hover-bg');
-                                                    target.style.setProperty('background-color', 'rgba(248, 250, 252, 0.5)', 'important');
-                                                }
-                                            }}
-                                            onMouseLeave={(e) => {
-                                                const isDark = document.documentElement.classList.contains("dark");
-                                                const target = e.currentTarget;
-                                                if (!isDark) {
-                                                    target.style.removeProperty('background-color');
-                                                    target.classList.remove('light-hover-bg');
-                                                }
-                                            }}
+                                            className="hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
                                         >
                                             <td className="px-6 py-4">
                                                 <span className="font-semibold">{vendor.vendorName}</span>

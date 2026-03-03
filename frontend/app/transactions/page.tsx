@@ -450,7 +450,7 @@ function SalesRow({ record, isEditing, onEdit, onSave, onDelete, onUpdate }: Sal
       onClick={() => !isEditing && onEdit()}
       className={`
         group transition-colors cursor-pointer
-        ${isEditing ? 'bg-blue-50/50' : 'hover:bg-gray-50/80'}
+        ${isEditing ? 'bg-blue-50/50 dark:bg-blue-900/20' : 'hover:bg-green-50 dark:hover:bg-green-900/20'}
       `}
     >
       {/* Vendor Name */}

@@ -570,7 +570,7 @@ function VendorDetailContent() {
                                     {vendorData.marketHistory.map((session, index) => (
                                         <tr
                                             key={index}
-                                            className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                                            className="hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
                                         >
                                             <td className="px-6 py-4 font-medium">
                                                 {session.marketDate}
