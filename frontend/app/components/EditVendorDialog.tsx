@@ -7,6 +7,16 @@ import Button from './Button';
 import { Vendor, updateVendor, deleteVendor } from '@/lib/api/vendor';
 import { VendorDefaults, updateVendorDefaults, createVendorDefaults, getVendorDefaultsByVendorId } from '@/lib/api/defaults';
 import { cn } from '@/lib/utils';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "./figma/alert-dialog";
 
 interface EditVendorDialogProps {
     vendor: Vendor;
@@ -40,6 +50,8 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [existingDefaults, setExistingDefaults] = useState<VendorDefaults | null>(null);
     const [loadingDefaults, setLoadingDefaults] = useState(false);
+    const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
+    const [showActivateConfirm, setShowActivateConfirm] = useState(false);
 
     const [formData, setFormData] = useState<VendorFormData>({
         vendorName: vendor.vendorName || "",
@@ -226,9 +238,6 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
     const handleDeactivate = async () => {
         if (!vendor.id) return;
         
-        const confirmed = window.confirm(`Are you sure you want to deactivate ${vendor.vendorName}? This will hide them from default active lists.`);
-        if (!confirmed) return;
-
         setIsSubmitting(true);
         try {
             await deleteVendor(vendor.id);
@@ -239,15 +248,13 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
             setErrors({ submit: "Failed to deactivate vendor. Please try again." });
         } finally {
             setIsSubmitting(false);
+            setShowDeactivateConfirm(false);
         }
     };
 
     const handleActivate = async () => {
         if (!vendor.id) return;
         
-        const confirmed = window.confirm(`Are you sure you want to reactivate ${vendor.vendorName}?`);
-        if (!confirmed) return;
-
         setIsSubmitting(true);
         try {
             const milesNumber = formData.miles ? parseInt(formData.miles, 10) : undefined;
@@ -272,6 +279,7 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
             setErrors({ submit: "Failed to activate vendor. Please try again." });
         } finally {
             setIsSubmitting(false);
+            setShowActivateConfirm(false);
         }
     };
 
@@ -489,7 +497,7 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
                         {formData.isActive ? (
                             <Button 
                                 variant="ghost" 
-                                onClick={handleDeactivate}
+                                onClick={() => setShowDeactivateConfirm(true)}
                                 disabled={isSubmitting}
                                 className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
                             >
@@ -499,7 +507,7 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
                         ) : (
                             <Button 
                                 variant="ghost" 
-                                onClick={handleActivate}
+                                onClick={() => setShowActivateConfirm(true)}
                                 disabled={isSubmitting}
                                 className="text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 flex items-center gap-2"
                             >
@@ -537,6 +545,54 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
                     </div>
                 </DialogPrimitive.Content>
             </DialogPrimitive.Portal>
+
+            {/* Deactivate Confirmation */}
+            <AlertDialog open={showDeactivateConfirm} onOpenChange={setShowDeactivateConfirm}>
+                <AlertDialogContent className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-slate-900 dark:text-white">Deactivate Vendor?</AlertDialogTitle>
+                        <AlertDialogDescription className="text-slate-500 dark:text-slate-400">
+                            Are you sure you want to deactivate <strong>{vendor.vendorName}</strong>? This will hide them from default active lists.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel className="border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">Cancel</AlertDialogCancel>
+                        <AlertDialogAction 
+                            onClick={(e) => {
+                                e.preventDefault();
+                                handleDeactivate();
+                            }}
+                            className="bg-red-600 hover:bg-red-700 text-white"
+                        >
+                            Deactivate
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Activate Confirmation */}
+            <AlertDialog open={showActivateConfirm} onOpenChange={setShowActivateConfirm}>
+                <AlertDialogContent className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-slate-900 dark:text-white">Reactivate Vendor?</AlertDialogTitle>
+                        <AlertDialogDescription className="text-slate-500 dark:text-slate-400">
+                            Are you sure you want to reactivate <strong>{vendor.vendorName}</strong>?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel className="border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">Cancel</AlertDialogCancel>
+                        <AlertDialogAction 
+                            onClick={(e) => {
+                                e.preventDefault();
+                                handleActivate();
+                            }}
+                            className="bg-[#10b981] hover:bg-[#059669] text-white border-none"
+                        >
+                            Reactivate
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </DialogPrimitive.Root>
     );
 }
