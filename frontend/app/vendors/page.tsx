@@ -9,6 +9,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAllVendorDefaults, VendorDefaults } from "@/lib/api/defaults";
 import { getVendors, Vendor } from "@/lib/api/vendor";
+import { EditVendorDialog } from "../components/EditVendorDialog";
 
 interface VendorWithDefaults extends Vendor {
     defaults?: VendorDefaults;
@@ -33,6 +34,58 @@ function VendorsContent() {
     const { user, logout } = useAuth();
     const userName = user?.username || "Admin User";
 
+    // Edit Dialog state
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
+
+    const fetchData = async () => {
+        try {
+            setLoading(true);
+            const [vendorsResponse, defaultsResponse] = await Promise.all([
+                getVendors(currentPage, pageSize),
+                getAllVendorDefaults(0, 100)
+            ]);
+
+            // Handle case where response might be an array directly or PagedResponse
+            let vendorsList: Vendor[] = [];
+            if (Array.isArray(vendorsResponse)) {
+                vendorsList = vendorsResponse;
+            } else if (vendorsResponse.data && Array.isArray(vendorsResponse.data)) {
+                vendorsList = vendorsResponse.data;
+                if (vendorsResponse.totalPages !== undefined) {
+                    setTotalPages(vendorsResponse.totalPages);
+                }
+                if (vendorsResponse.totalElements !== undefined) {
+                    setTotalElements(vendorsResponse.totalElements);
+                }
+            }
+
+            // Handle defaults response
+            let defaultsList: VendorDefaults[] = [];
+            if (defaultsResponse) {
+                if (Array.isArray(defaultsResponse)) {
+                    defaultsList = defaultsResponse;
+                } else if (defaultsResponse.data && Array.isArray(defaultsResponse.data)) {
+                    defaultsList = defaultsResponse.data;
+                }
+            }
+
+            setVendorDefaults(defaultsList);
+
+            // Map vendor defaults to vendors
+            const vendorsWithDefaults = vendorsList.map(vendor => {
+                const defaults = defaultsList.find(d => d.vendorId === vendor.id);
+                return { ...vendor, defaults };
+            });
+            
+            setVendors(vendorsWithDefaults);
+        } catch (error) {
+            console.error('Error fetching vendor data:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // Fetch all vendors once for stats calculation
     useEffect(() => {
         const fetchAllVendors = async () => {
@@ -51,8 +104,6 @@ function VendorsContent() {
                         defaultsList = defaultsResponse.data;
                     }
                 }
-
-                setVendorDefaults(defaultsList);
 
                 // Handle all vendors response for stats
                 let allVendorsList: Vendor[] = [];
@@ -81,72 +132,18 @@ function VendorsContent() {
 
     // Fetch vendors and vendor defaults for current page
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setLoading(true);
-                const [vendorsResponse, defaultsResponse] = await Promise.all([
-                    getVendors(currentPage, pageSize),
-                    getAllVendorDefaults(0, 100)
-                ]);
-
-                console.log('Vendors response:', vendorsResponse);
-                console.log('Defaults response:', defaultsResponse);
-
-                // Check if responses are valid
-                if (!vendorsResponse) {
-                    console.error('Vendors response is null or undefined');
-                    return;
-                }
-
-                // Handle case where response might be an array directly or PagedResponse
-                let vendorsList: Vendor[] = [];
-                if (Array.isArray(vendorsResponse)) {
-                    vendorsList = vendorsResponse;
-                    console.log('Response is an array, using directly');
-                } else if (vendorsResponse.data && Array.isArray(vendorsResponse.data)) {
-                    vendorsList = vendorsResponse.data;
-                    console.log('Response has data array');
-                    // Update pagination info
-                    if (vendorsResponse.totalPages !== undefined) {
-                        setTotalPages(vendorsResponse.totalPages);
-                    }
-                    if (vendorsResponse.totalElements !== undefined) {
-                        setTotalElements(vendorsResponse.totalElements);
-                    }
-                } else {
-                    console.error('Invalid vendors response structure:', vendorsResponse);
-                    return;
-                }
-
-                // Handle defaults response
-                let defaultsList: VendorDefaults[] = [];
-                if (defaultsResponse) {
-                    if (Array.isArray(defaultsResponse)) {
-                        defaultsList = defaultsResponse;
-                    } else if (defaultsResponse.data && Array.isArray(defaultsResponse.data)) {
-                        defaultsList = defaultsResponse.data;
-                    }
-                }
-
-                setVendorDefaults(defaultsList);
-
-                // Map vendor defaults to vendors
-                const vendorsWithDefaults = vendorsList.map(vendor => {
-                    const defaults = defaultsList.find(d => d.vendorId === vendor.id);
-                    return { ...vendor, defaults };
-                });
-                
-                console.log('Setting vendors:', vendorsWithDefaults);
-                setVendors(vendorsWithDefaults);
-            } catch (error) {
-                console.error('Error fetching vendor data:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchData();
     }, [currentPage, pageSize]);
+
+    const handleEditClick = (e: React.MouseEvent, vendor: Vendor) => {
+        e.stopPropagation();
+        setEditingVendor(vendor);
+        setIsEditDialogOpen(true);
+    };
+
+    const handleEditSuccess = () => {
+        fetchData();
+    };
 
     // Reset to first page when search query changes
     useEffect(() => {
@@ -486,11 +483,21 @@ function VendorsContent() {
                                                 <Button 
                                                     variant="ghost" 
                                                     size="sm" 
-                                                    className="p-1.5 hover:bg-[#10b981]/10 hover:text-[#10b981] text-slate-400"
+                                                    className="p-1.5 hover:bg-dashboard-primary/10 hover:text-dashboard-primary text-slate-400"
+                                                    onClick={(e) => handleEditClick(e, vendor)}
+                                                    title="Edit Vendor"
+                                                >
+                                                    <span className="material-icons text-lg leading-none">edit</span>
+                                                </Button>
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm" 
+                                                    className="p-1.5 hover:bg-dashboard-primary/10 hover:text-dashboard-primary text-slate-400"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         router.push(`/vendor/${vendor.id}`);
                                                     }}
+                                                    title="View Details"
                                                 >
                                                     <span className="material-icons text-lg leading-none">visibility</span>
                                                 </Button>
@@ -561,6 +568,15 @@ function VendorsContent() {
                         </div>
                     </div>
                 </div>
+
+                {editingVendor && (
+                    <EditVendorDialog
+                        vendor={editingVendor}
+                        isOpen={isEditDialogOpen}
+                        onOpenChange={setIsEditDialogOpen}
+                        onSuccess={handleEditSuccess}
+                    />
+                )}
             </main>
         </div>
     );
