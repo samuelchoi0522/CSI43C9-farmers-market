@@ -3,8 +3,10 @@ package com.csi43C9.baylor.farmers_market.script;
 import com.csi43C9.baylor.farmers_market.FarmersMarketApplication;
 import com.csi43C9.baylor.farmers_market.entity.User;
 import com.csi43C9.baylor.farmers_market.entity.Vendor;
+import com.csi43C9.baylor.farmers_market.entity.VendorTransaction;
 import com.csi43C9.baylor.farmers_market.repository.UserRepository;
 import com.csi43C9.baylor.farmers_market.repository.VendorRepository;
+import com.csi43C9.baylor.farmers_market.repository.VendorTransactionRepository;
 import io.github.cdimascio.dotenv.Dotenv;
 import net.datafaker.Faker;
 import org.springframework.boot.SpringApplication;
@@ -13,6 +15,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -39,11 +42,13 @@ public class Seeder {
             // Retrieve the repositories
             VendorRepository vendorRepository = context.getBean(VendorRepository.class);
             UserRepository userRepository = context.getBean(UserRepository.class);
+            VendorTransactionRepository transactionRepository = context.getBean(VendorTransactionRepository.class);
 
             // Comment out the seeds you don't want to run
             Seeder seeder = new Seeder();
-            //seeder.populateVendors(vendorRepository);
-            seeder.populateUser(userRepository);
+            // seeder.populateVendors(vendorRepository);
+            //seeder.populateUser(userRepository);
+            seeder.populateVendorTransactions(vendorRepository, transactionRepository);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -93,7 +98,7 @@ public class Seeder {
             v.setIsActive(true);
             vendorRepository.save(v);
         }
-        System.out.println("Done seeding!");
+        System.out.println("Done seeding vendors!");
     }
 
     /**
@@ -114,10 +119,66 @@ public class Seeder {
     }
 
     /**
-     * TODO: Seeds the database with vendor transactions.
+     * Seeds the database with vendor transactions.
      */
-    void populateVendorTransactions() {
-        // Nothing here yet
+    private void populateVendorTransactions(VendorRepository vendorRepository, VendorTransactionRepository transactionRepository) {
+        List<Vendor> allVendors = vendorRepository.findAll();
+        List<java.time.LocalDate> marketDates = List.of(
+            java.time.LocalDate.now().minusWeeks(1),
+            java.time.LocalDate.now().minusWeeks(2),
+            java.time.LocalDate.now().minusWeeks(3),
+            java.time.LocalDate.now().minusWeeks(4),
+            java.time.LocalDate.now().minusWeeks(5)
+        );
+
+        System.out.println("Seeding transactions for " + allVendors.size() + " vendors...");
+        java.util.ArrayList<VendorTransaction> allTransactions = new java.util.ArrayList<>();
+
+        for (Vendor vendor : allVendors) {
+            for (java.time.LocalDate date : marketDates) {
+                // Not all vendors attend every market
+                if (faker.number().numberBetween(1, 10) > 8) {
+                    continue;
+                }
+
+                VendorTransaction transaction = new VendorTransaction();
+                transaction.setVendorId(vendor.getId());
+                transaction.setVendorName(vendor.getVendorName());
+                transaction.setMarketDate(date);
+                transaction.setPresent(faker.bool().bool());
+
+                if (transaction.isPresent()) {
+                    transaction.setSnap(faker.number().randomDouble(2, 0, 100));
+                    transaction.setDufb(faker.number().randomDouble(2, 0, 100));
+                    transaction.setWdfmTokens(faker.number().randomDouble(2, 0, 100));
+                    transaction.setVoucher(faker.number().randomDouble(2, 0, 100));
+                    transaction.setReportedSales(faker.number().randomDouble(2, 100, 1000));
+                    transaction.setEstProduceSales(faker.number().randomDouble(2, 50, 500));
+                    transaction.setEstNumTransactions((long) faker.number().numberBetween(5, 50));
+                    
+                    // Simple reimbursement calculation example
+                    transaction.setReimbursementDue(
+                        transaction.getSnap() + 
+                        transaction.getDufb() + 
+                        transaction.getWdfmTokens() + 
+                        transaction.getVoucher()
+                    );
+                } else {
+                    transaction.setSnap(0.0);
+                    transaction.setDufb(0.0);
+                    transaction.setWdfmTokens(0.0);
+                    transaction.setVoucher(0.0);
+                    transaction.setReimbursementDue(0.0);
+                    transaction.setReportedSales(0.0);
+                    transaction.setEstProduceSales(0.0);
+                    transaction.setEstNumTransactions(0L);
+                }
+                allTransactions.add(transaction);
+            }
+        }
+        
+        transactionRepository.saveAll(allTransactions);
+        System.out.println("Done seeding transactions! (" + allTransactions.size() + " records)");
     }
 
 
