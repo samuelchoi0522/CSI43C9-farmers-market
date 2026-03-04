@@ -277,7 +277,7 @@ export default function App() {
   const invalidCount = records.filter(r => r.isInvalid).length;
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans text-gray-800 pb-20">
+    <div className="transactions-page min-h-screen bg-gray-50 font-sans text-gray-800 pb-20">
       <style dangerouslySetInnerHTML={{ __html: `
         input::-webkit-outer-spin-button,
         input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
@@ -287,7 +287,7 @@ export default function App() {
       <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
         <div className="max-w-8xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-blue-600 text-white p-2 rounded-lg">
+            <div className="bg-[#10b981] text-white p-2 rounded-lg">
               <TableIcon size={20} />
             </div>
             <h1 className="text-xl font-bold text-gray-900">Farmer's Market Transactions</h1>
@@ -351,11 +351,11 @@ export default function App() {
                 <tr className="bg-gray-50 border-b border-gray-200 text-xs uppercase text-gray-500 font-semibold">
                   <th className="px-4 py-4 min-w-[200px] sticky left-0 bg-gray-50 z-10 border-r border-gray-200">Vendor Name</th>
                   <th className="px-3 py-4 w-20 text-center">Present</th>
-                  <th className="px-3 py-4 w-24 text-center bg-blue-50/50">SNAP ($)</th>
-                  <th className="px-3 py-4 w-24 text-center bg-blue-50/50">DUFB ($)</th>
-                  <th className="px-3 py-4 w-24 text-center bg-blue-50/50">WDFM ($)</th>
-                  <th className="px-3 py-4 w-24 text-center bg-blue-50/50">Voucher ($)</th>
-                  <th className="px-4 py-4 w-32 text-right font-bold text-blue-800 bg-blue-50 border-x border-blue-100">Reimburse.</th>
+                  <th className="px-3 py-4 w-24 text-center bg-[#10b981]/10">SNAP ($)</th>
+                  <th className="px-3 py-4 w-24 text-center bg-[#10b981]/10">DUFB ($)</th>
+                  <th className="px-3 py-4 w-24 text-center bg-[#10b981]/10">WDFM ($)</th>
+                  <th className="px-3 py-4 w-24 text-center bg-[#10b981]/10">Voucher ($)</th>
+                  <th className="px-4 py-4 w-32 text-right font-bold text-[#059669] bg-[#10b981]/10 border-x border-[#10b981]/20">Reimburse.</th>
                   <th className="px-4 py-4 w-32 text-right bg-orange-50/30">Reported Sales</th>
                   <th className="px-4 py-4 w-32 text-right bg-green-50/30">Est. Produce</th>
                   <th className="px-4 py-4 w-24 text-center bg-gray-50/50">Trans.</th>
@@ -401,7 +401,7 @@ export default function App() {
               flex items-center gap-3 px-8 py-4 rounded-xl font-semibold text-base transition-all shadow-lg
               ${isSaving || records.length === 0 || invalidCount > 0
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-xl transform hover:scale-105'
+                : 'bg-[#10b981] text-white hover:bg-[#059669] hover:shadow-xl transform hover:scale-105'
               }
             `}
           >
@@ -461,7 +461,7 @@ function SalesRow({ record, isEditing, isInvalid, onEdit, onSave, onDelete, onUp
       className={`
         group transition-colors cursor-pointer
         ${isInvalid ? 'bg-red-50 border-l-4 border-l-red-400' : ''}
-        ${isEditing && !isInvalid ? 'bg-blue-50/50' : ''}
+        ${isEditing && !isInvalid ? 'bg-[#10b981]/10' : ''}
         ${!isEditing && !isInvalid ? 'hover:bg-gray-50/80' : ''}
       `}
     >
@@ -474,7 +474,7 @@ function SalesRow({ record, isEditing, isInvalid, onEdit, onSave, onDelete, onUp
               className={`w-full px-2 py-1 border rounded outline-none text-sm font-medium
                 ${isInvalid
                   ? 'border-red-400 bg-white text-red-700 focus:ring-2 focus:ring-red-300'
-                  : 'border-blue-200 focus:ring-2 focus:ring-blue-500'
+                  : 'border-[#10b981]/30 focus:ring-2 focus:ring-[#10b981]'
                 }`}
               value={record.vendor_name}
               onChange={(e) => onUpdate({ vendor_name: e.target.value })}
@@ -494,7 +494,7 @@ function SalesRow({ record, isEditing, isInvalid, onEdit, onSave, onDelete, onUp
       <td className="px-3 py-3 text-center">
         <input 
           type="checkbox"
-          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+          className="w-4 h-4 accent-[#10b981] border-gray-300 rounded focus:ring-[#10b981]"
           checked={present}
           onChange={(e) => onUpdate({ present: e.target.checked })}
           onClick={(e) => e.stopPropagation()}
@@ -506,7 +506,7 @@ function SalesRow({ record, isEditing, isInvalid, onEdit, onSave, onDelete, onUp
         {isEditing ? (
           <input 
             type="number" step="0.01"
-            className="w-full px-2 py-1 text-right border border-blue-200 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+            className="w-full px-2 py-1 text-right border border-[#10b981]/30 rounded focus:ring-2 focus:ring-[#10b981] outline-none text-sm"
             value={snap === 0 && isEditing ? '' : snap}
             onChange={(e) => handleNumberChange('snap', e.target.value)}
             autoFocus
@@ -521,7 +521,7 @@ function SalesRow({ record, isEditing, isInvalid, onEdit, onSave, onDelete, onUp
         {isEditing ? (
           <input 
             type="number" step="0.01"
-            className="w-full px-2 py-1 text-right border border-blue-200 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+            className="w-full px-2 py-1 text-right border border-[#10b981]/30 rounded focus:ring-2 focus:ring-[#10b981] outline-none text-sm"
             value={dufb === 0 && isEditing ? '' : dufb}
             onChange={(e) => handleNumberChange('dufb', e.target.value)}
           />
@@ -535,7 +535,7 @@ function SalesRow({ record, isEditing, isInvalid, onEdit, onSave, onDelete, onUp
         {isEditing ? (
           <input 
             type="number" step="0.01"
-            className="w-full px-2 py-1 text-right border border-blue-200 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+            className="w-full px-2 py-1 text-right border border-[#10b981]/30 rounded focus:ring-2 focus:ring-[#10b981] outline-none text-sm"
             value={wdfm_tokens === 0 && isEditing ? '' : wdfm_tokens}
             onChange={(e) => handleNumberChange('wdfm_tokens', e.target.value)}
           />
@@ -549,7 +549,7 @@ function SalesRow({ record, isEditing, isInvalid, onEdit, onSave, onDelete, onUp
         {isEditing ? (
           <input 
             type="number" step="0.01"
-            className="w-full px-2 py-1 text-right border border-blue-200 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+            className="w-full px-2 py-1 text-right border border-[#10b981]/30 rounded focus:ring-2 focus:ring-[#10b981] outline-none text-sm"
             value={voucher === 0 && isEditing ? '' : voucher}
             onChange={(e) => handleNumberChange('voucher', e.target.value)}
           />
@@ -559,16 +559,16 @@ function SalesRow({ record, isEditing, isInvalid, onEdit, onSave, onDelete, onUp
       </td>
 
       {/* Reimbursement Due */}
-      <td className="px-4 py-3 bg-blue-50/30 border-x border-blue-100">
+      <td className="px-4 py-3 bg-[#10b981]/10 border-x border-[#10b981]/20">
         {isEditing ? (
           <input 
             type="number" step="0.01"
-            className="w-full px-2 py-1 text-right font-bold text-blue-800 border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+            className="w-full px-2 py-1 text-right font-bold text-[#059669] border border-[#10b981]/40 rounded focus:ring-2 focus:ring-[#10b981] outline-none text-sm"
             value={reimbursement_due === 0 && isEditing ? '' : reimbursement_due}
             onChange={(e) => handleNumberChange('reimbursement_due', e.target.value)}
           />
         ) : (
-          <div className={`text-right font-bold tabular-nums ${reimbursement_due > 0 ? 'text-blue-700' : 'text-gray-300'}`}>
+          <div className={`text-right font-bold tabular-nums ${reimbursement_due > 0 ? 'text-[#059669]' : 'text-gray-300'}`}>
             {formatCurrency(reimbursement_due)}
           </div>
         )}
@@ -607,7 +607,7 @@ function SalesRow({ record, isEditing, isInvalid, onEdit, onSave, onDelete, onUp
         {isEditing ? (
           <input 
             type="number"
-            className="w-full px-2 py-1 text-center border border-gray-200 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+            className="w-full px-2 py-1 text-center border border-gray-200 rounded focus:ring-2 focus:ring-[#10b981] outline-none text-sm"
             value={est_num_transactions === 0 && isEditing ? '' : est_num_transactions}
             onChange={(e) => handleNumberChange('est_num_transactions', e.target.value)}
           />
@@ -622,7 +622,7 @@ function SalesRow({ record, isEditing, isInvalid, onEdit, onSave, onDelete, onUp
           {isEditing ? (
             <button 
               onClick={(e) => { e.stopPropagation(); onSave(); }}
-              className="p-1 text-blue-600 hover:bg-blue-100 rounded transition-colors"
+              className="p-1 text-[#10b981] hover:bg-[#10b981]/15 rounded transition-colors"
               title="Save Row"
             >
               <Check size={18} />

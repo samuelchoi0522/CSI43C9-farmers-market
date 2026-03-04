@@ -26,7 +26,7 @@ export function VendorAutocomplete({ vendors, onSelect, placeholder = "Search ve
           <button
             role="combobox"
             aria-expanded={open}
-            className="flex h-12 w-full items-center justify-between rounded-md border border-gray-200 bg-white px-4 py-2 text-sm ring-offset-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all hover:border-gray-300"
+            className="flex h-12 w-full items-center justify-between rounded-md border border-gray-200 bg-white px-4 py-2 text-sm ring-offset-white focus:outline-none focus:ring-2 focus:ring-[#10b981] transition-all hover:border-gray-300"
           >
             <span className={cn("truncate", value ? "text-gray-900" : "text-gray-500")}>
               {value
@@ -59,11 +59,11 @@ export function VendorAutocomplete({ vendors, onSelect, placeholder = "Search ve
                         setOpen(false);
                       }
                     }}
-                    className="flex cursor-pointer select-none items-center rounded-sm px-3 py-2.5 text-sm text-gray-900 outline-none hover:bg-blue-50 aria-selected:bg-blue-50 aria-selected:text-blue-900"
+                    className="flex cursor-pointer select-none items-center rounded-sm px-3 py-2.5 text-sm text-gray-900 outline-none hover:bg-[#10b981]/10 aria-selected:bg-[#10b981]/10 aria-selected:text-[#059669]"
                   >
                     <Check
                       className={cn(
-                        "mr-2 h-4 w-4 text-blue-600",
+                        "mr-2 h-4 w-4 text-[#10b981]",
                         value === vendor.name ? "opacity-100" : "opacity-0"
                       )}
                     />

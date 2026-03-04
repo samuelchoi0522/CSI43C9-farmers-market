@@ -29,7 +29,7 @@ export function AddVendorDialog({ vendors, onAdd }: AddVendorDialogProps) {
   return (
     <DialogPrimitive.Root open={isOpen} onOpenChange={setIsOpen}>
       <DialogPrimitive.Trigger asChild>
-        <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 transition-all shadow-sm">
+        <button className="flex items-center gap-2 px-4 py-2 bg-[#10b981] text-white rounded-lg font-medium text-sm hover:bg-[#059669] transition-all shadow-sm">
           <Plus size={16} />
           Add Vendor
         </button>
@@ -63,7 +63,7 @@ export function AddVendorDialog({ vendors, onAdd }: AddVendorDialogProps) {
             <button
               onClick={handleAdd}
               disabled={!selectedVendor}
-              className="inline-flex h-10 items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white ring-offset-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+              className="inline-flex h-10 items-center justify-center rounded-md bg-[#10b981] px-4 py-2 text-sm font-medium text-white ring-offset-white transition-colors hover:bg-[#059669] focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
             >
               Add Row
             </button>
