@@ -81,7 +81,7 @@ public class VendorDefaultsRepository extends AbstractJdbcRepository implements 
     public Optional<VendorDefaults> findById(UUID uuid) {
         String sql = "select * from vendor_defaults where id = ?";
         try {
-            VendorDefaults defaults = jdbcTemplate.queryForObject(sql, new VendorDefaultsRowMapper(), UuidUtils.toBytesObject(uuid));
+            VendorDefaults defaults = jdbcTemplate.queryForObject(sql, new VendorDefaultsRowMapper(), UuidUtils.toBytes(uuid));
             return Optional.ofNullable(defaults);
         } catch (EmptyResultDataAccessException e) {
             return Optional.empty();
@@ -95,7 +95,7 @@ public class VendorDefaultsRepository extends AbstractJdbcRepository implements 
     public Optional<VendorDefaults> findByVendorId(UUID vendorId) {
         String sql = "select * from vendor_defaults where vendor_id = ?";
         try {
-            VendorDefaults defaults = jdbcTemplate.queryForObject(sql, new VendorDefaultsRowMapper(), UuidUtils.toBytesObject(vendorId));
+            VendorDefaults defaults = jdbcTemplate.queryForObject(sql, new VendorDefaultsRowMapper(), UuidUtils.toBytes(vendorId));
             return Optional.ofNullable(defaults);
         } catch (EmptyResultDataAccessException e) {
             return Optional.empty();
@@ -129,6 +129,6 @@ public class VendorDefaultsRepository extends AbstractJdbcRepository implements 
     @Override
     public void deleteById(UUID uuid) {
         String sql = "delete from vendor_defaults where id = ?";
-        jdbcTemplate.update(sql, UuidUtils.toBytesObject(uuid));
+        jdbcTemplate.update(sql, UuidUtils.toBytes(uuid));
     }
 }

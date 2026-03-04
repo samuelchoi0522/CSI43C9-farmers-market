@@ -155,6 +155,6 @@ public class UserRepository extends AbstractJdbcRepository implements MarketRepo
     @Override
     public void deleteById(UUID uuid) {
         String sql = "delete from users where id = ?";
-        jdbcTemplate.update(sql, UuidUtils.toBytesObject(uuid));
+        jdbcTemplate.update(sql, UuidUtils.toBytes(uuid));
     }
 }

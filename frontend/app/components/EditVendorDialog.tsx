@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X, Save, AlertCircle } from 'lucide-react';
 import Button from './Button';
-import { Vendor, updateVendor } from '@/lib/api/vendor';
+import { Vendor, updateVendor, deleteVendor } from '@/lib/api/vendor';
 import { VendorDefaults, updateVendorDefaults, createVendorDefaults, getVendorDefaultsByVendorId } from '@/lib/api/defaults';
 import { cn } from '@/lib/utils';
 
@@ -223,6 +223,58 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
         }
     };
 
+    const handleDeactivate = async () => {
+        if (!vendor.id) return;
+        
+        const confirmed = window.confirm(`Are you sure you want to deactivate ${vendor.vendorName}? This will hide them from default active lists.`);
+        if (!confirmed) return;
+
+        setIsSubmitting(true);
+        try {
+            await deleteVendor(vendor.id);
+            onSuccess();
+            onOpenChange(false);
+        } catch (error) {
+            console.error("Error deactivating vendor:", error);
+            setErrors({ submit: "Failed to deactivate vendor. Please try again." });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleActivate = async () => {
+        if (!vendor.id) return;
+        
+        const confirmed = window.confirm(`Are you sure you want to reactivate ${vendor.vendorName}?`);
+        if (!confirmed) return;
+
+        setIsSubmitting(true);
+        try {
+            const milesNumber = formData.miles ? parseInt(formData.miles, 10) : undefined;
+            await updateVendor(vendor.id, {
+                vendorName: formData.vendorName,
+                pointPerson: formData.pointPerson || undefined,
+                email: formData.email || undefined,
+                location: formData.location || undefined,
+                miles: milesNumber,
+                products: formData.products || undefined,
+                isFarmer: formData.isFarmer,
+                isProduce: formData.isProduce,
+                isActive: true,
+                womanOwned: formData.womanOwned,
+                bipocOwned: formData.bipocOwned,
+                veteranOwned: formData.veteranOwned,
+            });
+            onSuccess();
+            onOpenChange(false);
+        } catch (error) {
+            console.error("Error activating vendor:", error);
+            setErrors({ submit: "Failed to activate vendor. Please try again." });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     const percentageFields = [
         { key: 'pctHandmade', label: 'Handmade (%)' },
         { key: 'pctAgricultural', label: 'Agricultural (%)' },
@@ -362,7 +414,6 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
                             </h4>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
                                 {[
-                                    { key: 'isActive', label: 'Active Status' },
                                     { key: 'isFarmer', label: 'Is Farmer' },
                                     { key: 'isProduce', label: 'Is Produce' },
                                     { key: 'womanOwned', label: 'Woman Owned' },
@@ -434,32 +485,55 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
                         )}
                     </form>
 
-                    <div className="p-6 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-end gap-3 shrink-0">
-                        <Button 
-                            variant="outline" 
-                            onClick={() => onOpenChange(false)}
-                            disabled={isSubmitting}
-                        >
-                            Cancel
-                        </Button>
-                        <Button 
-                            variant="primary" 
-                            onClick={handleSubmit}
-                            disabled={isSubmitting || loadingDefaults}
-                            className="flex items-center gap-2 min-w-[120px] justify-center"
-                        >
-                            {isSubmitting ? (
-                                <>
-                                    <span className="material-icons animate-spin text-lg">sync</span>
-                                    Saving...
-                                </>
-                            ) : (
-                                <>
-                                    <Save size={18} />
-                                    Save Changes
-                                </>
-                            )}
-                        </Button>
+                    <div className="p-6 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-between shrink-0">
+                        {formData.isActive ? (
+                            <Button 
+                                variant="ghost" 
+                                onClick={handleDeactivate}
+                                disabled={isSubmitting}
+                                className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                            >
+                                <span className="material-icons text-lg">block</span>
+                                Deactivate Vendor
+                            </Button>
+                        ) : (
+                            <Button 
+                                variant="ghost" 
+                                onClick={handleActivate}
+                                disabled={isSubmitting}
+                                className="text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 flex items-center gap-2"
+                            >
+                                <span className="material-icons text-lg">check_circle</span>
+                                Activate Vendor
+                            </Button>
+                        )}
+                        <div className="flex items-center gap-3">
+                            <Button 
+                                variant="outline" 
+                                onClick={() => onOpenChange(false)}
+                                disabled={isSubmitting}
+                            >
+                                Cancel
+                            </Button>
+                            <Button 
+                                variant="primary" 
+                                onClick={handleSubmit}
+                                disabled={isSubmitting || loadingDefaults}
+                                className="flex items-center gap-2 min-w-30 justify-center"
+                            >
+                                {isSubmitting ? (
+                                    <>
+                                        <span className="material-icons animate-spin text-lg">sync</span>
+                                        Saving...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Save size={18} />
+                                        Save Changes
+                                    </>
+                                )}
+                            </Button>
+                        </div>
                     </div>
                 </DialogPrimitive.Content>
             </DialogPrimitive.Portal>

@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getAllVendorDefaults, VendorDefaults } from "@/lib/api/defaults";
 import { getVendors, Vendor } from "@/lib/api/vendor";
 import { EditVendorDialog } from "../components/EditVendorDialog";
+import { cn } from "@/lib/utils";
 
 interface VendorWithDefaults extends Vendor {
     defaults?: VendorDefaults;
@@ -23,6 +24,7 @@ function VendorsContent() {
         return document.documentElement.classList.contains("dark");
     });
     const [searchQuery, setSearchQuery] = useState("");
+    const [showInactive, setShowInactive] = useState(false);
     const [vendors, setVendors] = useState<VendorWithDefaults[]>([]);
     const [allVendors, setAllVendors] = useState<VendorWithDefaults[]>([]); // All vendors for stats calculation
     const [vendorDefaults, setVendorDefaults] = useState<VendorDefaults[]>([]);
@@ -42,7 +44,7 @@ function VendorsContent() {
         try {
             setLoading(true);
             const [vendorsResponse, defaultsResponse] = await Promise.all([
-                getVendors(currentPage, pageSize),
+                getVendors(currentPage, pageSize, showInactive),
                 getAllVendorDefaults(0, 100)
             ]);
 
@@ -86,54 +88,53 @@ function VendorsContent() {
         }
     };
 
-    // Fetch all vendors once for stats calculation
-    useEffect(() => {
-        const fetchAllVendors = async () => {
-            try {
-                const [allVendorsResponse, defaultsResponse] = await Promise.all([
-                    getVendors(0, 1000), // Fetch a large number to get all vendors for stats
-                    getAllVendorDefaults(0, 100)
-                ]);
+    const fetchAllVendors = async () => {
+        try {
+            const [allVendorsResponse, defaultsResponse] = await Promise.all([
+                getVendors(0, 1000, showInactive), // Fetch a large number to get all vendors for stats
+                getAllVendorDefaults(0, 100)
+            ]);
 
-                // Handle defaults response
-                let defaultsList: VendorDefaults[] = [];
-                if (defaultsResponse) {
-                    if (Array.isArray(defaultsResponse)) {
-                        defaultsList = defaultsResponse;
-                    } else if (defaultsResponse.data && Array.isArray(defaultsResponse.data)) {
-                        defaultsList = defaultsResponse.data;
-                    }
+            // Handle defaults response
+            let defaultsList: VendorDefaults[] = [];
+            if (defaultsResponse) {
+                if (Array.isArray(defaultsResponse)) {
+                    defaultsList = defaultsResponse;
+                } else if (defaultsResponse.data && Array.isArray(defaultsResponse.data)) {
+                    defaultsList = defaultsResponse.data;
                 }
-
-                // Handle all vendors response for stats
-                let allVendorsList: Vendor[] = [];
-                if (allVendorsResponse) {
-                    if (Array.isArray(allVendorsResponse)) {
-                        allVendorsList = allVendorsResponse;
-                    } else if (allVendorsResponse.data && Array.isArray(allVendorsResponse.data)) {
-                        allVendorsList = allVendorsResponse.data;
-                    }
-                }
-
-                // Map vendor defaults to all vendors
-                const allVendorsWithDefaults = allVendorsList.map(vendor => {
-                    const defaults = defaultsList.find(d => d.vendorId === vendor.id);
-                    return { ...vendor, defaults };
-                });
-                
-                setAllVendors(allVendorsWithDefaults);
-            } catch (error) {
-                console.error('Error fetching all vendors for stats:', error);
             }
-        };
 
+            // Handle all vendors response for stats
+            let allVendorsList: Vendor[] = [];
+            if (allVendorsResponse) {
+                if (Array.isArray(allVendorsResponse)) {
+                    allVendorsList = allVendorsResponse;
+                } else if (allVendorsResponse.data && Array.isArray(allVendorsResponse.data)) {
+                    allVendorsList = allVendorsResponse.data;
+                }
+            }
+
+            // Map vendor defaults to all vendors
+            const allVendorsWithDefaults = allVendorsList.map(vendor => {
+                const defaults = defaultsList.find(d => d.vendorId === vendor.id);
+                return { ...vendor, defaults };
+            });
+            
+            setAllVendors(allVendorsWithDefaults);
+        } catch (error) {
+            console.error('Error fetching all vendors for stats:', error);
+        }
+    };
+    // Fetch all vendors for stats calculation
+    useEffect(() => {
         fetchAllVendors();
-    }, []);
+    }, [showInactive]);
 
     // Fetch vendors and vendor defaults for current page
     useEffect(() => {
         fetchData();
-    }, [currentPage, pageSize]);
+    }, [currentPage, pageSize, showInactive]);
 
     const handleEditClick = (e: React.MouseEvent, vendor: Vendor) => {
         e.stopPropagation();
@@ -379,20 +380,38 @@ function VendorsContent() {
                 <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden animate-slide-up" style={{ animationDelay: '0.2s' }}>
                     <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <h3 className="font-bold text-lg">All Vendors</h3>
-                        <div className="flex items-center gap-2">
-                            <div className="relative">
-                                <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm leading-none">search</span>
-                                <input
-                                    className="pl-9 pr-4 py-2 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-[#10b981] focus:border-[#10b981] w-full md:w-64 outline-none"
-                                    placeholder="Search vendors..."
-                                    type="text"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                />
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2 mr-2">
+                                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Show Inactive</span>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowInactive(!showInactive)}
+                                    className={cn(
+                                        "relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-dashboard-primary focus:ring-offset-2",
+                                        showInactive ? "bg-dashboard-primary" : "bg-slate-300 dark:bg-slate-600"
+                                    )}
+                                >
+                                    <span className={cn(
+                                        "inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform",
+                                        showInactive ? "translate-x-5.5" : "translate-x-1"
+                                    )} />
+                                </button>
                             </div>
-                            <Button variant="outline" size="sm" className="p-2 h-[42px] flex items-center justify-center">
-                                <span className="material-icons block leading-none">filter_list</span>
-                            </Button>
+                            <div className="flex items-center gap-2">
+                                <div className="relative">
+                                    <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm leading-none">search</span>
+                                    <input
+                                        className="pl-9 pr-4 py-2 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-[#10b981] focus:border-[#10b981] w-full md:w-64 outline-none"
+                                        placeholder="Search vendors..."
+                                        type="text"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                    />
+                                </div>
+                                <Button variant="outline" size="sm" className="p-2 h-[42px] flex items-center justify-center">
+                                    <span className="material-icons block leading-none">filter_list</span>
+                                </Button>
+                            </div>
                         </div>
                     </div>
 

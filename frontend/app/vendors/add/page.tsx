@@ -674,7 +674,7 @@ function AddVendorContent() {
                                             name="vendorName"
                                             value={formData.vendorName}
                                             onChange={handleInputChange}
-                                            className={`w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors ${
+                                            className={`w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors text-slate-900 dark:text-white ${
                                                 errors.vendorName
                                                     ? "border-red-500 dark:border-red-500"
                                                     : "border-slate-200 dark:border-slate-700"
@@ -696,7 +696,7 @@ function AddVendorContent() {
                                             name="pointPerson"
                                             value={formData.pointPerson}
                                             onChange={handleInputChange}
-                                            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors"
+                                            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors text-slate-900 dark:text-white"
                                             placeholder="Name of primary contact"
                                         />
                                     </div>
@@ -711,7 +711,7 @@ function AddVendorContent() {
                                             name="email"
                                             value={formData.email}
                                             onChange={handleInputChange}
-                                            className={`w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors ${
+                                            className={`w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors text-slate-900 dark:text-white ${
                                                 errors.email
                                                     ? "border-red-500 dark:border-red-500"
                                                     : "border-slate-200 dark:border-slate-700"
@@ -733,7 +733,7 @@ function AddVendorContent() {
                                             name="location"
                                             value={formData.location}
                                             onChange={handleInputChange}
-                                            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors"
+                                            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors text-slate-900 dark:text-white"
                                             placeholder="e.g. Downtown Plaza, Main Street"
                                         />
                                     </div>
@@ -751,7 +751,7 @@ function AddVendorContent() {
                                                 onChange={handleInputChange}
                                                 min="0"
                                                 step="0.1"
-                                                className={`w-full px-4 py-2 pr-12 bg-slate-50 dark:bg-slate-900 border rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors ${
+                                                className={`w-full px-4 py-2 pr-12 bg-slate-50 dark:bg-slate-900 border rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors text-slate-900 dark:text-white ${
                                                     errors.miles
                                                         ? "border-red-500 dark:border-red-500"
                                                         : "border-slate-200 dark:border-slate-700"
@@ -783,7 +783,7 @@ function AddVendorContent() {
                                             name="products"
                                             value={formData.products}
                                             onChange={handleInputChange}
-                                            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors"
+                                            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors text-slate-900 dark:text-white"
                                             placeholder="e.g., Ready-to-Eat, Produce/Plant, Bakery Goods"
                                         />
                                     </div>
@@ -833,7 +833,7 @@ function AddVendorContent() {
                                             value={formData.productDetails}
                                             onChange={handleInputChange}
                                             rows={6}
-                                            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 border-t-0 rounded-b-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors resize-y"
+                                            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 border-t-0 rounded-b-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors resize-y text-slate-900 dark:text-white"
                                             placeholder="the items this vendor will be selling (e.g. Heirloom tomatoes, honey, organic)"
                                         />
                                         <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
@@ -905,7 +905,7 @@ function AddVendorContent() {
                                                 min="0"
                                                 max="100"
                                                 step="0.01"
-                                                className={`w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors ${
+                                                className={`w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors text-slate-900 dark:text-white ${
                                                     errors[key]
                                                         ? "border-red-500 dark:border-red-500"
                                                         : "border-slate-200 dark:border-slate-700"
