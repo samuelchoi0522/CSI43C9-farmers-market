@@ -155,7 +155,6 @@ public class VendorRepository extends AbstractJdbcRepository implements MarketRe
             sql += " where is_active = true";
         }
         sql += " order by vendor offset ? rows fetch next ? rows only";
-        
         return jdbcTemplate.query(sql, new VendorRowMapper(), offset, size);
     }
 
