@@ -4,7 +4,9 @@ import com.csi43C9.baylor.farmers_market.FarmersMarketApplication;
 import com.csi43C9.baylor.farmers_market.entity.User;
 import com.csi43C9.baylor.farmers_market.entity.Vendor;
 import com.csi43C9.baylor.farmers_market.entity.VendorTransaction;
+import com.csi43C9.baylor.farmers_market.entity.VendorDefaults;
 import com.csi43C9.baylor.farmers_market.repository.UserRepository;
+import com.csi43C9.baylor.farmers_market.repository.VendorDefaultsRepository;
 import com.csi43C9.baylor.farmers_market.repository.VendorRepository;
 import com.csi43C9.baylor.farmers_market.repository.VendorTransactionRepository;
 import io.github.cdimascio.dotenv.Dotenv;
@@ -13,6 +15,9 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -43,12 +48,14 @@ public class Seeder {
             VendorRepository vendorRepository = context.getBean(VendorRepository.class);
             UserRepository userRepository = context.getBean(UserRepository.class);
             VendorTransactionRepository transactionRepository = context.getBean(VendorTransactionRepository.class);
+            VendorDefaultsRepository vendorDefaultsRepository = context.getBean(VendorDefaultsRepository.class);
 
             // Comment out the seeds you don't want to run
             Seeder seeder = new Seeder();
-            // seeder.populateVendors(vendorRepository);
-            //seeder.populateUser(userRepository);
+            seeder.populateVendors(vendorRepository);
+            seeder.populateUser(userRepository);
             seeder.populateVendorTransactions(vendorRepository, transactionRepository);
+            seeder.populateVendorDefaults(vendorRepository, vendorDefaultsRepository);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -101,6 +108,46 @@ public class Seeder {
         System.out.println("Done seeding vendors!");
     }
 
+    /**
+     * Seeds the database with default product category percentages for vendors.
+     */
+    private void populateVendorDefaults(VendorRepository vendorRepository, VendorDefaultsRepository defaultsRepository) {
+        List<Vendor> allVendors = vendorRepository.findAll();
+        System.out.println("Seeding defaults for " + allVendors.size() + " vendors...");
+
+        for (Vendor vendor : allVendors) {
+            // Check if defaults already exist to avoid unique constraint violations
+            if (defaultsRepository.findByVendorId(vendor.getId()).isPresent()) {
+                continue;
+            }
+
+            // Generate 5 random numbers that sum to 100
+            int[] parts = new int[5];
+            int remaining = 100;
+            for (int i = 0; i < 4; i++) {
+                parts[i] = faker.number().numberBetween(0, remaining);
+                remaining -= parts[i];
+            }
+            parts[4] = remaining;
+
+            // Shuffle them slightly for more randomness
+            ArrayList<Integer> shuffledParts = new ArrayList<>();
+            for (int p : parts) shuffledParts.add(p);
+            Collections.shuffle(shuffledParts);
+
+            VendorDefaults defaults = VendorDefaults.builder()
+                    .vendorId(vendor.getId())
+                    .pctHandmade(new BigDecimal(shuffledParts.get(0)).setScale(2, RoundingMode.HALF_UP))
+                    .pctAgricultural(new BigDecimal(shuffledParts.get(1)).setScale(2, RoundingMode.HALF_UP))
+                    .pctPreparedFood(new BigDecimal(shuffledParts.get(2)).setScale(2, RoundingMode.HALF_UP))
+                    .pctCottageGoods(new BigDecimal(shuffledParts.get(3)).setScale(2, RoundingMode.HALF_UP))
+                    .pctManufactured(new BigDecimal(shuffledParts.get(4)).setScale(2, RoundingMode.HALF_UP))
+                    .build();
+
+            defaultsRepository.save(defaults);
+        }
+        System.out.println("Done seeding vendor defaults!");
+    }
     /**
      * Seeds the database with user test data.
      */
@@ -180,6 +227,5 @@ public class Seeder {
         transactionRepository.saveAll(allTransactions);
         System.out.println("Done seeding transactions! (" + allTransactions.size() + " records)");
     }
-
 
 }
