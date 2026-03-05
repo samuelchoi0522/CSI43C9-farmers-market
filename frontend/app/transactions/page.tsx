@@ -10,6 +10,11 @@ import {
   Upload,
   Download
 } from 'lucide-react';
+import DarkModeToggle from '../components/DarkModeToggle';
+import SidebarNavigation from '../components/SidebarNavigation';
+import Button from '../components/Button';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { useAuth } from '@/contexts/AuthContext';
 import { AddVendorDialog } from '../components/AddVendorDialog'
 import { motion, AnimatePresence } from 'motion/react';
 import { toast, Toaster } from 'sonner';
@@ -58,7 +63,7 @@ const formatCurrency = (amount: number = 0) => {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 };
 
-export default function App() {
+function TransactionsContent() {
   const [currentMarketDate, setCurrentMarketDate] = useState(getMostRecentSaturday());
   const [records, setRecords] = useState<SalesRecord[]>(() => {
     const saturday = getMostRecentSaturday();
@@ -69,6 +74,18 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [allVendors, setAllVendors] = useState<Vendor[]>([]);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const { user, logout } = useAuth();
+  const userName = user?.username || "Admin User";
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (showUserMenu && !target.closest('.user-menu-container')) setShowUserMenu(false);
+    };
+    if (showUserMenu) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showUserMenu]);
 
   useEffect(() => {
     getVendors(0, 100)
@@ -277,22 +294,22 @@ export default function App() {
   const invalidCount = records.filter(r => r.isInvalid).length;
 
   return (
-    <div className="transactions-page min-h-screen bg-gray-50 font-sans text-gray-800 pb-20">
+    <div className="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-screen flex transition-colors duration-300">
       <style dangerouslySetInnerHTML={{ __html: `
         input::-webkit-outer-spin-button,
         input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         input[type=number] { -moz-appearance: textfield; }
       `}} />
       <Toaster position="top-right" />
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
-        <div className="max-w-8xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-[#10b981] text-white p-2 rounded-lg">
-              <TableIcon size={20} />
-            </div>
-            <h1 className="text-xl font-bold text-gray-900">Farmer's Market Transactions</h1>
+      <DarkModeToggle position="fixed" className="bottom-6 right-6 top-auto" />
+      <SidebarNavigation activeItem="Transactions" />
+
+      <main className="flex-1 overflow-y-auto p-4 lg:p-8">
+        <header className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 animate-slide-up">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Sales Spreadsheet</h2>
+            <p className="text-slate-700 dark:text-slate-400 mt-1">Manage vendor sales data, reimbursements, and produce estimates.</p>
           </div>
-          
           <div className="flex items-center gap-3">
             <input 
               type="file"
@@ -307,29 +324,56 @@ export default function App() {
               className={`
                 flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all border shadow-sm
                 ${isImporting
-                  ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' 
-                  : 'bg-white text-green-700 border-green-200 hover:bg-green-50 hover:border-green-300'}
+                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700 cursor-not-allowed' 
+                  : 'bg-white dark:bg-slate-800 text-[#10b981] border-[#10b981]/30 dark:border-slate-700 hover:bg-[#10b981]/10 dark:hover:bg-slate-700'}
               `}
             >
               {isImporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
               Import Excel
             </button>
             <AddVendorDialog vendors={allVendors} onAdd={handleAddVendor} />
+            <div className="relative user-menu-container">
+              <Button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                variant="ghost"
+                className="flex items-center gap-2 px-3 cursor-pointer"
+              >
+                <div className="w-8 h-8 rounded-full bg-[#10b981] flex items-center justify-center text-white text-sm font-semibold flex-shrink-0 aspect-square">
+                  {userName.charAt(0).toUpperCase()}
+                </div>
+                <span className="text-sm font-medium hidden md:block text-slate-900 dark:text-slate-200">
+                  {userName}
+                </span>
+                <span className="material-icons text-lg leading-none text-slate-600 dark:text-slate-400">
+                  {showUserMenu ? "expand_less" : "expand_more"}
+                </span>
+              </Button>
+              {showUserMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-2 z-50">
+                  <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-700">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{userName}</p>
+                  </div>
+                  <Button
+                    onClick={() => { logout(); setShowUserMenu(false); }}
+                    variant="ghost"
+                    size="sm"
+                    className="w-full flex items-center gap-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                  >
+                    <span className="material-icons text-lg leading-none">logout</span>
+                    Log Out
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <main className="max-w-[1600px] mx-auto px-4 py-8">
-        <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Sales Spreadsheet</h2>
-            <p className="text-gray-500 mt-1">Manage vendor sales data, reimbursements, and produce estimates.</p>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-lg px-4 py-2 shadow-sm flex items-center gap-3">
-            <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Market Date</span>
+        <div className="mb-6 flex flex-col md:flex-row md:items-end md:justify-end gap-4">
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 shadow-sm flex items-center gap-3">
+            <span className="text-sm font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Market Date</span>
             <input 
               type="date"
-              className="bg-transparent border-none focus:ring-0 text-gray-900 font-medium outline-none cursor-pointer"
+              className="bg-transparent border-none focus:ring-0 text-slate-900 dark:text-slate-100 font-medium outline-none cursor-pointer"
               value={currentMarketDate}
               onChange={(e) => handleMarketDateChange(e.target.value)}
             />
@@ -338,31 +382,31 @@ export default function App() {
 
         {/* Invalid rows banner */}
         {invalidCount > 0 && (
-          <div className="mb-4 flex items-center gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm font-medium">
+          <div className="mb-4 flex items-center gap-3 px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 text-sm font-medium">
             <AlertCircle size={16} className="shrink-0" />
             {invalidCount} row(s) have unrecognized vendor names. Edit the highlighted name(s) to match a vendor in the database before saving.
           </div>
         )}
 
-        <div className="bg-white border border-gray-200 shadow-sm rounded-xl overflow-hidden">
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left border-collapse">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-200 text-xs uppercase text-gray-500 font-semibold">
-                  <th className="px-4 py-4 min-w-[200px] sticky left-0 bg-gray-50 z-10 border-r border-gray-200">Vendor Name</th>
+                <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 text-xs uppercase text-slate-600 dark:text-slate-400 font-semibold">
+                  <th className="px-4 py-4 min-w-[200px] sticky left-0 bg-slate-50 dark:bg-slate-900/50 z-10 border-r border-slate-200 dark:border-slate-700">Vendor Name</th>
                   <th className="px-3 py-4 w-20 text-center">Present</th>
                   <th className="px-3 py-4 w-24 text-center bg-[#10b981]/10">SNAP ($)</th>
                   <th className="px-3 py-4 w-24 text-center bg-[#10b981]/10">DUFB ($)</th>
                   <th className="px-3 py-4 w-24 text-center bg-[#10b981]/10">WDFM ($)</th>
                   <th className="px-3 py-4 w-24 text-center bg-[#10b981]/10">Voucher ($)</th>
                   <th className="px-4 py-4 w-32 text-right font-bold text-[#059669] bg-[#10b981]/10 border-x border-[#10b981]/20">Reimburse.</th>
-                  <th className="px-4 py-4 w-32 text-right bg-orange-50/30">Reported Sales</th>
-                  <th className="px-4 py-4 w-32 text-right bg-green-50/30">Est. Produce</th>
-                  <th className="px-4 py-4 w-24 text-center bg-gray-50/50">Trans.</th>
+                  <th className="px-4 py-4 w-32 text-right bg-amber-500/10 dark:bg-amber-500/5">Reported Sales</th>
+                  <th className="px-4 py-4 w-32 text-right bg-emerald-500/10 dark:bg-emerald-500/5">Est. Produce</th>
+                  <th className="px-4 py-4 w-24 text-center bg-slate-50 dark:bg-slate-900/30">Trans.</th>
                   <th className="px-4 py-4 w-16 text-center"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                 <AnimatePresence initial={false}>
                   {records.map(record => (
                     <SalesRow 
@@ -379,7 +423,7 @@ export default function App() {
                 </AnimatePresence>
                 {records.length === 0 && (
                   <tr>
-                    <td colSpan={11} className="px-4 py-20 text-center text-gray-400">
+                    <td colSpan={11} className="px-4 py-20 text-center text-slate-500 dark:text-slate-400">
                       <div className="flex flex-col items-center gap-2">
                         <AlertCircle size={32} className="opacity-20" />
                         <p>No sales records added yet. Click "Add Vendor" to begin or import an Excel sheet.</p>
@@ -394,16 +438,11 @@ export default function App() {
 
         {/* Save to Backend Button */}
         <div className="mt-8 flex justify-center">
-          <button
+          <Button
+            variant="primary"
             onClick={handleSaveToBackend}
             disabled={isSaving || records.length === 0 || invalidCount > 0}
-            className={`
-              flex items-center gap-3 px-8 py-4 rounded-xl font-semibold text-base transition-all shadow-lg
-              ${isSaving || records.length === 0 || invalidCount > 0
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                : 'bg-[#10b981] text-white hover:bg-[#059669] hover:shadow-xl transform hover:scale-105'
-              }
-            `}
+            className="flex items-center gap-3 px-8 py-4 rounded-xl font-semibold text-base shadow-lg hover:shadow-xl hover:scale-105 transition-all"
           >
             {isSaving ? (
               <>
@@ -416,10 +455,18 @@ export default function App() {
                 {invalidCount > 0 ? `Fix ${invalidCount} invalid vendor(s) to save` : 'Upload Spreadsheet'}
               </>
             )}
-          </button>
+          </Button>
         </div>
       </main>
     </div>
+  );
+}
+
+export default function TransactionsPage() {
+  return (
+    <ProtectedRoute>
+      <TransactionsContent />
+    </ProtectedRoute>
   );
 }
 
@@ -460,20 +507,20 @@ function SalesRow({ record, isEditing, isInvalid, onEdit, onSave, onDelete, onUp
       onClick={() => !isEditing && onEdit()}
       className={`
         group transition-colors cursor-pointer
-        ${isInvalid ? 'bg-red-50 border-l-4 border-l-red-400' : ''}
-        ${isEditing && !isInvalid ? 'bg-[#10b981]/10' : ''}
-        ${!isEditing && !isInvalid ? 'hover:bg-gray-50/80' : ''}
+        ${isInvalid ? 'bg-red-50 dark:bg-red-900/20 border-l-4 border-l-red-400 dark:border-l-red-500' : ''}
+        ${isEditing && !isInvalid ? 'bg-[#10b981]/10 dark:bg-[#10b981]/15' : ''}
+        ${!isEditing && !isInvalid ? 'hover:bg-slate-50/80 dark:hover:bg-slate-800/80' : ''}
       `}
     >
       {/* Vendor Name — always editable when invalid */}
-      <td className="px-4 py-3 font-medium sticky left-0 bg-inherit z-10 border-r border-gray-100">
+      <td className="px-4 py-3 font-medium sticky left-0 bg-inherit z-10 border-r border-slate-100 dark:border-slate-700">
         {isEditing || isInvalid ? (
           <div>
             <input
               type="text"
               className={`w-full px-2 py-1 border rounded outline-none text-sm font-medium
                 ${isInvalid
-                  ? 'border-red-400 bg-white text-red-700 focus:ring-2 focus:ring-red-300'
+                  ? 'border-red-400 dark:border-red-500 bg-white dark:bg-slate-800 text-red-700 dark:text-red-400 focus:ring-2 focus:ring-red-300 dark:focus:ring-red-500'
                   : 'border-[#10b981]/30 focus:ring-2 focus:ring-[#10b981]'
                 }`}
               value={record.vendor_name}
@@ -486,7 +533,7 @@ function SalesRow({ record, isEditing, isInvalid, onEdit, onSave, onDelete, onUp
             )}
           </div>
         ) : (
-          <span className="text-gray-900">{record.vendor_name}</span>
+          <span className="text-slate-900 dark:text-slate-100">{record.vendor_name}</span>
         )}
       </td>
 
@@ -494,7 +541,7 @@ function SalesRow({ record, isEditing, isInvalid, onEdit, onSave, onDelete, onUp
       <td className="px-3 py-3 text-center">
         <input 
           type="checkbox"
-          className="w-4 h-4 accent-[#10b981] border-gray-300 rounded focus:ring-[#10b981]"
+          className="w-4 h-4 accent-[#10b981] border-slate-300 dark:border-slate-600 rounded focus:ring-[#10b981]"
           checked={present}
           onChange={(e) => onUpdate({ present: e.target.checked })}
           onClick={(e) => e.stopPropagation()}
@@ -506,13 +553,13 @@ function SalesRow({ record, isEditing, isInvalid, onEdit, onSave, onDelete, onUp
         {isEditing ? (
           <input 
             type="number" step="0.01"
-            className="w-full px-2 py-1 text-right border border-[#10b981]/30 rounded focus:ring-2 focus:ring-[#10b981] outline-none text-sm"
+            className="w-full px-2 py-1 text-right border border-[#10b981]/30 dark:border-slate-600 rounded focus:ring-2 focus:ring-[#10b981] outline-none text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
             value={snap === 0 && isEditing ? '' : snap}
             onChange={(e) => handleNumberChange('snap', e.target.value)}
             autoFocus
           />
         ) : (
-          <div className="text-right text-gray-600 tabular-nums">{formatCurrency(snap)}</div>
+          <div className="text-right text-slate-600 dark:text-slate-400 tabular-nums">{formatCurrency(snap)}</div>
         )}
       </td>
 
@@ -521,12 +568,12 @@ function SalesRow({ record, isEditing, isInvalid, onEdit, onSave, onDelete, onUp
         {isEditing ? (
           <input 
             type="number" step="0.01"
-            className="w-full px-2 py-1 text-right border border-[#10b981]/30 rounded focus:ring-2 focus:ring-[#10b981] outline-none text-sm"
+            className="w-full px-2 py-1 text-right border border-[#10b981]/30 dark:border-slate-600 rounded focus:ring-2 focus:ring-[#10b981] outline-none text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
             value={dufb === 0 && isEditing ? '' : dufb}
             onChange={(e) => handleNumberChange('dufb', e.target.value)}
           />
         ) : (
-          <div className="text-right text-gray-600 tabular-nums">{formatCurrency(dufb)}</div>
+          <div className="text-right text-slate-600 dark:text-slate-400 tabular-nums">{formatCurrency(dufb)}</div>
         )}
       </td>
 
@@ -535,12 +582,12 @@ function SalesRow({ record, isEditing, isInvalid, onEdit, onSave, onDelete, onUp
         {isEditing ? (
           <input 
             type="number" step="0.01"
-            className="w-full px-2 py-1 text-right border border-[#10b981]/30 rounded focus:ring-2 focus:ring-[#10b981] outline-none text-sm"
+            className="w-full px-2 py-1 text-right border border-[#10b981]/30 dark:border-slate-600 rounded focus:ring-2 focus:ring-[#10b981] outline-none text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
             value={wdfm_tokens === 0 && isEditing ? '' : wdfm_tokens}
             onChange={(e) => handleNumberChange('wdfm_tokens', e.target.value)}
           />
         ) : (
-          <div className="text-right text-gray-600 tabular-nums">{formatCurrency(wdfm_tokens)}</div>
+          <div className="text-right text-slate-600 dark:text-slate-400 tabular-nums">{formatCurrency(wdfm_tokens)}</div>
         )}
       </td>
 
@@ -549,12 +596,12 @@ function SalesRow({ record, isEditing, isInvalid, onEdit, onSave, onDelete, onUp
         {isEditing ? (
           <input 
             type="number" step="0.01"
-            className="w-full px-2 py-1 text-right border border-[#10b981]/30 rounded focus:ring-2 focus:ring-[#10b981] outline-none text-sm"
+            className="w-full px-2 py-1 text-right border border-[#10b981]/30 dark:border-slate-600 rounded focus:ring-2 focus:ring-[#10b981] outline-none text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
             value={voucher === 0 && isEditing ? '' : voucher}
             onChange={(e) => handleNumberChange('voucher', e.target.value)}
           />
         ) : (
-          <div className="text-right text-gray-600 tabular-nums">{formatCurrency(voucher)}</div>
+          <div className="text-right text-slate-600 dark:text-slate-400 tabular-nums">{formatCurrency(voucher)}</div>
         )}
       </td>
 
@@ -563,12 +610,12 @@ function SalesRow({ record, isEditing, isInvalid, onEdit, onSave, onDelete, onUp
         {isEditing ? (
           <input 
             type="number" step="0.01"
-            className="w-full px-2 py-1 text-right font-bold text-[#059669] border border-[#10b981]/40 rounded focus:ring-2 focus:ring-[#10b981] outline-none text-sm"
+            className="w-full px-2 py-1 text-right font-bold text-[#059669] dark:text-[#34d399] border border-[#10b981]/40 dark:border-slate-600 rounded focus:ring-2 focus:ring-[#10b981] outline-none text-sm bg-white dark:bg-slate-900"
             value={reimbursement_due === 0 && isEditing ? '' : reimbursement_due}
             onChange={(e) => handleNumberChange('reimbursement_due', e.target.value)}
           />
         ) : (
-          <div className={`text-right font-bold tabular-nums ${reimbursement_due > 0 ? 'text-[#059669]' : 'text-gray-300'}`}>
+          <div className={`text-right font-bold tabular-nums ${reimbursement_due > 0 ? 'text-[#059669] dark:text-[#34d399]' : 'text-slate-300 dark:text-slate-500'}`}>
             {formatCurrency(reimbursement_due)}
           </div>
         )}
@@ -579,12 +626,12 @@ function SalesRow({ record, isEditing, isInvalid, onEdit, onSave, onDelete, onUp
         {isEditing ? (
           <input 
             type="number" step="0.01"
-            className="w-full px-2 py-1 text-right border border-orange-200 rounded focus:ring-2 focus:ring-orange-500 outline-none text-sm"
+            className="w-full px-2 py-1 text-right border border-amber-200 dark:border-slate-600 rounded focus:ring-2 focus:ring-amber-500 outline-none text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
             value={reported_sales === 0 && isEditing ? '' : reported_sales}
             onChange={(e) => handleNumberChange('reported_sales', e.target.value)}
           />
         ) : (
-          <div className="text-right font-semibold text-gray-700 tabular-nums">{formatCurrency(reported_sales)}</div>
+          <div className="text-right font-semibold text-slate-700 dark:text-slate-300 tabular-nums">{formatCurrency(reported_sales)}</div>
         )}
       </td>
 
@@ -593,12 +640,12 @@ function SalesRow({ record, isEditing, isInvalid, onEdit, onSave, onDelete, onUp
         {isEditing ? (
           <input 
             type="number" step="0.01"
-            className="w-full px-2 py-1 text-right border border-green-200 rounded focus:ring-2 focus:ring-green-500 outline-none text-sm"
+            className="w-full px-2 py-1 text-right border border-emerald-200 dark:border-slate-600 rounded focus:ring-2 focus:ring-emerald-500 outline-none text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
             value={est_produce_sales === 0 && isEditing ? '' : est_produce_sales}
             onChange={(e) => handleNumberChange('est_produce_sales', e.target.value)}
           />
         ) : (
-          <div className="text-right text-green-700 tabular-nums">{formatCurrency(est_produce_sales)}</div>
+          <div className="text-right text-emerald-700 dark:text-emerald-400 tabular-nums">{formatCurrency(est_produce_sales)}</div>
         )}
       </td>
 
@@ -607,12 +654,12 @@ function SalesRow({ record, isEditing, isInvalid, onEdit, onSave, onDelete, onUp
         {isEditing ? (
           <input 
             type="number"
-            className="w-full px-2 py-1 text-center border border-gray-200 rounded focus:ring-2 focus:ring-[#10b981] outline-none text-sm"
+            className="w-full px-2 py-1 text-center border border-slate-200 dark:border-slate-600 rounded focus:ring-2 focus:ring-[#10b981] outline-none text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
             value={est_num_transactions === 0 && isEditing ? '' : est_num_transactions}
             onChange={(e) => handleNumberChange('est_num_transactions', e.target.value)}
           />
         ) : (
-          <div className="text-center text-gray-500 tabular-nums">{est_num_transactions}</div>
+          <div className="text-center text-slate-500 dark:text-slate-400 tabular-nums">{est_num_transactions}</div>
         )}
       </td>
 
@@ -630,7 +677,7 @@ function SalesRow({ record, isEditing, isInvalid, onEdit, onSave, onDelete, onUp
           ) : (
             <button 
               onClick={(e) => { e.stopPropagation(); onDelete(); }}
-              className="p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded transition-colors opacity-0 group-hover:opacity-100"
+              className="p-1 text-slate-400 dark:text-slate-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors opacity-0 group-hover:opacity-100"
               title="Delete Row"
             >
               <Trash2 size={18} />
