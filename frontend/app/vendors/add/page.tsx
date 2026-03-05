@@ -7,7 +7,7 @@ import SidebarNavigation from "../../components/SidebarNavigation";
 import Button from "../../components/Button";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
-import { createVendor } from "@/lib/api";
+import { createVendor, createVendorDefaults } from "@/lib/api";
 
 interface VendorFormData {
     vendorName: string;
@@ -23,6 +23,11 @@ interface VendorFormData {
     womanOwned: boolean;
     bipocOwned: boolean;
     veteranOwned: boolean;
+    pctHandmade: string;
+    pctAgricultural: string;
+    pctPreparedFood: string;
+    pctCottageGoods: string;
+    pctManufactured: string;
 }
 
 function AddVendorContent() {
@@ -54,7 +59,22 @@ function AddVendorContent() {
         womanOwned: false,
         bipocOwned: false,
         veteranOwned: false,
+        pctHandmade: "0",
+        pctAgricultural: "0",
+        pctPreparedFood: "0",
+        pctCottageGoods: "0",
+        pctManufactured: "0",
     });
+
+    const hasNonZeroPercentage = useMemo(() => {
+        return [
+            formData.pctHandmade,
+            formData.pctAgricultural,
+            formData.pctPreparedFood,
+            formData.pctCottageGoods,
+            formData.pctManufactured,
+        ].some(pct => parseFloat(pct) !== 0);
+    }, [formData]);
 
     // Calculate profile completion percentage
     const profileCompletion = useMemo(() => {
@@ -75,10 +95,46 @@ function AddVendorContent() {
         if (formData.products.trim()) completed++;
         if (formData.productDetails.trim()) completed++;
 
+        // Classifications (5 fields, treated as booleans)
+        total += 5;
+        if (formData.isFarmer) completed++;
+        if (formData.isProduce) completed++;
+        if (formData.womanOwned) completed++;
+        if (formData.bipocOwned) completed++;
+        if (formData.veteranOwned) completed++;
+
+        // Vendor Defaults (5 fields, plus a total check)
+        if (hasNonZeroPercentage) {
+            total += 6; // 1 for each field + 1 for the sum validation
+            const percentageFieldKeys = [
+                'pctHandmade', 'pctAgricultural', 'pctPreparedFood',
+                'pctCottageGoods', 'pctManufactured'
+            ];
+            let sumPercentages = 0;
+            let allPercentagesValid = true;
+
+            percentageFieldKeys.forEach(field => {
+                const value = parseFloat(formData[field as keyof VendorFormData] as string);
+                if (!isNaN(value) && value >= 0 && value <= 100) {
+                    completed++;
+                    sumPercentages += value;
+                } else {
+                    allPercentagesValid = false;
+                }
+            });
+
+            // Round to 2 decimal places to avoid floating point precision issues
+            sumPercentages = Math.round(sumPercentages * 100) / 100;
+
+            if (allPercentagesValid && sumPercentages === 100) {
+                completed++; // +1 for the valid sum
+            }
+        }
+
         // Calculate percentage, ensuring it doesn't exceed 100%
         const percentage = Math.round((completed / total) * 100);
         return Math.min(percentage, 100);
-    }, [formData]);
+    }, [formData, hasNonZeroPercentage]);
 
     // Animate percentage counter
     useEffect(() => {
@@ -233,6 +289,32 @@ function AddVendorContent() {
             newErrors.miles = "Miles must be a valid positive number";
         }
 
+        const percentageFieldKeys = [
+            'pctHandmade', 'pctAgricultural', 'pctPreparedFood',
+            'pctCottageGoods', 'pctManufactured'
+        ];
+        let sumPercentages = 0;
+
+        percentageFieldKeys.forEach(key => {
+            const value = parseFloat(formData[key as keyof VendorFormData] as string);
+            if (isNaN(value) || value < 0 || value > 100) {
+                newErrors[key] = `${key.replace('pct', 'Percentage ')} must be a number between 0 and 100.`;
+            } else {
+                sumPercentages += value;
+            }
+        });
+
+        // Round to 2 decimal places to avoid floating point precision issues
+        sumPercentages = Math.round(sumPercentages * 100) / 100;
+
+        if (Object.keys(newErrors).length === 0) {
+            const hasNonZeroPercentage = percentageFieldKeys.some(key => parseFloat(formData[key as keyof VendorFormData] as string) !== 0);
+
+            if (hasNonZeroPercentage && sumPercentages !== 100) {
+                newErrors.percentageSum = `The sum of all percentages must be exactly 100. Current total: ${sumPercentages}.`;
+            }
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -262,7 +344,7 @@ function AddVendorContent() {
                 ? parseInt(formData.miles, 10) 
                 : undefined;
 
-            await createVendor({
+            const newVendor = await createVendor({
                 vendorName: formData.vendorName,
                 pointPerson: formData.pointPerson || undefined,
                 email: formData.email || undefined,
@@ -277,6 +359,22 @@ function AddVendorContent() {
                 veteranOwned: formData.veteranOwned,
             });
 
+            if (!newVendor || !newVendor.id) {
+                throw new Error("Invalid response from server when creating vendor");
+            }
+
+            // Only create vendor defaults if any percentage is non-zero
+            if (hasNonZeroPercentage) {
+                await createVendorDefaults({
+                    vendorId: newVendor.id,
+                    pctHandmade: formData.pctHandmade,
+                    pctAgricultural: formData.pctAgricultural,
+                    pctPreparedFood: formData.pctPreparedFood,
+                    pctCottageGoods: formData.pctCottageGoods,
+                    pctManufactured: formData.pctManufactured,
+                });
+            }
+
             // Redirect to vendors list
             router.push("/vendors");
         } catch (error) {
@@ -290,6 +388,19 @@ function AddVendorContent() {
     const handleLogout = () => {
         logout();
     };
+
+    type PercentageKeys = 'pctHandmade' | 'pctAgricultural' | 'pctPreparedFood' | 'pctCottageGoods' | 'pctManufactured';
+    interface PercentageField {
+        key: PercentageKeys;
+        label: string;
+    }
+    const percentageFields: PercentageField[] = [
+        { key: 'pctHandmade', label: 'Handmade (%)' },
+        { key: 'pctAgricultural', label: 'Agricultural (%)' },
+        { key: 'pctPreparedFood', label: 'Prepared Food (%)' },
+        { key: 'pctCottageGoods', label: 'Cottage Goods (%)' },
+        { key: 'pctManufactured', label: 'Manufactured (%)' },
+    ];
 
     return (
         <div className="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-screen flex transition-colors duration-300">
@@ -313,7 +424,7 @@ function AddVendorContent() {
                             variant="ghost"
                             className="flex items-center gap-2 px-3 cursor-pointer"
                         >
-                            <div className="w-8 h-8 rounded-full bg-[#10b981] flex items-center justify-center text-white text-sm font-semibold flex-shrink-0 aspect-square">
+                            <div className="w-8 h-8 rounded-full bg-dashboard-primary flex items-center justify-center text-white text-sm font-semibold shrink-0 aspect-square">
                                 {userName.charAt(0).toUpperCase()}
                             </div>
                             <span
@@ -359,7 +470,7 @@ function AddVendorContent() {
                         </div>
                         <div className="text-right">
                             <p 
-                                className="text-2xl font-bold text-[#10b981] animate-percentage-change"
+                                className="text-2xl font-bold text-dashboard-primary animate-percentage-change"
                                 key={`percentage-${animatedPercentage}`}
                             >
                                 {animatedPercentage}%
@@ -369,11 +480,11 @@ function AddVendorContent() {
                     </div>
                     <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3 overflow-hidden relative">
                         <div
-                            className="bg-[#10b981] h-full rounded-full transition-all duration-800 ease-out relative overflow-hidden"
+                            className="bg-dashboard-primary h-full rounded-full transition-all duration-800 ease-out relative overflow-hidden"
                             style={{ width: `${animatedPercentage}%` }}
                         >
                             {/* Animated shimmer effect */}
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
+                            <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
                         </div>
                     </div>
                 </div>
@@ -468,6 +579,26 @@ function AddVendorContent() {
                                     </div>
                                 </div>
 
+                                {/* Vendor Defaults Review */}
+                                {hasNonZeroPercentage && (
+                                    <div>
+                                        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4">Product Category Percentages</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {percentageFields.map(({ key, label }) => (
+                                                <div key={key}>
+                                                    <p className="text-xs text-slate-700 dark:text-slate-400 mb-1">{label}</p>
+                                                    <p className="text-sm font-medium">{formData[key] || "0"}%</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        {errors.percentageSum && (
+                                            <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                                                <p className="text-sm text-red-600 dark:text-red-400">{errors.percentageSum}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
                             </div>
                         </div>
 
@@ -543,7 +674,7 @@ function AddVendorContent() {
                                             name="vendorName"
                                             value={formData.vendorName}
                                             onChange={handleInputChange}
-                                            className={`w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border rounded-lg focus:ring-2 focus:ring-[#10b981] focus:border-[#10b981] outline-none transition-colors ${
+                                            className={`w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors text-slate-900 dark:text-white ${
                                                 errors.vendorName
                                                     ? "border-red-500 dark:border-red-500"
                                                     : "border-slate-200 dark:border-slate-700"
@@ -565,7 +696,7 @@ function AddVendorContent() {
                                             name="pointPerson"
                                             value={formData.pointPerson}
                                             onChange={handleInputChange}
-                                            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-[#10b981] focus:border-[#10b981] outline-none transition-colors"
+                                            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors text-slate-900 dark:text-white"
                                             placeholder="Name of primary contact"
                                         />
                                     </div>
@@ -580,7 +711,7 @@ function AddVendorContent() {
                                             name="email"
                                             value={formData.email}
                                             onChange={handleInputChange}
-                                            className={`w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border rounded-lg focus:ring-2 focus:ring-[#10b981] focus:border-[#10b981] outline-none transition-colors ${
+                                            className={`w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors text-slate-900 dark:text-white ${
                                                 errors.email
                                                     ? "border-red-500 dark:border-red-500"
                                                     : "border-slate-200 dark:border-slate-700"
@@ -602,7 +733,7 @@ function AddVendorContent() {
                                             name="location"
                                             value={formData.location}
                                             onChange={handleInputChange}
-                                            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-[#10b981] focus:border-[#10b981] outline-none transition-colors"
+                                            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors text-slate-900 dark:text-white"
                                             placeholder="e.g. Downtown Plaza, Main Street"
                                         />
                                     </div>
@@ -620,7 +751,7 @@ function AddVendorContent() {
                                                 onChange={handleInputChange}
                                                 min="0"
                                                 step="0.1"
-                                                className={`w-full px-4 py-2 pr-12 bg-slate-50 dark:bg-slate-900 border rounded-lg focus:ring-2 focus:ring-[#10b981] focus:border-[#10b981] outline-none transition-colors ${
+                                                className={`w-full px-4 py-2 pr-12 bg-slate-50 dark:bg-slate-900 border rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors text-slate-900 dark:text-white ${
                                                     errors.miles
                                                         ? "border-red-500 dark:border-red-500"
                                                         : "border-slate-200 dark:border-slate-700"
@@ -652,7 +783,7 @@ function AddVendorContent() {
                                             name="products"
                                             value={formData.products}
                                             onChange={handleInputChange}
-                                            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-[#10b981] focus:border-[#10b981] outline-none transition-colors"
+                                            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors text-slate-900 dark:text-white"
                                             placeholder="e.g., Ready-to-Eat, Produce/Plant, Bakery Goods"
                                         />
                                     </div>
@@ -666,7 +797,7 @@ function AddVendorContent() {
                                             <button
                                                 type="button"
                                                 onClick={() => formatText('bold')}
-                                                className="p-1.5 hover:bg-[#10b981]/10 dark:hover:bg-slate-700 rounded transition-colors"
+                                                className="p-1.5 hover:bg-dashboard-primary/10 dark:hover:bg-slate-700 rounded transition-colors"
                                                 title="Bold"
                                             >
                                                 <span className="material-icons text-sm leading-none">format_bold</span>
@@ -674,7 +805,7 @@ function AddVendorContent() {
                                             <button
                                                 type="button"
                                                 onClick={() => formatText('italic')}
-                                                className="p-1.5 hover:bg-[#10b981]/10 dark:hover:bg-slate-700 rounded transition-colors"
+                                                className="p-1.5 hover:bg-dashboard-primary/10 dark:hover:bg-slate-700 rounded transition-colors"
                                                 title="Italic"
                                             >
                                                 <span className="material-icons text-sm leading-none">format_italic</span>
@@ -682,7 +813,7 @@ function AddVendorContent() {
                                             <button
                                                 type="button"
                                                 onClick={() => formatText('list')}
-                                                className="p-1.5 hover:bg-[#10b981]/10 dark:hover:bg-slate-700 rounded transition-colors"
+                                                className="p-1.5 hover:bg-dashboard-primary/10 dark:hover:bg-slate-700 rounded transition-colors"
                                                 title="Unordered List"
                                             >
                                                 <span className="material-icons text-sm leading-none">format_list_bulleted</span>
@@ -690,7 +821,7 @@ function AddVendorContent() {
                                             <button
                                                 type="button"
                                                 onClick={() => formatText('link')}
-                                                className="p-1.5 hover:bg-[#10b981]/10 dark:hover:bg-slate-700 rounded transition-colors"
+                                                className="p-1.5 hover:bg-dashboard-primary/10 dark:hover:bg-slate-700 rounded transition-colors"
                                                 title="Link"
                                             >
                                                 <span className="material-icons text-sm leading-none">link</span>
@@ -702,7 +833,7 @@ function AddVendorContent() {
                                             value={formData.productDetails}
                                             onChange={handleInputChange}
                                             rows={6}
-                                            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 border-t-0 rounded-b-lg focus:ring-2 focus:ring-[#10b981] focus:border-[#10b981] outline-none transition-colors resize-y"
+                                            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 border-t-0 rounded-b-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors resize-y text-slate-900 dark:text-white"
                                             placeholder="the items this vendor will be selling (e.g. Heirloom tomatoes, honey, organic)"
                                         />
                                         <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
@@ -734,9 +865,9 @@ function AddVendorContent() {
                                             <button
                                                 type="button"
                                                 onClick={() => handleToggle(key as keyof VendorFormData)}
-                                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:ring-offset-2 ${
+                                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-dashboard-primary focus:ring-offset-2 ${
                                                     formData[key as keyof VendorFormData]
-                                                        ? 'bg-[#10b981]'
+                                                        ? 'bg-dashboard-primary'
                                                         : 'bg-slate-300 dark:bg-slate-600'
                                                 }`}
                                             >
@@ -748,6 +879,49 @@ function AddVendorContent() {
                                             </button>
                                         </div>
                                     ))}
+                                </div>
+                            </div>
+                            
+                            {/* Vendor Defaults Percentages */}
+                            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                                <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+                                    <h3 className="font-bold text-lg">Product Category Percentages (Optional)</h3>
+                                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                                        Define the percentage breakdown of products sold by this vendor. The total must equal 100%.
+                                    </p>
+                                </div>
+                                <div className="p-6 space-y-4">
+                                    {percentageFields.map(({ key, label }) => (
+                                        <div key={key}>
+                                            <label htmlFor={key} className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                                {label}
+                                            </label>
+                                            <input
+                                                type="number"
+                                                id={key}
+                                                name={key}
+                                                value={formData[key]}
+                                                onChange={handleInputChange}
+                                                min="0"
+                                                max="100"
+                                                step="0.01"
+                                                className={`w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors text-slate-900 dark:text-white ${
+                                                    errors[key]
+                                                        ? "border-red-500 dark:border-red-500"
+                                                        : "border-slate-200 dark:border-slate-700"
+                                                }`}
+                                                placeholder="0.00"
+                                            />
+                                            {errors[key] && (
+                                                <p className="mt-1 text-sm text-red-500">{errors[key]}</p>
+                                            )}
+                                        </div>
+                                    ))}
+                                    {errors.percentageSum && (
+                                        <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                                            <p className="text-sm text-red-600 dark:text-red-400">{errors.percentageSum}</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                     </div>

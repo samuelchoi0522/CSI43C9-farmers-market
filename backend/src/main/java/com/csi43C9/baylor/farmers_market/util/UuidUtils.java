@@ -26,13 +26,6 @@ public final class UuidUtils {
     }
 
     /**
-     * Wraps the byte array in an Object array for use in a prepared statement.
-     */
-    public static Object[] toBytesObject(UUID uuid) {
-        return new Object[]{toBytes(uuid)};
-    }
-
-    /**
      * Converts a byte array back to a UUID.
      */
     public static UUID fromBytes(byte[] bytes) {

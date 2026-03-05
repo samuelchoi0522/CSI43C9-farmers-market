@@ -189,3 +189,11 @@ export async function authenticatedRequest<T>(
   return apiRequest<T>(endpoint, options);
 }
 
+export interface PagedResponse<T> {
+  data: T[];
+  totalElements: number;
+  totalPages: number;
+  pageSize: number;
+  pageNumber: number;
+}
+

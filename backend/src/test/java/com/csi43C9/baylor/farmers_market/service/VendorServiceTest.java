@@ -57,11 +57,11 @@ class VendorServiceTest {
     @Test
     void getVendorsCalculatesPagingCorrectly() {
         // Arrange
-        when(vendorRepository.findAllPaged(0, 10)).thenReturn(List.of(new Vendor()));
-        when(vendorRepository.count()).thenReturn(15L);
+        when(vendorRepository.findAllPaged(0, 10, false)).thenReturn(List.of(new Vendor()));
+        when(vendorRepository.count(false)).thenReturn(15L);
 
         // Act
-        PagedResponse<Vendor> result = vendorService.getVendors(0, 10);
+        PagedResponse<Vendor> result = vendorService.getVendors(0, 10, false);
 
         // Assert
         assertThat(result.getTotalElements()).isEqualTo(15L);

@@ -63,11 +63,12 @@ public class VendorService {
      * Returns a paged list of all vendors in the system.
      * @param page 0-based page number
      * @param size page size
+     * @param includeInactive if true, includes inactive vendors
      * @return PagedResponse
      */
-    public PagedResponse<Vendor> getVendors(int page, int size) {
-        List<Vendor> content = vendorRepository.findAllPaged(page, size);
-        long totalElements = vendorRepository.count();
+    public PagedResponse<Vendor> getVendors(int page, int size, boolean includeInactive) {
+        List<Vendor> content = vendorRepository.findAllPaged(page, size, includeInactive);
+        long totalElements = vendorRepository.count(includeInactive);
         int totalPages = (int) Math.ceil((double) totalElements / size);
 
         return new PagedResponse<>(
@@ -77,6 +78,10 @@ public class VendorService {
                 totalElements,
                 totalPages
         );
+    }
+
+    public PagedResponse<Vendor> getVendors(int page, int size) {
+        return getVendors(page, size, false);
     }
 
     /**
@@ -92,7 +97,8 @@ public class VendorService {
             vendor.setMiles(request.getMiles());
             vendor.setProducts(request.getProducts());
 
-            // Safely unbox: null becomes false
+            // Safely unbox: null becomes false (except for isActive which defaults to true)
+            vendor.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
             vendor.setIsFarmer(Boolean.TRUE.equals(request.getIsFarmer()));
             vendor.setIsProduce(Boolean.TRUE.equals(request.getIsProduce()));
             vendor.setWomanOwned(Boolean.TRUE.equals(request.getWomanOwned()));
