@@ -163,7 +163,7 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
             VendorTransaction transaction = jdbcTemplate.queryForObject(
                     sql,
                     new VendorTransactionRowMapper(),
-                    UuidUtils.toBytesObject(uuid)
+                    UuidUtils.toBytes(uuid)
             );
             return Optional.ofNullable(transaction);
         } catch (EmptyResultDataAccessException e) {
@@ -215,6 +215,6 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
     @Override
     public void deleteById(UUID uuid) {
         String sql = "delete from vendor_transactions where id = ?";
-        jdbcTemplate.update(sql, UuidUtils.toBytesObject(uuid));
+        jdbcTemplate.update(sql, UuidUtils.toBytes(uuid));
     }
 }
