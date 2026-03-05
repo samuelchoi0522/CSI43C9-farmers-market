@@ -17,6 +17,14 @@ export interface JwtResponse {
   tokenType?: string; // Optional - refresh endpoint returns this instead of "type"
 }
 
+export interface PagedResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+}
+
 // Flag to prevent infinite refresh loops
 let isRefreshing = false;
 let refreshPromise: Promise<JwtResponse | null> | null = null;

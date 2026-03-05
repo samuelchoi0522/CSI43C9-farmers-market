@@ -1,4 +1,4 @@
-import { apiRequest } from './client';
+import { apiRequest, PagedResponse } from './client';
 
 export interface CreateVendorTransactionRequest {
   vendorId: string;
@@ -29,14 +29,6 @@ export interface VendorTransaction {
   reportedSales: number;
   estProduceSales: number;
   estNumTransactions: number;
-}
-
-export interface PagedResponse<T> {
-  content: T[];
-  totalElements: number;
-  totalPages: number;
-  size: number;
-  number: number;
 }
 
 /**

@@ -31,14 +31,6 @@ export interface Vendor {
   veteranOwned: boolean;
 }
 
-export interface PagedResponse<T> {
-  data: T[];
-  pageNumber: number;
-  pageSize: number;
-  totalElements: number;
-  totalPages: number;
-}
-
 /**
  * Create a new vendor
  */
