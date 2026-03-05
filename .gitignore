@@ -1,6 +1,9 @@
 # Compiled class file
 *.class
 
+# Irrelevant Mac File
+.DS_Store
+
 # Log file
 *.log
 
@@ -37,6 +40,10 @@ replay_pid*
 .vscode/
 *.code-workspace
 
+# MAC Files
+.DS_Store
+
+
 ### NetBeans ###
 /nbproject/private/
 /nbbuild/
@@ -56,7 +63,7 @@ bin/
 .gradle
 
 # Environment files
-.env
+backend/.env
 .env.local
 .env.*.local
 
