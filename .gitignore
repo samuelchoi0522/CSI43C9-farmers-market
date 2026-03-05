@@ -63,7 +63,7 @@ bin/
 .gradle
 
 # Environment files
-.env
+backend/.env
 .env.local
 .env.*.local
 

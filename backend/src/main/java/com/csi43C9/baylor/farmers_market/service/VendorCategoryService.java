@@ -65,4 +65,20 @@ public class VendorCategoryService {
     public void removeLabelFromVendor(UUID vendorId, Long labelId) {
         repo.deleteVendorLabel(vendorId, labelId);
     }
+
+    @Transactional
+    public CategoryLabelDto createCategoryLabel(String name) {
+        // You could add logic here to check if the name already exists
+        // to avoid a DuplicateKeyException
+        return repo.createLabel(name);
+    }
+
+    public List<CategoryLabelDto> getAllAvailableLabels() {
+        return repo.findAllLabels();
+    }
+
+    @Transactional
+    public void deleteCategoryLabel(Long labelId) {
+        repo.deleteCategoryLabel(labelId);
+    }
 }

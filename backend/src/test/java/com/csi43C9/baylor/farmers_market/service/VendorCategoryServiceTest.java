@@ -13,7 +13,9 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for {@link VendorCategoryService}.
@@ -103,5 +105,48 @@ class VendorCategoryServiceTest {
         service.removeLabelFromVendor(vendorId, labelId);
 
         verify(repo).deleteVendorLabel(vendorId, labelId);
+    }
+
+    /**
+     * Verifies that the service delegates label creation to the repository.
+     */
+    @Test
+    void createCategoryLabelCallsRepositoryAndReturnsDto() {
+        String labelName = "Dairy";
+        CategoryLabelDto mockDto = new CategoryLabelDto(10L, labelName);
+
+        when(repo.createLabel(labelName)).thenReturn(mockDto);
+
+        CategoryLabelDto result = service.createCategoryLabel(labelName);
+
+        assertThat(result).isEqualTo(mockDto);
+        verify(repo).createLabel(labelName);
+    }
+
+    /**
+     * Verifies that the service retrieves all available labels from the repository.
+     */
+    @Test
+    void getAllAvailableLabelsReturnsListFromRepo() {
+        List<CategoryLabelDto> mockList = List.of(new CategoryLabelDto(1L, "Test"));
+
+        when(repo.findAllLabels()).thenReturn(mockList);
+
+        List<CategoryLabelDto> result = service.getAllAvailableLabels();
+
+        assertThat(result).hasSize(1);
+        verify(repo).findAllLabels();
+    }
+
+    /**
+     * Verifies that deleting a global label delegates to the repository.
+     */
+    @Test
+    void deleteCategoryLabelCallsRepository() {
+        Long labelId = 9L;
+
+        service.deleteCategoryLabel(labelId);
+
+        verify(repo).deleteCategoryLabel(labelId);
     }
 }

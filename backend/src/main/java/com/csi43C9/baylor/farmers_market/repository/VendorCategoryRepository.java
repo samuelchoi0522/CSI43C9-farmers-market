@@ -1,11 +1,16 @@
 package com.csi43C9.baylor.farmers_market.repository;
 
 import com.csi43C9.baylor.farmers_market.dto.vendor.CategoryLabelDto;
+import org.mariadb.jdbc.Statement;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import java.nio.ByteBuffer;
+import java.sql.PreparedStatement;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -106,5 +111,46 @@ public class VendorCategoryRepository {
         bb.putLong(uuid.getMostSignificantBits());
         bb.putLong(uuid.getLeastSignificantBits());
         return bb.array();
+    }
+
+    /**
+     * Inserts a new label into the category_labels table.
+     * * @param name The name of the category (e.g., "Organic")
+     * @return A DTO containing the newly generated ID and the name
+     */
+    public CategoryLabelDto createLabel(String name) {
+        String sql = "INSERT INTO category_labels (name) VALUES (?)";
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+
+        jdbc.update(connection -> {
+            PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            ps.setString(1, name);
+            return ps;
+        }, keyHolder);
+
+        long generatedId = Objects.requireNonNull(keyHolder.getKey()).longValue();
+        return new CategoryLabelDto(generatedId, name);
+    }
+
+    /**
+     * Retrieves all labels available in the database.
+     */
+    public List<CategoryLabelDto> findAllLabels() {
+        String sql = "SELECT id, name FROM category_labels ORDER BY name ASC";
+        return jdbc.query(sql, (rs, rowNum) -> new CategoryLabelDto(
+                rs.getLong("id"),
+                rs.getString("name")
+        ));
+    }
+
+    /**
+     * Deletes a category label from the global label table and removes its vendor mappings first.
+     */
+    public void deleteCategoryLabel(Long labelId) {
+        String deleteVendorMappingsSql = "DELETE FROM vendor_category_labels WHERE label_id = ?";
+        String deleteLabelSql = "DELETE FROM category_labels WHERE id = ?";
+
+        jdbc.update(deleteVendorMappingsSql, labelId);
+        jdbc.update(deleteLabelSql, labelId);
     }
 }

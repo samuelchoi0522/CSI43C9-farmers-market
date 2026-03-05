@@ -24,18 +24,20 @@ import java.util.UUID;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Integration tests for {@link VendorCategoryController}.
+ * Integration tests for {@link VendorLabelController}.
  * Verifies that the endpoint is secured and correctly processes requests
  * to retrieve, add, and remove vendor category labels.
  */
-@WebMvcTest(VendorCategoryController.class)
+@WebMvcTest({VendorLabelController.class}) // <--- ADD BOTH HERE
 @Import({SecurityConfig.class, AuthEntryPointJwt.class, JwtAuthFilter.class})
 class VendorCategoryControllerTest {
-
     @Autowired
     private MockMvc mockMvc;
 
@@ -67,7 +69,7 @@ class VendorCategoryControllerTest {
 
         when(service.getLabelsForVendor(vendorId)).thenReturn(mockCategories);
 
-        mockMvc.perform(get("/vendors/" + vendorId + "/categories"))
+        mockMvc.perform(get("/api/vendors/" + vendorId + "/categories"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].id").value(1))
@@ -88,7 +90,7 @@ class VendorCategoryControllerTest {
         VendorLabelRequest request = new VendorLabelRequest();
         request.setLabelIds(List.of(1L, 2L, 3L));
 
-        mockMvc.perform(post("/vendors/" + vendorId + "/categories")
+        mockMvc.perform(post("/api/vendors/" + vendorId + "/categories")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated());
@@ -110,7 +112,7 @@ class VendorCategoryControllerTest {
         VendorLabelRequest request = new VendorLabelRequest();
         request.setLabelIds(Collections.emptyList()); // Triggers @NotEmpty
 
-        mockMvc.perform(post("/vendors/" + vendorId + "/categories")
+        mockMvc.perform(post("/api/vendors/" + vendorId + "/categories")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -129,7 +131,7 @@ class VendorCategoryControllerTest {
         VendorLabelRequest request = new VendorLabelRequest();
         request.setLabelIds(java.util.Arrays.asList(1L, null, 3L)); // Triggers @NotNull on list elements
 
-        mockMvc.perform(post("/vendors/" + vendorId + "/categories")
+        mockMvc.perform(post("/api/vendors/" + vendorId + "/categories")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -147,10 +149,11 @@ class VendorCategoryControllerTest {
         UUID vendorId = UUID.randomUUID();
         Long labelId = 5L;
 
-        mockMvc.perform(delete("/vendors/" + vendorId + "/categories/" + labelId))
+        mockMvc.perform(delete("/api/vendors/" + vendorId + "/categories/" + labelId))
                 .andExpect(status().isNoContent());
 
         // Verify the service was triggered
         verify(service).removeLabelFromVendor(vendorId, labelId);
     }
+
 }

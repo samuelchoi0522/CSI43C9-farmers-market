@@ -7,7 +7,13 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 import java.util.UUID;
@@ -17,13 +23,13 @@ import java.util.UUID;
  * Maps to the `vendor_category_labels` and `category_labels` tables.
  */
 @RestController
-@RequestMapping("/vendors/{vendorId}/categories")
+@RequestMapping("/api/vendors/{vendorId}/categories")
 @PreAuthorize("isAuthenticated()")
-public class VendorCategoryController {
+public class VendorLabelController {
 
     private final VendorCategoryService service;
 
-    public VendorCategoryController(VendorCategoryService service) {
+    public VendorLabelController(VendorCategoryService service) {
         this.service = service;
     }
 
@@ -46,7 +52,7 @@ public class VendorCategoryController {
      * @param request  request body containing the list of label IDs
      */
     @PostMapping
-    public ResponseEntity<Void> addCategories(
+    public ResponseEntity<Void> addLabels(
             @PathVariable UUID vendorId,
             @Valid @RequestBody VendorLabelRequest request
     ) {
@@ -62,7 +68,7 @@ public class VendorCategoryController {
      * @param labelId  the ID of the category label
      */
     @DeleteMapping("/{labelId}")
-    public ResponseEntity<Void> removeCategory(
+    public ResponseEntity<Void> removeLabel(
             @PathVariable UUID vendorId,
             @PathVariable Long labelId
     ) {

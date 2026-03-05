@@ -149,4 +149,57 @@ class VendorCategoryRepositoryTest {
 
         assertThat(count).isEqualTo(0);
     }
+
+    /**
+     * Verifies that a new label can be created and its generated ID is returned.
+     */
+    @Test
+    void createLabelInsertsAndReturnsGeneratedId() {
+        String newLabelName = "Artisan Goods";
+
+        CategoryLabelDto created = vendorCategoryRepository.createLabel(newLabelName);
+
+        assertThat(created.getId()).isNotNull();
+        assertThat(created.getName()).isEqualTo(newLabelName);
+
+        // Verify it exists in DB
+        String nameInDb = jdbcTemplate.queryForObject(
+                "SELECT name FROM category_labels WHERE id = ?",
+                String.class, created.getId());
+        assertThat(nameInDb).isEqualTo(newLabelName);
+    }
+
+    /**
+     * Verifies that all system labels are retrieved in alphabetical order.
+     */
+    @Test
+    void findAllLabelsReturnsSortedList() {
+        List<CategoryLabelDto> labels = vendorCategoryRepository.findAllLabels();
+
+        assertThat(labels).hasSize(3);
+        assertThat(labels.get(0).getName()).isEqualTo("Baked Goods"); // A-Z order check
+        assertThat(labels.get(2).getName()).isEqualTo("Produce");
+    }
+
+    /**
+     * Verifies that deleting a global label removes vendor mappings and the label row.
+     */
+    @Test
+    void deleteCategoryLabelRemovesMappingsAndLabel() {
+        jdbcTemplate.update("INSERT INTO vendor_category_labels (vendor_id, label_id) VALUES (?, ?)",
+                vendorCategoryRepository.uuidToBytes(testVendorId), 1L);
+
+        vendorCategoryRepository.deleteCategoryLabel(1L);
+
+        Integer mappingCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM vendor_category_labels WHERE label_id = ?",
+                Integer.class, 1L);
+        Integer labelCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM category_labels WHERE id = ?",
+                Integer.class, 1L);
+
+        assertThat(mappingCount).isEqualTo(0);
+        assertThat(labelCount).isEqualTo(0);
+    }
+
 }

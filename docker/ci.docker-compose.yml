@@ -17,7 +17,7 @@ services:
     ports:
       - '8080:8080'
     env_file:
-      - ../.env
+      - ../backend/.env
     environment:
       # Override database URL to use Docker service name 'db' instead of localhost
       # Use the database name from docker/.env file

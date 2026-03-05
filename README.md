@@ -67,8 +67,8 @@ cd backend
 # Set environment variables (optional, defaults are in application.properties)
 export SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3307/farmers_market_db
 export SPRING_DATASOURCE_USERNAME=root
-export SPRING_DATASOURCE_PASSWORD=your_password
-export FARMERS_MARKET_JWT_SECRET=your-secret-key-here
+export SPRING_DATASOURCE_PASSWORD=password
+export FARMERS_MARKET_JWT_SECRET=0evWXGQDdPWlPW7JVYt3ArAGtdjstazi0nIbJh4tOQmXHXIsbzkI4hFqLYW2iuQTeW5HO5Hki8Rhb7EuiN+ivA==
 
 # Run the application
 ./gradlew bootRun
