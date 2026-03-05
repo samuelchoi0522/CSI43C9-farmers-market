@@ -17,6 +17,14 @@ export interface JwtResponse {
   tokenType?: string; // Optional - refresh endpoint returns this instead of "type"
 }
 
+export interface PagedResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+}
+
 // Flag to prevent infinite refresh loops
 let isRefreshing = false;
 let refreshPromise: Promise<JwtResponse | null> | null = null;
@@ -122,12 +130,16 @@ export async function apiRequest<T>(
     headers.set('Authorization', `Bearer ${token}`);
   }
 
+  // TEMP
+  console.log(options)
+
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
       headers,
     });
+    console.log(response)
   } catch {
     // Network error or CORS issue
     const error: ApiError = {
