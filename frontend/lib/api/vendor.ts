@@ -47,8 +47,8 @@ export async function createVendor(request: CreateVendorRequest): Promise<Vendor
 /**
  * Get all vendors with pagination
  */
-export async function getVendors(page: number = 0, size: number = 10): Promise<PagedResponse<Vendor>> {
-  return apiRequest<PagedResponse<Vendor>>(`/api/vendor?page=${page}&size=${size}`, {
+export async function getVendors(page: number = 0, size: number = 10, includeInactive: boolean = false): Promise<PagedResponse<Vendor>> {
+  return apiRequest<PagedResponse<Vendor>>(`/api/vendor?page=${page}&size=${size}&includeInactive=${includeInactive}`, {
     method: 'GET',
   });
 }

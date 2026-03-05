@@ -117,7 +117,7 @@ public class VendorRepository extends AbstractJdbcRepository implements MarketRe
     public Optional<Vendor> findById(UUID uuid) {
         String sql = "select * from vendors where id = ?";
         try {
-            Vendor vendor = jdbcTemplate.queryForObject(sql, new VendorRowMapper(), UuidUtils.toBytesObject(uuid));
+            Vendor vendor = jdbcTemplate.queryForObject(sql, new VendorRowMapper(), UuidUtils.toBytes(uuid));
             return Optional.ofNullable(vendor);
         } catch (EmptyResultDataAccessException e) {
             return Optional.empty();
@@ -125,40 +125,61 @@ public class VendorRepository extends AbstractJdbcRepository implements MarketRe
     }
 
     /**
-     * Retrieves all active vendors from the database.
+     * Retrieves vendors from the database.
+     * @param includeInactive if true, includes inactive vendors
      */
-    @Override
-    public List<Vendor> findAll() {
-        String sql = "select * from vendors where is_active = true";
+    public List<Vendor> findAll(boolean includeInactive) {
+        String sql = "select * from vendors";
+        if (!includeInactive) {
+            sql += " where is_active = true";
+        }
         return jdbcTemplate.query(sql, new VendorRowMapper());
     }
 
-    /**
-     * Retrieves a page of active vendors from the database.
-     * @param page 0-based page number
-     * @param size page size
-     * @return a List of active vendors
-     */
     @Override
-    public List<Vendor> findAllPaged(int page, int size) {
-        int offset = page * size;
-        String sql = """
-                select * from vendors
-                where is_active = true
-                order by vendor
-                offset ? rows fetch next ? rows only
-                """;
-        return jdbcTemplate.query(sql, new VendorRowMapper(), offset, size);
+    public List<Vendor> findAll() {
+        return findAll(false);
     }
 
     /**
-     * Counts the number of active vendors in the database.
-     * @return the number of active vendors
+     * Retrieves a page of vendors from the database.
+     * @param page 0-based page number
+     * @param size page size
+     * @param includeInactive if true, includes inactive vendors
+     * @return a List of vendors
      */
-    public Long count() {
-        String sql = "select count(*) from vendors where is_active = true";
+    public List<Vendor> findAllPaged(int page, int size, boolean includeInactive) {
+        int offset = page * size;
+        String sql = "select * from vendors";
+        if (!includeInactive) {
+            sql += " where is_active = true";
+        }
+        sql += " order by vendor offset ? rows fetch next ? rows only";
+        return jdbcTemplate.query(sql, new VendorRowMapper(), offset, size);
+    }
+
+    @Override
+    public List<Vendor> findAllPaged(int page, int size) {
+        return findAllPaged(page, size, false);
+    }
+
+    /**
+     * Counts the number of vendors in the database.
+     * @param includeInactive if true, includes inactive vendors
+     * @return the number of vendors
+     */
+    public Long count(boolean includeInactive) {
+        String sql = "select count(*) from vendors";
+        if (!includeInactive) {
+            sql += " where is_active = true";
+        }
         Long count = jdbcTemplate.queryForObject(sql, Long.class);
         return count != null ? count : 0L;
+    }
+
+    @Override
+    public Long count() {
+        return count(false);
     }
 
     /**
@@ -168,7 +189,7 @@ public class VendorRepository extends AbstractJdbcRepository implements MarketRe
     @Override
     public void deleteById(UUID uuid) {
         String sql = "update vendors set is_active = false where id = ?";
-        jdbcTemplate.update(sql, UuidUtils.toBytesObject(uuid));
+        jdbcTemplate.update(sql, UuidUtils.toBytes(uuid));
     }
 
 }
