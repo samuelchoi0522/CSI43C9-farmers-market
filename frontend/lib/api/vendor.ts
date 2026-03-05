@@ -1,4 +1,4 @@
-import { apiRequest } from './client';
+import { apiRequest, PagedResponse } from './client';
 
 export interface CreateVendorRequest {
   vendorName: string;
@@ -16,7 +16,7 @@ export interface CreateVendorRequest {
 }
 
 export interface Vendor {
-  uuid: string;
+  id: string;
   vendorName: string;
   pointPerson?: string;
   email?: string;
@@ -29,14 +29,6 @@ export interface Vendor {
   womanOwned: boolean;
   bipocOwned: boolean;
   veteranOwned: boolean;
-}
-
-export interface PagedResponse<T> {
-  content: T[];
-  totalElements: number;
-  totalPages: number;
-  size: number;
-  number: number;
 }
 
 /**
@@ -55,8 +47,8 @@ export async function createVendor(request: CreateVendorRequest): Promise<Vendor
 /**
  * Get all vendors with pagination
  */
-export async function getVendors(page: number = 0, size: number = 10): Promise<PagedResponse<Vendor>> {
-  return apiRequest<PagedResponse<Vendor>>(`/api/vendor?page=${page}&size=${size}`, {
+export async function getVendors(page: number = 0, size: number = 10, includeInactive: boolean = false): Promise<PagedResponse<Vendor>> {
+  return apiRequest<PagedResponse<Vendor>>(`/api/vendor?page=${page}&size=${size}&includeInactive=${includeInactive}`, {
     method: 'GET',
   });
 }

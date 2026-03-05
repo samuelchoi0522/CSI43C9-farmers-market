@@ -131,7 +131,7 @@ export default function DarkModeToggle({
     <button
       onClick={toggleDarkMode}
       type="button"
-      className={`${getPositionClasses()} p-2 rounded-full bg-white dark:bg-zinc-800 shadow-md z-[9999] text-gray-600 dark:text-gray-300 hover:scale-110 active:scale-95 transition-all duration-200 ease-out hover:shadow-lg flex items-center justify-center cursor-pointer hover-lift ${className}`}
+      className={`${getPositionClasses()} p-2 rounded-full bg-white dark:bg-zinc-800 shadow-md z-[9999] text-gray-600 dark:text-gray-300 hover:scale-110 active:scale-95 transition-all duration-200 ease-out hover:shadow-lg flex items-center justify-center cursor-pointer hover-lift dark-mode-toggle ${className}`}
       style={{ 
         backgroundColor: isDark ? undefined : '#ffffff',
         pointerEvents: 'auto'

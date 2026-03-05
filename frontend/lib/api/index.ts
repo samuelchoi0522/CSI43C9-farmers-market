@@ -2,4 +2,4 @@
 export * from './client';
 export * from './auth';
 export * from './vendor';
-
+export * from './defaults';
