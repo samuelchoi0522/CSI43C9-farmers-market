@@ -12,10 +12,6 @@ import { getVendors, Vendor } from "@/lib/api/vendor";
 import { EditVendorDialog } from "../components/EditVendorDialog";
 import { cn } from "@/lib/utils";
 
-interface VendorWithDefaults extends Vendor {
-    defaults?: VendorDefaults;
-}
-
 function VendorsContent() {
     const router = useRouter();
     const [showUserMenu, setShowUserMenu] = useState(false);
@@ -25,9 +21,8 @@ function VendorsContent() {
     });
     const [searchQuery, setSearchQuery] = useState("");
     const [showInactive, setShowInactive] = useState(false);
-    const [vendors, setVendors] = useState<VendorWithDefaults[]>([]);
-    const [allVendors, setAllVendors] = useState<VendorWithDefaults[]>([]); // All vendors for stats calculation
-    const [vendorDefaults, setVendorDefaults] = useState<VendorDefaults[]>([]);
+    const [vendors, setVendors] = useState<Vendor[]>([]);
+    const [allVendors, setAllVendors] = useState<Vendor[]>([]); // All vendors for stats calculation
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(0);
     const [pageSize] = useState(10);
@@ -43,17 +38,10 @@ function VendorsContent() {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const [vendorsResponse, defaultsResponse] = await Promise.all([
-                getVendors(currentPage, pageSize, showInactive),
-                getAllVendorDefaults(0, 100)
-            ]);
+            const vendorsResponse = await getVendors(currentPage, pageSize, showInactive, true);
 
-            // Handle case where response might be an array directly or PagedResponse
-            let vendorsList: Vendor[] = [];
-            if (Array.isArray(vendorsResponse)) {
-                vendorsList = vendorsResponse;
-            } else if (vendorsResponse.data && Array.isArray(vendorsResponse.data)) {
-                vendorsList = vendorsResponse.data;
+            if (vendorsResponse.data) {
+                setVendors(vendorsResponse.data);
                 if (vendorsResponse.totalPages !== undefined) {
                     setTotalPages(vendorsResponse.totalPages);
                 }
@@ -61,26 +49,6 @@ function VendorsContent() {
                     setTotalElements(vendorsResponse.totalElements);
                 }
             }
-
-            // Handle defaults response
-            let defaultsList: VendorDefaults[] = [];
-            if (defaultsResponse) {
-                if (Array.isArray(defaultsResponse)) {
-                    defaultsList = defaultsResponse;
-                } else if (defaultsResponse.data && Array.isArray(defaultsResponse.data)) {
-                    defaultsList = defaultsResponse.data;
-                }
-            }
-
-            setVendorDefaults(defaultsList);
-
-            // Map vendor defaults to vendors
-            const vendorsWithDefaults = vendorsList.map(vendor => {
-                const defaults = defaultsList.find(d => d.vendorId === vendor.id);
-                return { ...vendor, defaults };
-            });
-            
-            setVendors(vendorsWithDefaults);
         } catch (error) {
             console.error('Error fetching vendor data:', error);
         } finally {
@@ -90,38 +58,11 @@ function VendorsContent() {
 
     const fetchAllVendors = async () => {
         try {
-            const [allVendorsResponse, defaultsResponse] = await Promise.all([
-                getVendors(0, 1000, showInactive), // Fetch a large number to get all vendors for stats
-                getAllVendorDefaults(0, 100)
-            ]);
+            const allVendorsResponse = await getVendors(0, 1000, showInactive, true);
 
-            // Handle defaults response
-            let defaultsList: VendorDefaults[] = [];
-            if (defaultsResponse) {
-                if (Array.isArray(defaultsResponse)) {
-                    defaultsList = defaultsResponse;
-                } else if (defaultsResponse.data && Array.isArray(defaultsResponse.data)) {
-                    defaultsList = defaultsResponse.data;
-                }
+            if (allVendorsResponse.data) {
+                setAllVendors(allVendorsResponse.data);
             }
-
-            // Handle all vendors response for stats
-            let allVendorsList: Vendor[] = [];
-            if (allVendorsResponse) {
-                if (Array.isArray(allVendorsResponse)) {
-                    allVendorsList = allVendorsResponse;
-                } else if (allVendorsResponse.data && Array.isArray(allVendorsResponse.data)) {
-                    allVendorsList = allVendorsResponse.data;
-                }
-            }
-
-            // Map vendor defaults to all vendors
-            const allVendorsWithDefaults = allVendorsList.map(vendor => {
-                const defaults = defaultsList.find(d => d.vendorId === vendor.id);
-                return { ...vendor, defaults };
-            });
-            
-            setAllVendors(allVendorsWithDefaults);
         } catch (error) {
             console.error('Error fetching all vendors for stats:', error);
         }
