@@ -310,7 +310,7 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
                                 Edit Vendor
                             </DialogPrimitive.Title>
                             <DialogPrimitive.Description className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                                Update information for {vendor.vendorName}
+                                Update the profile information and default settings for this vendor.
                             </DialogPrimitive.Description>
                         </div>
                         <DialogPrimitive.Close asChild>

@@ -2,14 +2,19 @@ package com.csi43C9.baylor.farmers_market.service;
 
 import com.csi43C9.baylor.farmers_market.dto.PagedResponse;
 import com.csi43C9.baylor.farmers_market.dto.vendor.SaveVendorRequest;
+import com.csi43C9.baylor.farmers_market.dto.vendor.VendorResponse;
 import com.csi43C9.baylor.farmers_market.entity.Vendor;
+import com.csi43C9.baylor.farmers_market.entity.VendorDefaults;
+import com.csi43C9.baylor.farmers_market.repository.VendorDefaultsRepository;
 import com.csi43C9.baylor.farmers_market.repository.VendorRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Service class handling the business logic for Vendor management.
@@ -19,6 +24,7 @@ import java.util.UUID;
 public class VendorService {
 
     private final VendorRepository vendorRepository;
+    private final VendorDefaultsRepository vendorDefaultsRepository;
 
     /**
      * Creates a new vendor based on the provided request DTO.
@@ -38,6 +44,22 @@ public class VendorService {
      */
     public Optional<Vendor> get(UUID uuid) {
         return vendorRepository.findById(uuid);
+    }
+
+    /**
+     * Retrieves a vendor response with optional defaults.
+     * @param uuid the UUID of the vendor.
+     * @param includeDefaults if true, includes vendor defaults.
+     */
+    public Optional<VendorResponse> get(UUID uuid, boolean includeDefaults) {
+        return vendorRepository.findById(uuid).map(vendor -> {
+            VendorResponse response = new VendorResponse();
+            response.setVendor(vendor);
+            if (includeDefaults) {
+                response.setDefaults(vendorDefaultsRepository.findByVendorId(uuid).orElse(null));
+            }
+            return response;
+        });
     }
 
     /**
@@ -64,12 +86,30 @@ public class VendorService {
      * @param page 0-based page number
      * @param size page size
      * @param includeInactive if true, includes inactive vendors
+     * @param includeDefaults if true, includes vendor defaults
      * @return PagedResponse
      */
-    public PagedResponse<Vendor> getVendors(int page, int size, boolean includeInactive) {
-        List<Vendor> content = vendorRepository.findAllPaged(page, size, includeInactive);
+    public PagedResponse<VendorResponse> getVendors(int page, int size, boolean includeInactive, boolean includeDefaults) {
+        List<Vendor> vendors = vendorRepository.findAllPaged(page, size, includeInactive);
         long totalElements = vendorRepository.count(includeInactive);
         int totalPages = (int) Math.ceil((double) totalElements / size);
+
+        List<VendorResponse> content;
+        if (includeDefaults && !vendors.isEmpty()) {
+            List<UUID> vendorIds = vendors.stream().map(Vendor::getId).toList();
+            List<VendorDefaults> allDefaults = vendorDefaultsRepository.findAllByVendorIds(vendorIds);
+            Map<UUID, VendorDefaults> defaultsMap = allDefaults.stream()
+                    .collect(Collectors.toMap(VendorDefaults::getVendorId, d -> d));
+
+            content = vendors.stream().map(v -> VendorResponse.builder()
+                    .vendor(v)
+                    .defaults(defaultsMap.get(v.getId()))
+                    .build()).toList();
+        } else {
+            content = vendors.stream().map(v -> VendorResponse.builder()
+                    .vendor(v)
+                    .build()).toList();
+        }
 
         return new PagedResponse<>(
                 content,
@@ -80,8 +120,12 @@ public class VendorService {
         );
     }
 
-    public PagedResponse<Vendor> getVendors(int page, int size) {
-        return getVendors(page, size, false);
+    public PagedResponse<VendorResponse> getVendors(int page, int size, boolean includeInactive) {
+        return getVendors(page, size, includeInactive, false);
+    }
+
+    public PagedResponse<VendorResponse> getVendors(int page, int size) {
+        return getVendors(page, size, false, false);
     }
 
     /**

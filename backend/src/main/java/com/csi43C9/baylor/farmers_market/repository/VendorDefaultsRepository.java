@@ -8,6 +8,8 @@ import com.csi43C9.baylor.farmers_market.util.UuidUtils;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -100,6 +102,25 @@ public class VendorDefaultsRepository extends AbstractJdbcRepository implements 
         } catch (EmptyResultDataAccessException e) {
             return Optional.empty();
         }
+    }
+
+    /**
+     * Retrieves vendor defaults for a list of vendor UUIDs.
+     * @param vendorIds The list of vendor UUIDs.
+     */
+    public List<VendorDefaults> findAllByVendorIds(List<UUID> vendorIds) {
+        if (vendorIds == null || vendorIds.isEmpty()) {
+            return List.of();
+        }
+        
+        String sql = "select * from vendor_defaults where vendor_id in (%s)";
+        String inSql = String.join(",", Collections.nCopies(vendorIds.size(), "?"));
+        
+        return jdbcTemplate.query(
+            String.format(sql, inSql),
+            new VendorDefaultsRowMapper(),
+            vendorIds.stream().map(UuidUtils::toBytes).toArray()
+        );
     }
 
     @Override

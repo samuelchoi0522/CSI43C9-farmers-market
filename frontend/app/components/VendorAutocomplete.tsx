@@ -6,7 +6,8 @@ import { cn } from '../../lib/utils';
 
 interface Vendor {
   id: string;
-  name: string;
+  name?: string;
+  vendorName?: string;
 }
 
 interface VendorAutocompleteProps {
@@ -19,6 +20,8 @@ export function VendorAutocomplete({ vendors, onSelect, placeholder = "Search ve
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
 
+  const getDisplayName = (vendor: Vendor) => vendor.vendorName || vendor.name || "";
+
   return (
     <div className="relative w-full">
       <Popover open={open} onOpenChange={setOpen}>
@@ -30,7 +33,7 @@ export function VendorAutocomplete({ vendors, onSelect, placeholder = "Search ve
           >
             <span className={cn("truncate", value ? "text-gray-900" : "text-gray-500")}>
               {value
-                ? vendors.find((vendor) => vendor.name === value)?.name
+                ? getDisplayName(vendors.find((v) => getDisplayName(v) === value) || { id: "", name: value })
                 : placeholder}
             </span>
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-gray-500 opacity-70" />
@@ -45,31 +48,39 @@ export function VendorAutocomplete({ vendors, onSelect, placeholder = "Search ve
             <CommandList className="max-h-[250px] overflow-y-auto p-1 bg-white">
               <CommandEmpty className="py-6 text-center text-sm text-gray-500">No results found.</CommandEmpty>
               <CommandGroup className="text-gray-900">
-                {vendors.map((vendor) => (
-                  <CommandItem
-                    key={vendor.id}
-                    value={vendor.name}
-                    onSelect={(currentValue) => {
-                      // cmdk provides the value in lowercase or normalized form
-                      // We find the original vendor object by name (case-insensitive)
-                      const found = vendors.find(v => v.name.toLowerCase() === currentValue.toLowerCase());
-                      if (found) {
-                        setValue(found.name);
-                        onSelect(found);
-                        setOpen(false);
-                      }
-                    }}
-                    className="flex cursor-pointer select-none items-center rounded-sm px-3 py-2.5 text-sm text-gray-900 outline-none hover:bg-[#10b981]/10 aria-selected:bg-[#10b981]/10 aria-selected:text-[#059669]"
-                  >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4 text-[#10b981]",
-                        value === vendor.name ? "opacity-100" : "opacity-0"
-                      )}
-                    />
-                    {vendor.name}
-                  </CommandItem>
-                ))}
+                {vendors.map((vendor) => {
+                  const displayName = getDisplayName(vendor);
+                  return (
+                    <CommandItem
+                      key={vendor.id}
+                      value={displayName}
+                      onSelect={(currentValue) => {
+                        if (!currentValue) return;
+                        // Find the original vendor object by name (case-insensitive)
+                        const found = vendors.find(v => {
+                          const vName = getDisplayName(v);
+                          return vName && vName.toLowerCase() === currentValue.toLowerCase();
+                        });
+                        
+                        if (found) {
+                          const foundName = getDisplayName(found);
+                          setValue(foundName);
+                          onSelect(found);
+                          setOpen(false);
+                        }
+                      }}
+                      className="flex cursor-pointer select-none items-center rounded-sm px-3 py-2.5 text-sm text-gray-900 outline-none hover:bg-[#10b981]/10 aria-selected:bg-[#10b981]/10 aria-selected:text-[#059669]"
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4 text-[#10b981]",
+                          value === displayName ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      {displayName}
+                    </CommandItem>
+                  );
+                })}
               </CommandGroup>
             </CommandList>
           </Command>

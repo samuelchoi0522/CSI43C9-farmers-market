@@ -15,19 +15,16 @@ import SidebarNavigation from '../components/SidebarNavigation';
 import Button from '../components/Button';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
-import { AddVendorDialog } from '../components/AddVendorDialog'
+import { AddVendorDialog } from '../components/AddVendorDialog';
+import { VendorDefaultsDialog } from '../components/VendorDefaultsDialog';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast, Toaster } from 'sonner';
 import * as XLSX from 'xlsx';
 import { bulkCreateVendorTransactions, type CreateVendorTransactionRequest } from '@/lib/api/transactions';
 import { getVendors, type Vendor as ApiVendor } from '@/lib/api/vendor';
+import { Sparkles } from 'lucide-react';
 
 // --- Types ---
-interface Vendor {
-  id: string;
-  name: string;
-}
-
 // Matching the database schema exactly
 interface SalesRecord {
   id: string;
@@ -73,7 +70,7 @@ function TransactionsContent() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [allVendors, setAllVendors] = useState<Vendor[]>([]);
+  const [allVendors, setAllVendors] = useState<ApiVendor[]>([]);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const { user, logout } = useAuth();
   const userName = user?.username || "Admin User";
@@ -88,10 +85,12 @@ function TransactionsContent() {
   }, [showUserMenu]);
 
   useEffect(() => {
-    getVendors(0, 100)
+    getVendors(0, 100, false, true)
       .then(res => {
         console.log('Vendors response:', res);
-        setAllVendors(res.data.map((v: ApiVendor) => ({ id: v.id, name: v.vendorName })));
+        if (res.data) {
+          setAllVendors(res.data);
+        }
       })
       .catch(error => {
         console.error('Failed to load vendors:', error);
@@ -187,16 +186,16 @@ function TransactionsContent() {
     reader.readAsBinaryString(file);
   };
 
-  const handleAddVendor = (vendor: Vendor) => {
+  const handleAddVendor = (vendor: ApiVendor) => {
     if (records.some(r => r.vendor_id === vendor.id)) {
-      toast.error(`${vendor.name} is already in the list.`);
+      toast.error(`${vendor.vendorName} is already in the list.`);
       return;
     }
 
     const newRecord: SalesRecord = {
       id: Math.random().toString(36).substr(2, 9),
       vendor_id: vendor.id,
-      vendor_name: vendor.name,
+      vendor_name: vendor.vendorName,
       market_date: currentMarketDate,
       present: true,
       snap: 0,
@@ -212,7 +211,7 @@ function TransactionsContent() {
 
     setRecords(prev => [newRecord, ...prev]);
     setTimeout(() => setEditingId(newRecord.id), 50);
-    toast.success(`Added ${vendor.name}`);
+    toast.success(`Added ${vendor.vendorName}`);
   };
 
   const handleUpdateRecord = (id: string, updates: Partial<SalesRecord>) => {
@@ -222,17 +221,11 @@ function TransactionsContent() {
 
       // Re-validate vendor name if it changed
       if ('vendor_name' in updates) {
-        for(const v of allVendors) {
-          if(v.name.toLowerCase() === updated.vendor_name.toLowerCase()) {
-            console.log(v.id)
-          }
-        }
         const matchedVendor = allVendors.find(
-          v => v.name.toLowerCase() === updated.vendor_name.toLowerCase()
+          v => v.vendorName.toLowerCase() === updated.vendor_name.toLowerCase()
         );
         updated.vendor_id = matchedVendor?.id ?? '';
         updated.isInvalid = !matchedVendor;
-        //console.log(updated)
       }
 
       if (
@@ -401,6 +394,7 @@ function TransactionsContent() {
                   <th className="px-3 py-4 w-24 text-center bg-[#10b981]/10">Voucher ($)</th>
                   <th className="px-4 py-4 w-32 text-right font-bold text-[#059669] bg-[#10b981]/10 border-x border-[#10b981]/20">Reimburse.</th>
                   <th className="px-4 py-4 w-32 text-right bg-amber-500/10 dark:bg-amber-500/5">Reported Sales</th>
+                  <th className="px-4 py-4 w-12 text-center bg-[#10b981]/10 border-r border-[#10b981]/20">Defaults</th>
                   <th className="px-4 py-4 w-32 text-right bg-emerald-500/10 dark:bg-emerald-500/5">Est. Produce</th>
                   <th className="px-4 py-4 w-24 text-center bg-slate-50 dark:bg-slate-900/30">Trans.</th>
                   <th className="px-4 py-4 w-16 text-center"></th>
@@ -414,6 +408,7 @@ function TransactionsContent() {
                       record={record}
                       isEditing={editingId === record.id}
                       isInvalid={!!record.isInvalid}
+                      allVendors={allVendors}
                       onEdit={() => setEditingId(record.id)}
                       onSave={() => setEditingId(null)}
                       onDelete={() => handleDeleteRecord(record.id)}
@@ -474,13 +469,15 @@ interface SalesRowProps {
   record: SalesRecord;
   isEditing: boolean;
   isInvalid: boolean;
+  allVendors: ApiVendor[];
   onEdit: () => void;
   onSave: () => void;
   onDelete: () => void;
   onUpdate: (updates: Partial<SalesRecord>) => void;
 }
 
-function SalesRow({ record, isEditing, isInvalid, onEdit, onSave, onDelete, onUpdate }: SalesRowProps) {
+function SalesRow({ record, isEditing, isInvalid, allVendors, onEdit, onSave, onDelete, onUpdate }: SalesRowProps) {
+  const [showDefaultsDialog, setShowDefaultsDialog] = useState(false);
   const snap = record.snap ?? 0;
   const dufb = record.dufb ?? 0;
   const wdfm_tokens = record.wdfm_tokens ?? 0;
@@ -496,6 +493,30 @@ function SalesRow({ record, isEditing, isInvalid, onEdit, onSave, onDelete, onUp
     if (!isNaN(numValue)) {
       onUpdate({ [field]: numValue });
     }
+  };
+
+  const currentVendor = allVendors.find(v => v.id === record.vendor_id);
+
+  const handleApplyDefaults = (data: {
+    pctHandmade: number;
+    pctAgricultural: number;
+    pctPreparedFood: number;
+    pctCottageGoods: number;
+    pctManufactured: number;
+  }) => {
+    const sales = record.reported_sales || 0;
+    
+    // Calculate estimates based on percentages
+    // For now, we'll sum them into est_produce_sales if they are produce-related
+    // This can be adjusted based on specific business rules
+    const produceSales = (sales * (data.pctAgricultural + data.pctPreparedFood)) / 100;
+    
+    const updates: Partial<SalesRecord> = {
+      est_produce_sales: Math.round(produceSales * 100) / 100
+    };
+    
+    onUpdate(updates);
+    toast.success(`Applied ${currentVendor?.vendorName}'s defaults`);
   };
 
   return (
@@ -633,6 +654,30 @@ function SalesRow({ record, isEditing, isInvalid, onEdit, onSave, onDelete, onUp
         ) : (
           <div className="text-right font-semibold text-slate-700 dark:text-slate-300 tabular-nums">{formatCurrency(reported_sales)}</div>
         )}
+      </td>
+
+      {/* Defaults Button */}
+      <td className="px-2 py-3 bg-[#10b981]/10 border-r border-[#10b981]/20 text-center">
+        {currentVendor?.defaults && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowDefaultsDialog(true);
+            }}
+            className="p-1.5 text-[#10b981] hover:bg-[#10b981]/20 rounded-full transition-all hover:scale-110 active:scale-95"
+            title="Use Vendor Defaults"
+          >
+            <Sparkles size={18} />
+          </button>
+        )}
+        
+        <VendorDefaultsDialog 
+          vendor={currentVendor}
+          reportedSales={record.reported_sales || 0}
+          isOpen={showDefaultsDialog}
+          onOpenChange={setShowDefaultsDialog}
+          onApply={handleApplyDefaults}
+        />
       </td>
 
       {/* Est. Produce Sales */}

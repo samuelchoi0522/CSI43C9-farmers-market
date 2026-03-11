@@ -2,6 +2,7 @@ package com.csi43C9.baylor.farmers_market.controller;
 
 import com.csi43C9.baylor.farmers_market.dto.PagedResponse;
 import com.csi43C9.baylor.farmers_market.dto.vendor.SaveVendorRequest;
+import com.csi43C9.baylor.farmers_market.dto.vendor.VendorResponse;
 import com.csi43C9.baylor.farmers_market.entity.Vendor;
 import com.csi43C9.baylor.farmers_market.service.VendorService;
 import jakarta.validation.Valid;
@@ -55,12 +56,13 @@ public class VendorController {
      * @return a {@link ResponseEntity} containing a {@link PagedResponse} of {@link Vendor}s
      */
     @GetMapping
-    public ResponseEntity<@NonNull PagedResponse<Vendor>> getAllVendors(
+    public ResponseEntity<@NonNull PagedResponse<VendorResponse>> getAllVendors(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "false") boolean includeInactive) {
+            @RequestParam(defaultValue = "false") boolean includeInactive,
+            @RequestParam(defaultValue = "false") boolean includeDefaults) {
 
-        return ResponseEntity.ok(vendorService.getVendors(page, size, includeInactive));
+        return ResponseEntity.ok(vendorService.getVendors(page, size, includeInactive, includeDefaults));
     }
 
     /**
@@ -69,7 +71,16 @@ public class VendorController {
      * @return a {@link ResponseEntity} containing the requested {@link Vendor}
      */
     @GetMapping("/{uuid}")
-    public ResponseEntity<@NonNull Vendor> getVendor(@PathVariable UUID uuid) {
+    public ResponseEntity<?> getVendor(
+            @PathVariable UUID uuid,
+            @RequestParam(defaultValue = "false") boolean includeDefaults) {
+        
+        if (includeDefaults) {
+            return vendorService.get(uuid, true)
+                    .map(ResponseEntity::ok)
+                    .orElseGet(() -> ResponseEntity.notFound().build());
+        }
+        
         return vendorService.get(uuid)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
