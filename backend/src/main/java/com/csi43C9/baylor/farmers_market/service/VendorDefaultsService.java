@@ -92,18 +92,25 @@ public class VendorDefaultsService {
 
     /**
      * Validates that the sum of product category percentages is exactly 100.00.
+     * All zeros are not allowed.
      */
     private void validatePercentages(SaveVendorDefaultsRequest request) {
         BigDecimal total = BigDecimal.ZERO;
 
-        total = total.add(Optional.ofNullable(request.getPctHandmade()).orElse(BigDecimal.ZERO));
-        total = total.add(Optional.ofNullable(request.getPctAgricultural()).orElse(BigDecimal.ZERO));
-        total = total.add(Optional.ofNullable(request.getPctPreparedFood()).orElse(BigDecimal.ZERO));
-        total = total.add(Optional.ofNullable(request.getPctCottageGoods()).orElse(BigDecimal.ZERO));
-        total = total.add(Optional.ofNullable(request.getPctManufactured()).orElse(BigDecimal.ZERO));
+        BigDecimal pctHandmade = Optional.ofNullable(request.getPctHandmade()).orElse(BigDecimal.ZERO);
+        BigDecimal pctAgricultural = Optional.ofNullable(request.getPctAgricultural()).orElse(BigDecimal.ZERO);
+        BigDecimal pctPreparedFood = Optional.ofNullable(request.getPctPreparedFood()).orElse(BigDecimal.ZERO);
+        BigDecimal pctCottageGoods = Optional.ofNullable(request.getPctCottageGoods()).orElse(BigDecimal.ZERO);
+        BigDecimal pctManufactured = Optional.ofNullable(request.getPctManufactured()).orElse(BigDecimal.ZERO);
+
+        total = total.add(pctHandmade)
+                     .add(pctAgricultural)
+                     .add(pctPreparedFood)
+                     .add(pctCottageGoods)
+                     .add(pctManufactured);
 
         if (total.compareTo(new BigDecimal("100.00")) != 0) {
-            throw new IllegalArgumentException("The sum of percentages must be exactly 100.00. Current total: " + total);
+            throw new IllegalArgumentException("The sum of product category percentages must be exactly 100.00.");
         }
     }
 
@@ -119,6 +126,7 @@ public class VendorDefaultsService {
             defaults.setPctPreparedFood(Optional.ofNullable(request.getPctPreparedFood()).orElse(BigDecimal.ZERO));
             defaults.setPctCottageGoods(Optional.ofNullable(request.getPctCottageGoods()).orElse(BigDecimal.ZERO));
             defaults.setPctManufactured(Optional.ofNullable(request.getPctManufactured()).orElse(BigDecimal.ZERO));
+            defaults.setAvgSaleAmount(Optional.ofNullable(request.getAvgSaleAmount()).orElse(BigDecimal.ZERO));
             return defaults;
         }
 

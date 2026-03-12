@@ -42,9 +42,10 @@ public class VendorDefaultsRepository extends AbstractJdbcRepository implements 
         String sql = """
                 insert into vendor_defaults (
                     id, vendor_id, pct_handmade, pct_agricultural,
-                    pct_prepared_food, pct_cottage_goods, pct_manufactured
+                    pct_prepared_food, pct_cottage_goods, pct_manufactured,
+                    avg_sale_amount
                 )
-                values (?, ?, ?, ?, ?, ?, ?)
+                values (?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         jdbcTemplate.update(sql,
@@ -54,7 +55,8 @@ public class VendorDefaultsRepository extends AbstractJdbcRepository implements 
                 defaults.getPctAgricultural(),
                 defaults.getPctPreparedFood(),
                 defaults.getPctCottageGoods(),
-                defaults.getPctManufactured()
+                defaults.getPctManufactured(),
+                defaults.getAvgSaleAmount()
         );
 
         return defaults;
@@ -64,7 +66,8 @@ public class VendorDefaultsRepository extends AbstractJdbcRepository implements 
         String sql = """
                 update vendor_defaults
                 set vendor_id = ?, pct_handmade = ?, pct_agricultural = ?,
-                    pct_prepared_food = ?, pct_cottage_goods = ?, pct_manufactured = ?
+                    pct_prepared_food = ?, pct_cottage_goods = ?, pct_manufactured = ?,
+                    avg_sale_amount = ?
                 where id = ?
                 """;
 
@@ -75,6 +78,7 @@ public class VendorDefaultsRepository extends AbstractJdbcRepository implements 
                 defaults.getPctPreparedFood(),
                 defaults.getPctCottageGoods(),
                 defaults.getPctManufactured(),
+                defaults.getAvgSaleAmount(),
                 UuidUtils.toBytes(defaults.getId())
         );
     }

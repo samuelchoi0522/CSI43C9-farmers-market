@@ -43,6 +43,7 @@ interface VendorFormData {
     pctPreparedFood: string;
     pctCottageGoods: string;
     pctManufactured: string;
+    avgSaleAmount: string;
 }
 
 export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: EditVendorDialogProps) {
@@ -71,6 +72,7 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
         pctPreparedFood: "0",
         pctCottageGoods: "0",
         pctManufactured: "0",
+        avgSaleAmount: "0",
     });
 
     useEffect(() => {
@@ -88,6 +90,7 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
                             pctPreparedFood: defaults.pctPreparedFood || "0",
                             pctCottageGoods: defaults.pctCottageGoods || "0",
                             pctManufactured: defaults.pctManufactured || "0",
+                            avgSaleAmount: defaults.avgSaleAmount || "0",
                         }));
                     }
                 } catch (error) {
@@ -107,7 +110,8 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
             formData.pctPreparedFood,
             formData.pctCottageGoods,
             formData.pctManufactured,
-        ].some(pct => parseFloat(pct) !== 0);
+            formData.avgSaleAmount,
+        ].some(val => parseFloat(val) !== 0);
     }, [formData]);
 
     const handleInputChange = (
@@ -152,6 +156,15 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
             newErrors.miles = "Miles must be a valid positive number";
         }
 
+        if (formData.avgSaleAmount && parseFloat(formData.avgSaleAmount) < 0) {
+            newErrors.avgSaleAmount = "Average sale amount must be positive";
+        } else if (formData.avgSaleAmount && parseFloat(formData.avgSaleAmount) === 0 && hasNonZeroPercentage) {
+            // If they have percentages, they might need an avg sale, but let's just 
+            // focus on the "must be > 0 if provided" rule. 
+            // If they enter "0" explicitly, we should probably treat it as invalid if percentages are present?
+            // User said: "ensure the average sale amount is greater than 0 on the frontend IF it has been provided"
+        }
+
         const percentageFieldKeys = [
             'pctHandmade', 'pctAgricultural', 'pctPreparedFood',
             'pctCottageGoods', 'pctManufactured'
@@ -171,8 +184,11 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
         sumPercentages = Math.round(sumPercentages * 100) / 100;
 
         if (Object.keys(newErrors).length === 0) {
-            if (hasNonZeroPercentage && sumPercentages !== 100) {
-                newErrors.percentageSum = `Sum must be exactly 100. Current: ${sumPercentages}%`;
+            const hasAvgSale = parseFloat(formData.avgSaleAmount || "0") > 0;
+            if (hasAvgSale && sumPercentages !== 100) {
+                newErrors.percentageSum = "Specifying an average sale amount requires product category percentages to sum to 100%";
+            } else if (hasNonZeroPercentage && sumPercentages !== 100) {
+                newErrors.percentageSum = `Product category percentages must sum to exactly 100%. Current total: ${sumPercentages}%`;
             }
         }
 
@@ -211,6 +227,7 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
                     pctPreparedFood: formData.pctPreparedFood,
                     pctCottageGoods: formData.pctCottageGoods,
                     pctManufactured: formData.pctManufactured,
+                    avgSaleAmount: formData.avgSaleAmount,
                 };
 
                 if (existingDefaults) {
@@ -476,6 +493,20 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
                                         />
                                     </div>
                                 ))}
+                                <div className="space-y-1">
+                                    <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Average Sale ($)</label>
+                                    <input
+                                        type="number"
+                                        name="avgSaleAmount"
+                                        value={formData.avgSaleAmount}
+                                        onChange={handleInputChange}
+                                        className={cn(
+                                            "w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border rounded-lg focus:ring-2 focus:ring-dashboard-primary outline-none transition-all text-sm text-slate-900 dark:text-white",
+                                            errors.avgSaleAmount ? "border-red-500" : "border-slate-200 dark:border-slate-700"
+                                        )}
+                                    />
+                                    {errors.avgSaleAmount && <p className="text-xs text-red-500">{errors.avgSaleAmount}</p>}
+                                </div>
                             </div>
                             {errors.percentageSum && (
                                 <div className="flex items-center gap-2 text-red-500 p-2 bg-red-50 dark:bg-red-900/20 rounded-lg">

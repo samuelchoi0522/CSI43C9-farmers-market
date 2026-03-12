@@ -7,6 +7,7 @@ export interface SaveVendorDefaultsRequest {
     pctPreparedFood: string;
     pctCottageGoods: string;
     pctManufactured: string;
+    avgSaleAmount: string;
 }
 
 export interface VendorDefaults {
@@ -17,6 +18,7 @@ export interface VendorDefaults {
     pctPreparedFood: string;
     pctCottageGoods: string;
     pctManufactured: string;
+    avgSaleAmount: string;
 }
 
 /**

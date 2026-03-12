@@ -28,6 +28,7 @@ interface VendorFormData {
     pctPreparedFood: string;
     pctCottageGoods: string;
     pctManufactured: string;
+    avgSaleAmount: string;
 }
 
 function AddVendorContent() {
@@ -64,6 +65,7 @@ function AddVendorContent() {
         pctPreparedFood: "0",
         pctCottageGoods: "0",
         pctManufactured: "0",
+        avgSaleAmount: "0",
     });
 
     const hasNonZeroPercentage = useMemo(() => {
@@ -73,7 +75,8 @@ function AddVendorContent() {
             formData.pctPreparedFood,
             formData.pctCottageGoods,
             formData.pctManufactured,
-        ].some(pct => parseFloat(pct) !== 0);
+            formData.avgSaleAmount,
+        ].some(val => parseFloat(val) !== 0);
     }, [formData]);
 
     // Calculate profile completion percentage
@@ -289,6 +292,11 @@ function AddVendorContent() {
             newErrors.miles = "Miles must be a valid positive number";
         }
 
+        const avgAmt = parseFloat(formData.avgSaleAmount || "0");
+        if (formData.avgSaleAmount && formData.avgSaleAmount !== "0" && avgAmt <= 0) {
+            newErrors.avgSaleAmount = "Average sale amount must be greater than zero";
+        }
+
         const percentageFieldKeys = [
             'pctHandmade', 'pctAgricultural', 'pctPreparedFood',
             'pctCottageGoods', 'pctManufactured'
@@ -308,9 +316,10 @@ function AddVendorContent() {
         sumPercentages = Math.round(sumPercentages * 100) / 100;
 
         if (Object.keys(newErrors).length === 0) {
-            const hasNonZeroPercentage = percentageFieldKeys.some(key => parseFloat(formData[key as keyof VendorFormData] as string) !== 0);
-
-            if (hasNonZeroPercentage && sumPercentages !== 100) {
+            const hasAvgSale = parseFloat(formData.avgSaleAmount || "0") > 0;
+            if (hasAvgSale && sumPercentages !== 100) {
+                newErrors.percentageSum = "Specifying an average sale amount requires product category percentages to sum to 100%";
+            } else if (hasNonZeroPercentage && sumPercentages !== 100) {
                 newErrors.percentageSum = `The sum of all percentages must be exactly 100. Current total: ${sumPercentages}.`;
             }
         }
@@ -363,7 +372,7 @@ function AddVendorContent() {
                 throw new Error("Invalid response from server when creating vendor");
             }
 
-            // Only create vendor defaults if any percentage is non-zero
+            // Only create vendor defaults if any percentage or average sale is non-zero
             if (hasNonZeroPercentage) {
                 await createVendorDefaults({
                     vendorId: newVendor.id,
@@ -372,6 +381,7 @@ function AddVendorContent() {
                     pctPreparedFood: formData.pctPreparedFood,
                     pctCottageGoods: formData.pctCottageGoods,
                     pctManufactured: formData.pctManufactured,
+                    avgSaleAmount: formData.avgSaleAmount,
                 });
             }
 
@@ -590,6 +600,10 @@ function AddVendorContent() {
                                                     <p className="text-sm font-medium">{formData[key] || "0"}%</p>
                                                 </div>
                                             ))}
+                                            <div>
+                                                <p className="text-xs text-slate-700 dark:text-slate-400 mb-1">Average Sale ($)</p>
+                                                <p className="text-sm font-medium">${formData.avgSaleAmount || "0"}</p>
+                                            </div>
                                         </div>
                                         {errors.percentageSum && (
                                             <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
@@ -917,7 +931,29 @@ function AddVendorContent() {
                                             )}
                                         </div>
                                     ))}
-                                    {errors.percentageSum && (
+                                    <div>
+                                        <label htmlFor="avgSaleAmount" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                            Average Sale ($)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            id="avgSaleAmount"
+                                            name="avgSaleAmount"
+                                            value={formData.avgSaleAmount}
+                                            onChange={handleInputChange}
+                                            min="0"
+                                            step="0.01"
+                                            className={`w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors text-slate-900 dark:text-white ${
+                                                errors.avgSaleAmount
+                                                    ? "border-red-500 dark:border-red-500"
+                                                    : "border-slate-200 dark:border-slate-700"
+                                            }`}
+                                            placeholder="0.00"
+                                        />
+                                        {errors.avgSaleAmount && (
+                                            <p className="mt-1 text-sm text-red-500">{errors.avgSaleAmount}</p>
+                                        )}
+                                    </div>                                    {errors.percentageSum && (
                                         <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                                             <p className="text-sm text-red-600 dark:text-red-400">{errors.percentageSum}</p>
                                         </div>

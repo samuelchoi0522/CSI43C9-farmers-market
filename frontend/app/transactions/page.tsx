@@ -22,6 +22,7 @@ import { toast, Toaster } from 'sonner';
 import * as XLSX from 'xlsx';
 import { bulkCreateVendorTransactions, type CreateVendorTransactionRequest } from '@/lib/api/transactions';
 import { getVendors, type Vendor as ApiVendor } from '@/lib/api/vendor';
+import { cn } from '@/lib/utils';
 import { Sparkles } from 'lucide-react';
 
 // --- Types ---
@@ -141,7 +142,20 @@ function TransactionsContent() {
           const voucher = parseFloat(row[5] || 0);
           const reportedSales = parseFloat(row[6] || 0);
 
-          const matchedVendor = allVendors.find(v => v.name.toLowerCase() === vendorName.toLowerCase());
+          const matchedVendor = allVendors.find(v => v.vendorName?.toLowerCase() === vendorName.toLowerCase());
+          
+          let estProduceSales = 0;
+          let estNumTransactions = 0;
+          if (matchedVendor?.defaults) {
+            const { pctAgricultural, pctPreparedFood, avgSaleAmount } = matchedVendor.defaults;
+            const produceSales = (reportedSales * (parseFloat(pctAgricultural) + parseFloat(pctPreparedFood))) / 100;
+            estProduceSales = Math.round(produceSales * 100) / 100;
+            
+            const avgAmt = parseFloat(avgSaleAmount);
+            if (avgAmt > 0) {
+              estNumTransactions = Math.round(reportedSales / avgAmt);
+            }
+          }
 
           return {
             id: Math.random().toString(36).substr(2, 9),
@@ -155,8 +169,8 @@ function TransactionsContent() {
             voucher,
             reimbursement_due: snap + dufb + wdfm + voucher,
             reported_sales: reportedSales,
-            est_produce_sales: 0,
-            est_num_transactions: 0,
+            est_produce_sales: estProduceSales,
+            est_num_transactions: estNumTransactions,
             isInvalid: !matchedVendor,
           };
         });
@@ -287,7 +301,7 @@ function TransactionsContent() {
   const invalidCount = records.filter(r => r.isInvalid).length;
 
   return (
-    <div className="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-screen flex transition-colors duration-300">
+    <div className="transactions-page bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-screen flex transition-colors duration-300">
       <style dangerouslySetInnerHTML={{ __html: `
         input::-webkit-outer-spin-button,
         input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
@@ -393,8 +407,8 @@ function TransactionsContent() {
                   <th className="px-3 py-4 w-24 text-center bg-[#10b981]/10">WDFM ($)</th>
                   <th className="px-3 py-4 w-24 text-center bg-[#10b981]/10">Voucher ($)</th>
                   <th className="px-4 py-4 w-32 text-right font-bold text-[#059669] bg-[#10b981]/10 border-x border-[#10b981]/20">Reimburse.</th>
-                  <th className="px-4 py-4 w-32 text-right bg-amber-500/10 dark:bg-amber-500/5">Reported Sales</th>
                   <th className="px-4 py-4 w-12 text-center bg-[#10b981]/10 border-r border-[#10b981]/20">Defaults</th>
+                  <th className="px-4 py-4 w-32 text-right bg-amber-500/10 dark:bg-amber-500/5">Reported Sales</th>
                   <th className="px-4 py-4 w-32 text-right bg-emerald-500/10 dark:bg-emerald-500/5">Est. Produce</th>
                   <th className="px-4 py-4 w-24 text-center bg-slate-50 dark:bg-slate-900/30">Trans.</th>
                   <th className="px-4 py-4 w-16 text-center"></th>
@@ -503,16 +517,17 @@ function SalesRow({ record, isEditing, isInvalid, allVendors, onEdit, onSave, on
     pctPreparedFood: number;
     pctCottageGoods: number;
     pctManufactured: number;
+    avgSaleAmount: number;
   }) => {
     const sales = record.reported_sales || 0;
     
     // Calculate estimates based on percentages
-    // For now, we'll sum them into est_produce_sales if they are produce-related
-    // This can be adjusted based on specific business rules
     const produceSales = (sales * (data.pctAgricultural + data.pctPreparedFood)) / 100;
+    const estTransactions = data.avgSaleAmount > 0 ? Math.round(sales / data.avgSaleAmount) : 0;
     
     const updates: Partial<SalesRecord> = {
-      est_produce_sales: Math.round(produceSales * 100) / 100
+      est_produce_sales: Math.round(produceSales * 100) / 100,
+      est_num_transactions: estTransactions
     };
     
     onUpdate(updates);
@@ -529,7 +544,7 @@ function SalesRow({ record, isEditing, isInvalid, allVendors, onEdit, onSave, on
       className={`
         group transition-colors cursor-pointer
         ${isInvalid ? 'bg-red-50 dark:bg-red-900/20 border-l-4 border-l-red-400 dark:border-l-red-500' : ''}
-        ${isEditing && !isInvalid ? 'bg-[#10b981]/10 dark:bg-[#10b981]/15' : ''}
+        ${isEditing && !isInvalid ? 'bg-dashboard-primary/10 dark:bg-dashboard-primary/15' : 'hover:bg-dashboard-primary/10 dark:hover:bg-dashboard-primary/15'}
         ${!isEditing && !isInvalid ? 'hover:bg-slate-50/80 dark:hover:bg-slate-800/80' : ''}
       `}
     >
@@ -539,11 +554,13 @@ function SalesRow({ record, isEditing, isInvalid, allVendors, onEdit, onSave, on
           <div>
             <input
               type="text"
-              className={`w-full px-2 py-1 border rounded outline-none text-sm font-medium
+              className={`
+                w-full px-2 py-1 border rounded outline-none text-sm font-medium bg-transparent text-slate-900 dark:text-slate-100
                 ${isInvalid
-                  ? 'border-red-400 dark:border-red-500 bg-white dark:bg-slate-800 text-red-700 dark:text-red-400 focus:ring-2 focus:ring-red-300 dark:focus:ring-red-500'
-                  : 'border-[#10b981]/30 focus:ring-2 focus:ring-[#10b981]'
-                }`}
+                  ? 'border-red-400 dark:border-red-500 focus:ring-2 focus:ring-red-300 dark:focus:ring-red-500'
+                  : 'border-dashboard-primary/30 focus:ring-2 focus:ring-dashboard-primary'
+                }
+              `}
               value={record.vendor_name}
               onChange={(e) => onUpdate({ vendor_name: e.target.value })}
               onClick={(e) => e.stopPropagation()}
@@ -642,20 +659,6 @@ function SalesRow({ record, isEditing, isInvalid, allVendors, onEdit, onSave, on
         )}
       </td>
 
-      {/* Reported Sales */}
-      <td className="px-2 py-3">
-        {isEditing ? (
-          <input 
-            type="number" step="0.01"
-            className="w-full px-2 py-1 text-right border border-amber-200 dark:border-slate-600 rounded focus:ring-2 focus:ring-amber-500 outline-none text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
-            value={reported_sales === 0 && isEditing ? '' : reported_sales}
-            onChange={(e) => handleNumberChange('reported_sales', e.target.value)}
-          />
-        ) : (
-          <div className="text-right font-semibold text-slate-700 dark:text-slate-300 tabular-nums">{formatCurrency(reported_sales)}</div>
-        )}
-      </td>
-
       {/* Defaults Button */}
       <td className="px-2 py-3 bg-[#10b981]/10 border-r border-[#10b981]/20 text-center">
         {currentVendor?.defaults && (
@@ -678,6 +681,20 @@ function SalesRow({ record, isEditing, isInvalid, allVendors, onEdit, onSave, on
           onOpenChange={setShowDefaultsDialog}
           onApply={handleApplyDefaults}
         />
+      </td>
+
+      {/* Reported Sales */}
+      <td className="px-2 py-3">
+        {isEditing ? (
+          <input 
+            type="number" step="0.01"
+            className="w-full px-2 py-1 text-right border border-amber-200 dark:border-slate-600 rounded focus:ring-2 focus:ring-amber-500 outline-none text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+            value={reported_sales === 0 && isEditing ? '' : reported_sales}
+            onChange={(e) => handleNumberChange('reported_sales', e.target.value)}
+          />
+        ) : (
+          <div className="text-right font-semibold text-slate-700 dark:text-slate-300 tabular-nums">{formatCurrency(reported_sales)}</div>
+        )}
       </td>
 
       {/* Est. Produce Sales */}

@@ -42,4 +42,8 @@ public class VendorDefaults implements IdentifiableUuid {
     /** Percentage of manufactured goods. */
     @Builder.Default
     private BigDecimal pctManufactured = BigDecimal.ZERO;
+
+    /** Default average sale amount for this vendor. */
+    @Builder.Default
+    private BigDecimal avgSaleAmount = BigDecimal.ZERO;
 }

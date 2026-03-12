@@ -3,11 +3,7 @@ import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X, Plus } from 'lucide-react';
 import { VendorAutocomplete } from './VendorAutocomplete';
 import { cn } from '../../lib/utils';
-
-interface Vendor {
-  id: string;
-  name: string;
-}
+import { Vendor } from '@/lib/api/vendor';
 
 interface AddVendorDialogProps {
   vendors: Vendor[];
@@ -21,6 +17,7 @@ export function AddVendorDialog({ vendors, onAdd }: AddVendorDialogProps) {
   const handleAdd = () => {
     if (selectedVendor) {
       onAdd(selectedVendor);
+      toast.success(`Added ${selectedVendor.vendorName}`);
       setSelectedVendor(null);
       setIsOpen(false);
     }

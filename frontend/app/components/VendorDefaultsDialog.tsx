@@ -18,6 +18,7 @@ interface VendorDefaultsDialogProps {
         pctPreparedFood: number;
         pctCottageGoods: number;
         pctManufactured: number;
+        avgSaleAmount: number;
     }) => void;
 }
 
@@ -28,12 +29,14 @@ export function VendorDefaultsDialog({ vendor, reportedSales, isOpen, onOpenChan
 
     const calculations = useMemo(() => {
         const sales = reportedSales || 0;
+        const avgSale = parseFloat(defaults.avgSaleAmount || "0");
         return {
             handmade: (sales * parseFloat(defaults.pctHandmade || "0")) / 100,
             agricultural: (sales * parseFloat(defaults.pctAgricultural || "0")) / 100,
             prepared: (sales * parseFloat(defaults.pctPreparedFood || "0")) / 100,
             cottage: (sales * parseFloat(defaults.pctCottageGoods || "0")) / 100,
             manufactured: (sales * parseFloat(defaults.pctManufactured || "0")) / 100,
+            estimatedTransactions: avgSale > 0 ? Math.round(sales / avgSale) : 0
         };
     }, [reportedSales, defaults]);
 
@@ -44,6 +47,7 @@ export function VendorDefaultsDialog({ vendor, reportedSales, isOpen, onOpenChan
             pctPreparedFood: parseFloat(defaults.pctPreparedFood || "0"),
             pctCottageGoods: parseFloat(defaults.pctCottageGoods || "0"),
             pctManufactured: parseFloat(defaults.pctManufactured || "0"),
+            avgSaleAmount: parseFloat(defaults.avgSaleAmount || "0"),
         });
         onOpenChange(false);
     };

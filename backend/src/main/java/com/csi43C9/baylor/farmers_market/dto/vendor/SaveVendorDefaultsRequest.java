@@ -54,4 +54,10 @@ public class SaveVendorDefaultsRequest {
     @DecimalMin(value = "0.0", message = "Manufactured percentage must be at least 0.0")
     @DecimalMax(value = "100.0", message = "Manufactured percentage must be at most 100.0")
     private BigDecimal pctManufactured;
+
+    /**
+     * Average sale amount for this vendor.
+     */
+    @DecimalMin(value = "0.0", message = "Average sale amount must be at least 0.0")
+    private BigDecimal avgSaleAmount;
 }
