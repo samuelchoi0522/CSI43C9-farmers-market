@@ -21,6 +21,15 @@ import Button from "@/app/components/Button";
 import DarkModeToggle from "@/app/components/DarkModeToggle";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
+import { Vendor, getVendor } from "@/lib/api/vendor";
+import {
+    CategoryLabel,
+    getAllCategoryLabels,
+    getVendorCategoryLabels,
+    addLabelsToVendor,
+    removeLabelFromVendor,
+    createCategoryLabel,
+} from "@/lib/api/vendorLabels";
 
 // Register Chart.js components
 ChartJS.register(
@@ -81,13 +90,12 @@ function VendorDetailContent() {
     const { user, logout } = useAuth();
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(false);
-
-    // Mock vendor data - in a real app, this would come from an API
-    const vendorData: VendorData = {
+    const [vendor, setVendor] = useState<Vendor | null>(null);
+    const [vendorData, setVendorData] = useState<VendorData>({
         id: uuid,
-        name: "Bonnet Farm",
-        vendorId: "V-4429",
-        owner: "Monika Eckert",
+        name: "",
+        vendorId: uuid,
+        owner: "",
         isActive: true,
         attendanceRate: 94.2,
         attendanceChange: 4,
@@ -145,7 +153,16 @@ function VendorDetailContent() {
                 produceDollar: 1420,
             },
         ],
-    };
+    });
+
+    const [allLabels, setAllLabels] = useState<CategoryLabel[]>([]);
+    const [vendorLabels, setVendorLabels] = useState<CategoryLabel[]>([]);
+    const [labelsLoading, setLabelsLoading] = useState(false);
+    const [labelError, setLabelError] = useState<string | null>(null);
+    const [showCreateLabelDialog, setShowCreateLabelDialog] = useState(false);
+    const [newLabelName, setNewLabelName] = useState("");
+
+    const normalizeLabelName = (name: string) => name.trim().toLowerCase();
 
     useEffect(() => {
         const checkDarkMode = () => {
@@ -170,6 +187,40 @@ function VendorDetailContent() {
             window.removeEventListener("darkModeChange", checkDarkMode);
         };
     }, []);
+
+    useEffect(() => {
+        const fetchVendorAndLabels = async () => {
+            setLabelsLoading(true);
+            setLabelError(null);
+            try {
+                const [vendorResp, allLabelsResp, vendorLabelsResp] = await Promise.all([
+                    getVendor(uuid),
+                    getAllCategoryLabels(),
+                    getVendorCategoryLabels(uuid),
+                ]);
+
+                setVendor(vendorResp);
+                setVendorData((prev) => ({
+                    ...prev,
+                    id: vendorResp.id,
+                    name: vendorResp.vendorName,
+                    vendorId: vendorResp.id,
+                    owner: vendorResp.pointPerson || prev.owner,
+                    isActive: vendorResp.isActive,
+                }));
+
+                setAllLabels(allLabelsResp);
+                setVendorLabels(vendorLabelsResp);
+            } catch (err) {
+                console.error("Error loading vendor or labels:", err);
+                setLabelError("Failed to load vendor labels.");
+            } finally {
+                setLabelsLoading(false);
+            }
+        };
+
+        fetchVendorAndLabels();
+    }, [uuid]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -384,82 +435,6 @@ function VendorDetailContent() {
                         </div>
                     </div>
 
-                    {/* Summary Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                            <div className="flex items-center justify-between mb-4">
-                                <div
-                                    className="dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
-                                    style={{ backgroundColor: isDarkMode ? undefined : 'rgba(219, 234, 254, 0.5)' }}
-                                >
-                                    <span className="material-icons leading-none">calendar_today</span>
-                                </div>
-                                <span 
-                                    className="text-xs font-bold text-[#10b981] dark:text-green-400 flex items-center dark:bg-green-900/20 px-2 py-1 rounded-full"
-                                    style={{ 
-                                        backgroundColor: isDarkMode ? undefined : 'rgba(16, 185, 129, 0.1)' 
-                                    }}
-                                >
-                                    +{vendorData.attendanceChange}%
-                                </span>
-                            </div>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-                                Attendance Rate
-                            </p>
-                            <h3 className="text-2xl font-bold mt-1">
-                                {vendorData.attendanceRate}%
-                            </h3>
-                        </div>
-
-                        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="bg-[#10b981]/10 text-[#10b981] p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110">
-                                    <span className="material-icons leading-none">payments</span>
-                                </div>
-                            </div>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-                                Avg. Daily Sales
-                            </p>
-                            <h3 className="text-2xl font-bold mt-1">
-                                {formatCurrency(vendorData.avgDailySales)}
-                            </h3>
-                        </div>
-
-                        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                            <div className="flex items-center justify-between mb-4">
-                                <div
-                                    className="dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
-                                    style={{ backgroundColor: isDarkMode ? undefined : 'rgba(243, 232, 255, 0.5)' }}
-                                >
-                                    <span className="material-icons leading-none">trending_up</span>
-                                </div>
-                            </div>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-                                Top Selling Month
-                            </p>
-                            <h3 className="text-2xl font-bold mt-1">
-                                {vendorData.topSellingMonth}
-                            </h3>
-                        </div>
-
-                        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                            <div className="flex items-center justify-between mb-4">
-                                <div
-                                    className="dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
-                                    style={{ backgroundColor: isDarkMode ? undefined : 'rgba(252, 231, 243, 0.5)' }}
-                                >
-                                    <span className="material-icons leading-none">receipt_long</span>
-                                </div>
-                            </div>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-                                SNAP Transactions
-                            </p>
-                            <h3 className="text-2xl font-bold mt-1">
-                                {vendorData.snapTransactions.toFixed(2)} Units
-                            </h3>
-                        </div>
-                    </div>
-
                     {/* Charts Section */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
                         {/* Sales Trends Chart */}
@@ -523,6 +498,207 @@ function VendorDetailContent() {
                                         {formatCurrency(vendorData.paymentBreakdown.marketTokens)}
                                     </span>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Vendor Labels + Summary Cards */}
+                    <div className="mb-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        {/* Left: Vendor Labels spanning height */}
+                        <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-3">
+                            <div>
+                                <h2 className="text-base font-semibold">Vendor Labels</h2>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                    Manage category labels assigned to this vendor.
+                                </p>
+                            </div>
+                            <div className="relative mt-1">
+                                {/* Controls pinned to the right */}
+                                <div className="absolute right-0 top-0 flex flex-col items-stretch gap-2 w-[180px]">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="h-8 text-xs flex items-center justify-center gap-1"
+                                        onClick={() => setShowCreateLabelDialog(true)}
+                                    >
+                                        <span className="material-icons text-sm">add</span>
+                                        <span>New Label</span>
+                                    </Button>
+                                    <select
+                                        className="h-8 px-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white"
+                                        value=""
+                                        onChange={async (e) => {
+                                            if (!vendor) return;
+                                            const value = e.target.value;
+                                            if (!value) return;
+                                            const id = Number(value);
+                                            const selected = allLabels.find((l) => l.id === id);
+                                            if (!selected) return;
+
+                                            const existingNames = vendorLabels.map((l) =>
+                                                normalizeLabelName(l.name),
+                                            );
+                                            if (existingNames.includes(normalizeLabelName(selected.name))) {
+                                                setLabelError("That label name is already applied.");
+                                                return;
+                                            }
+
+                                            try {
+                                                await addLabelsToVendor(vendor.id, [id]);
+                                                setVendorLabels((prev) =>
+                                                    prev.find((l) => l.id === id)
+                                                        ? prev
+                                                        : [...prev, selected],
+                                                );
+                                            } catch (err) {
+                                                console.error("Error adding label:", err);
+                                                setLabelError("Failed to add label.");
+                                            }
+                                        }}
+                                    >
+                                        <option value="">Add label...</option>
+                                        {allLabels
+                                            .filter(
+                                                (l) =>
+                                                    !vendorLabels.some(
+                                                        (vl) =>
+                                                            vl.id === l.id ||
+                                                            normalizeLabelName(vl.name) ===
+                                                                normalizeLabelName(l.name),
+                                                    ),
+                                            )
+                                            .map((label) => (
+                                                <option key={label.id} value={label.id}>
+                                                    {label.name}
+                                                </option>
+                                            ))}
+                                    </select>
+                                </div>
+
+                                {/* Labels flow on the left, avoid overlapping controls */}
+                                {labelsLoading ? null : labelError ? null : (
+                                    <div className="pr-[196px] flex flex-wrap gap-2">
+                                        {vendorLabels.length === 0 ? (
+                                            <p className="text-sm text-slate-400 italic">
+                                                No labels applied to this vendor.
+                                            </p>
+                                        ) : (
+                                            vendorLabels.map((label) => (
+                                                <span
+                                                    key={label.id}
+                                                    className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-600"
+                                                >
+                                                    {label.name}
+                                                    <button
+                                                        type="button"
+                                                        className="ml-2 text-slate-500 hover:text-slate-700 dark:text-slate-300 dark:hover:text-slate-100"
+                                                        onClick={async () => {
+                                                            if (!vendor) return;
+                                                            try {
+                                                                await removeLabelFromVendor(vendor.id, label.id);
+                                                                setVendorLabels((prev) =>
+                                                                    prev.filter((l) => l.id !== label.id),
+                                                                );
+                                                            } catch (err) {
+                                                                console.error("Error removing label:", err);
+                                                                setLabelError("Failed to remove label.");
+                                                            }
+                                                        }}
+                                                    >
+                                                        <span className="material-icons text-xs">close</span>
+                                                    </button>
+                                                </span>
+                                            ))
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                            {labelsLoading ? (
+                                <p className="text-sm text-slate-500 dark:text-slate-400">
+                                    Loading labels...
+                                </p>
+                            ) : labelError ? (
+                                <p className="text-sm text-red-500">{labelError}</p>
+                            ) : null}
+                        </div>
+
+                        {/* Right: Summary cards in 2x2 grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {/* Top Selling Month */}
+                            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                                <div className="flex items-center justify-between mb-3">
+                                    <div
+                                        className="dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
+                                        style={{ backgroundColor: isDarkMode ? undefined : 'rgba(243, 232, 255, 0.5)' }}
+                                    >
+                                        <span className="material-icons leading-none">trending_up</span>
+                                    </div>
+                                </div>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                    Top Selling Month
+                                </p>
+                                <h3 className="text-lg font-bold mt-1">
+                                    {vendorData.topSellingMonth}
+                                </h3>
+                            </div>
+
+                            {/* SNAP Transactions */}
+                            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                                <div className="flex items-center justify-between mb-3">
+                                    <div
+                                        className="dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
+                                        style={{ backgroundColor: isDarkMode ? undefined : 'rgba(252, 231, 243, 0.5)' }}
+                                    >
+                                        <span className="material-icons leading-none">receipt_long</span>
+                                    </div>
+                                </div>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                    SNAP Transactions
+                                </p>
+                                <h3 className="text-lg font-bold mt-1">
+                                    {vendorData.snapTransactions.toFixed(2)} Units
+                                </h3>
+                            </div>
+
+                            {/* Attendance Rate */}
+                            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                                <div className="flex items-center justify-between mb-3">
+                                    <div
+                                        className="dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
+                                        style={{ backgroundColor: isDarkMode ? undefined : 'rgba(219, 234, 254, 0.5)' }}
+                                    >
+                                        <span className="material-icons leading-none">calendar_today</span>
+                                    </div>
+                                    <span 
+                                        className="text-[10px] font-bold text-[#10b981] dark:text-green-400 flex items-center dark:bg-green-900/20 px-2 py-0.5 rounded-full"
+                                        style={{ 
+                                            backgroundColor: isDarkMode ? undefined : 'rgba(16, 185, 129, 0.1)' 
+                                        }}
+                                    >
+                                        +{vendorData.attendanceChange}%
+                                    </span>
+                                </div>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                    Attendance Rate
+                                </p>
+                                <h3 className="text-lg font-bold mt-1">
+                                    {vendorData.attendanceRate}%
+                                </h3>
+                            </div>
+
+                            {/* Avg Daily Sales */}
+                            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="bg-[#10b981]/10 text-[#10b981] p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110">
+                                        <span className="material-icons leading-none">payments</span>
+                                    </div>
+                                </div>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                    Avg. Daily Sales
+                                </p>
+                                <h3 className="text-lg font-bold mt-1">
+                                    {formatCurrency(vendorData.avgDailySales)}
+                                </h3>
                             </div>
                         </div>
                     </div>
@@ -617,6 +793,104 @@ function VendorDetailContent() {
                     </div>
                 </div>
             </main>
+
+            {showCreateLabelDialog && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 w-full max-w-md p-6">
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">
+                            Create New Label
+                        </h3>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                            Add a reusable label that can be applied to any vendor.
+                        </p>
+                        <div className="space-y-2 mb-6">
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                                Label Name
+                            </label>
+                            <input
+                                type="text"
+                                value={newLabelName}
+                                onChange={(e) => setNewLabelName(e.target.value)}
+                                className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none"
+                                placeholder="e.g. High Priority, New This Season"
+                            />
+                        </div>
+                        <div className="flex justify-end gap-3">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setShowCreateLabelDialog(false);
+                                    setNewLabelName("");
+                                    setLabelError(null);
+                                }}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="primary"
+                                disabled={!newLabelName.trim() || !vendor}
+                                onClick={async () => {
+                                    if (!vendor) return;
+                                    const trimmed = newLabelName.trim();
+                                    if (!trimmed) return;
+
+                                    // Prevent duplicate global labels by name
+                                    const existingGlobal = allLabels.find(
+                                        (l) => normalizeLabelName(l.name) === normalizeLabelName(trimmed),
+                                    );
+                                    if (existingGlobal) {
+                                        // If vendor doesn't already have it by name, attach it; otherwise block
+                                        const vendorHas = vendorLabels.some(
+                                            (l) =>
+                                                normalizeLabelName(l.name) ===
+                                                normalizeLabelName(existingGlobal.name),
+                                        );
+                                        if (!vendorHas) {
+                                            try {
+                                                await addLabelsToVendor(vendor.id, [existingGlobal.id]);
+                                                setVendorLabels((prev) =>
+                                                    prev.find((l) => l.id === existingGlobal.id)
+                                                        ? prev
+                                                        : [...prev, existingGlobal],
+                                                );
+                                                setLabelError(null);
+                                                setShowCreateLabelDialog(false);
+                                            } catch (err) {
+                                                console.error("Error applying label:", err);
+                                                setLabelError("Failed to apply existing label.");
+                                            }
+                                        } else {
+                                            setLabelError("That label name is already applied.");
+                                        }
+                                        return;
+                                    }
+
+                                    try {
+                                        const created = await createCategoryLabel(trimmed);
+                                        setAllLabels((prev) => [...prev, created]);
+                                        await addLabelsToVendor(vendor.id, [created.id]);
+                                        setVendorLabels((prev) =>
+                                            prev.find((l) => l.id === created.id)
+                                                ? prev
+                                                : [...prev, created],
+                                        );
+                                        setNewLabelName("");
+                                        setLabelError(null);
+                                        setShowCreateLabelDialog(false);
+                                    } catch (err) {
+                                        console.error("Error creating label:", err);
+                                        setLabelError("Failed to create label.");
+                                    }
+                                }}
+                            >
+                                Create & Apply
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
