@@ -153,4 +153,13 @@ public class VendorCategoryRepository {
         jdbc.update(deleteVendorMappingsSql, labelId);
         jdbc.update(deleteLabelSql, labelId);
     }
+
+    /**
+     * Updates a category label's name.
+     */
+    public CategoryLabelDto updateCategoryLabel(Long labelId, String name) {
+        String sql = "UPDATE category_labels SET name = ? WHERE id = ?";
+        jdbc.update(sql, name, labelId);
+        return new CategoryLabelDto(labelId, name);
+    }
 }

@@ -149,4 +149,21 @@ class VendorCategoryServiceTest {
 
         verify(repo).deleteCategoryLabel(labelId);
     }
+
+    /**
+     * Verifies that updating a global label delegates to the repository.
+     */
+    @Test
+    void updateCategoryLabelCallsRepository() {
+        Long labelId = 7L;
+        String name = "Updated";
+        CategoryLabelDto mockDto = new CategoryLabelDto(labelId, name);
+
+        when(repo.updateCategoryLabel(labelId, name)).thenReturn(mockDto);
+
+        CategoryLabelDto result = service.updateCategoryLabel(labelId, name);
+
+        assertThat(result).isEqualTo(mockDto);
+        verify(repo).updateCategoryLabel(labelId, name);
+    }
 }

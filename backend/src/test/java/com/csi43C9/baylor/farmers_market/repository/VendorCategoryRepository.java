@@ -202,4 +202,18 @@ class VendorCategoryRepositoryTest {
         assertThat(labelCount).isEqualTo(0);
     }
 
+    /**
+     * Verifies that a label name can be updated.
+     */
+    @Test
+    void updateCategoryLabelUpdatesName() {
+        vendorCategoryRepository.updateCategoryLabel(2L, "Updated Name");
+
+        String nameInDb = jdbcTemplate.queryForObject(
+                "SELECT name FROM category_labels WHERE id = ?",
+                String.class, 2L);
+
+        assertThat(nameInDb).isEqualTo("Updated Name");
+    }
+
 }

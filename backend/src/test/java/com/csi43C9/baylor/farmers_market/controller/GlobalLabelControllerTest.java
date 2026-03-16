@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -102,5 +103,25 @@ class GlobalLabelControllerTest {
                 .andExpect(status().isNoContent());
 
         verify(service).deleteCategoryLabel(1L);
+    }
+
+    /**
+     * Verifies that an authenticated user can update a global category label.
+     * @throws Exception if mock MVC request fails.
+     */
+    @Test
+    @WithMockUser
+    void updateLabelReturnsOk() throws Exception {
+        CategoryLabelDto requestDto = new CategoryLabelDto(null, "Updated Label");
+        CategoryLabelDto updatedDto = new CategoryLabelDto(1L, "Updated Label");
+
+        when(service.updateCategoryLabel(1L, "Updated Label")).thenReturn(updatedDto);
+
+        mockMvc.perform(put("/api/categories/{labelId}", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.name").value("Updated Label"));
     }
 }

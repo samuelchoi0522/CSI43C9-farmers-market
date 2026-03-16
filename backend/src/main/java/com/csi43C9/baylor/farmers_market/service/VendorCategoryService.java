@@ -81,4 +81,9 @@ public class VendorCategoryService {
     public void deleteCategoryLabel(Long labelId) {
         repo.deleteCategoryLabel(labelId);
     }
+
+    @Transactional
+    public CategoryLabelDto updateCategoryLabel(Long labelId, String name) {
+        return repo.updateCategoryLabel(labelId, name);
+    }
 }

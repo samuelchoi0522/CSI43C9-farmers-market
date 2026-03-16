@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -53,5 +54,17 @@ public class GlobalLabelController {
     public ResponseEntity<Void> deleteLabel(@PathVariable Long labelId) {
         service.deleteCategoryLabel(labelId);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Updates a category label in the system.
+     */
+    @PutMapping("/{labelId}")
+    public ResponseEntity<CategoryLabelDto> updateLabel(
+            @PathVariable Long labelId,
+            @Valid @RequestBody CategoryLabelDto request
+    ) {
+        CategoryLabelDto updated = service.updateCategoryLabel(labelId, request.getName());
+        return ResponseEntity.ok(updated);
     }
 }
