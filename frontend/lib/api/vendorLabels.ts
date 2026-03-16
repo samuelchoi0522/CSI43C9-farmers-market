@@ -46,6 +46,21 @@ export async function deleteCategoryLabel(labelId: number): Promise<void> {
 }
 
 /**
+ * Update a global category label.
+ */
+export async function updateCategoryLabel(
+  labelId: number,
+  name: string,
+): Promise<CategoryLabel> {
+  const body: CreateCategoryLabelRequest = { name };
+
+  return apiRequest<CategoryLabel>(`/api/categories/${labelId}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+/**
  * Get labels currently assigned to a vendor.
  */
 export async function getVendorCategoryLabels(
@@ -82,4 +97,3 @@ export async function removeLabelFromVendor(
     method: "DELETE",
   });
 }
-
