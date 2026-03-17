@@ -3,6 +3,7 @@ package com.csi43C9.baylor.farmers_market.repository;
 import com.csi43C9.baylor.farmers_market.dto.vendor.CategoryLabelDto;
 import com.csi43C9.baylor.farmers_market.repository.base.AbstractJdbcRepository;
 import com.csi43C9.baylor.farmers_market.repository.base.MarketRepository;
+import com.csi43C9.baylor.farmers_market.util.UuidUtils;
 import org.mariadb.jdbc.Statement;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -10,7 +11,6 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
-import java.nio.ByteBuffer;
 import java.sql.PreparedStatement;
 import java.util.List;
 import java.util.Objects;
@@ -51,7 +51,7 @@ public class VendorCategoryRepository extends AbstractJdbcRepository implements 
                 rs.getLong("id"),
                 rs.getString("name"),
                 rs.getString("color")
-        ), uuidToBytes(vendorId));
+        ), UuidUtils.toBytes(vendorId));
     }
 
     /**
@@ -73,7 +73,7 @@ public class VendorCategoryRepository extends AbstractJdbcRepository implements 
         String sql = "INSERT IGNORE INTO vendor_category_labels (vendor_id, label_id) VALUES (?, ?)";
 
         // Optimization: Convert UUID to bytes once before the loop
-        byte[] vendorBytes = uuidToBytes(vendorId);
+        byte[] vendorBytes = UuidUtils.toBytes(vendorId);
 
         jdbcTemplate.batchUpdate(sql, labelIds, labelIds.size(), (ps, labelId) -> {
             ps.setBytes(1, vendorBytes); // Parameter index 1: vendor_id
@@ -94,7 +94,7 @@ public class VendorCategoryRepository extends AbstractJdbcRepository implements 
               AND label_id = ?
         """;
 
-        jdbcTemplate.update(sql, uuidToBytes(vendorId), labelId);
+        jdbcTemplate.update(sql, UuidUtils.toBytes(vendorId), labelId);
     }
 
     /**
@@ -106,16 +106,6 @@ public class VendorCategoryRepository extends AbstractJdbcRepository implements 
      * @param uuid the UUID to convert
      * @return a 16-byte array representing the UUID, or null if the input is null
      */
-    public byte[] uuidToBytes(UUID uuid) {
-        if (uuid == null) {
-            return null;
-        }
-        ByteBuffer bb = ByteBuffer.wrap(new byte[16]);
-        bb.putLong(uuid.getMostSignificantBits());
-        bb.putLong(uuid.getLeastSignificantBits());
-        return bb.array();
-    }
-
     /**
      * Inserts a new label into the category_labels table.
      * * @param name The name of the category (e.g., "Organic")

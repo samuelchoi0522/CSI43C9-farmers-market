@@ -1,6 +1,7 @@
 package com.csi43C9.baylor.farmers_market.repository;
 
 import com.csi43C9.baylor.farmers_market.dto.vendor.CategoryLabelDto;
+import com.csi43C9.baylor.farmers_market.util.UuidUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,7 +74,7 @@ class VendorCategoryRepositoryTest {
 
         // 3. Insert a dummy vendor
         jdbcTemplate.update("INSERT INTO vendors (id, vendor) VALUES (?, ?)",
-                vendorCategoryRepository.uuidToBytes(testVendorId), "Test Vendor");
+                UuidUtils.toBytes(testVendorId), "Test Vendor");
 
         // 4. Insert dummy category labels
         jdbcTemplate.update("INSERT INTO category_labels (id, name, color) VALUES (?, ?, ?)", 1L, "Produce", "#10b981");
@@ -92,7 +93,7 @@ class VendorCategoryRepositoryTest {
 
         Integer count = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM vendor_category_labels WHERE vendor_id = ?",
-                Integer.class, vendorCategoryRepository.uuidToBytes(testVendorId));
+                Integer.class, UuidUtils.toBytes(testVendorId));
 
         assertThat(count).isEqualTo(2);
     }
@@ -111,7 +112,7 @@ class VendorCategoryRepositoryTest {
 
         Integer count = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM vendor_category_labels WHERE vendor_id = ?",
-                Integer.class, vendorCategoryRepository.uuidToBytes(testVendorId));
+                Integer.class, UuidUtils.toBytes(testVendorId));
 
         assertThat(count).isEqualTo(1); // Should still only be 1
     }
@@ -123,9 +124,9 @@ class VendorCategoryRepositoryTest {
     void findLabelsByVendorReturnsMappedDtos() {
         // Arrange: Manually link labels
         jdbcTemplate.update("INSERT INTO vendor_category_labels (vendor_id, label_id) VALUES (?, ?)",
-                vendorCategoryRepository.uuidToBytes(testVendorId), 1L);
+                UuidUtils.toBytes(testVendorId), 1L);
         jdbcTemplate.update("INSERT INTO vendor_category_labels (vendor_id, label_id) VALUES (?, ?)",
-                vendorCategoryRepository.uuidToBytes(testVendorId), 3L);
+                UuidUtils.toBytes(testVendorId), 3L);
 
         // Act
         List<CategoryLabelDto> labels = vendorCategoryRepository.findLabelsByVendor(testVendorId);
@@ -146,7 +147,7 @@ class VendorCategoryRepositoryTest {
 
         Integer count = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM vendor_category_labels WHERE vendor_id = ?",
-                Integer.class, vendorCategoryRepository.uuidToBytes(testVendorId));
+                Integer.class, UuidUtils.toBytes(testVendorId));
 
         assertThat(count).isEqualTo(0);
     }
@@ -190,7 +191,7 @@ class VendorCategoryRepositoryTest {
     @Test
     void deleteCategoryLabelRemovesMappingsAndLabel() {
         jdbcTemplate.update("INSERT INTO vendor_category_labels (vendor_id, label_id) VALUES (?, ?)",
-                vendorCategoryRepository.uuidToBytes(testVendorId), 1L);
+                UuidUtils.toBytes(testVendorId), 1L);
 
         vendorCategoryRepository.deleteCategoryLabel(1L);
 
