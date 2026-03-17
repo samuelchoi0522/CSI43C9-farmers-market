@@ -213,15 +213,10 @@ class VendorCategoryRepositoryTest {
     void updateCategoryLabelUpdatesName() {
         vendorCategoryRepository.updateCategoryLabel(2L, "Updated Name", "#1d4ed8");
 
-        String nameInDb = jdbcTemplate.queryForObject(
-                "SELECT name FROM category_labels WHERE id = ?",
-                String.class, 2L);
-        String colorInDb = jdbcTemplate.queryForObject(
-                "SELECT color FROM category_labels WHERE id = ?",
-                String.class, 2L);
+        CategoryLabelDto updated = vendorCategoryRepository.findById(2L).orElseThrow();
 
-        assertThat(nameInDb).isEqualTo("Updated Name");
-        assertThat(colorInDb).isEqualTo("#1d4ed8");
+        assertThat(updated.getName()).isEqualTo("Updated Name");
+        assertThat(updated.getColor()).isEqualTo("#1d4ed8");
     }
 
 }
