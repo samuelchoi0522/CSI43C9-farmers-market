@@ -51,7 +51,8 @@ class VendorCategoryRepositoryTest {
         jdbcTemplate.execute("""
             CREATE TABLE IF NOT EXISTS category_labels (
                id BIGINT AUTO_INCREMENT PRIMARY KEY,
-               name VARCHAR(255) NOT NULL
+               name VARCHAR(255) NOT NULL,
+               color VARCHAR(20)
             )
         """);
 
@@ -75,9 +76,9 @@ class VendorCategoryRepositoryTest {
                 vendorCategoryRepository.uuidToBytes(testVendorId), "Test Vendor");
 
         // 4. Insert dummy category labels
-        jdbcTemplate.update("INSERT INTO category_labels (id, name) VALUES (?, ?)", 1L, "Produce");
-        jdbcTemplate.update("INSERT INTO category_labels (id, name) VALUES (?, ?)", 2L, "Organic");
-        jdbcTemplate.update("INSERT INTO category_labels (id, name) VALUES (?, ?)", 3L, "Baked Goods");
+        jdbcTemplate.update("INSERT INTO category_labels (id, name, color) VALUES (?, ?, ?)", 1L, "Produce", "#10b981");
+        jdbcTemplate.update("INSERT INTO category_labels (id, name, color) VALUES (?, ?, ?)", 2L, "Organic", "#22c55e");
+        jdbcTemplate.update("INSERT INTO category_labels (id, name, color) VALUES (?, ?, ?)", 3L, "Baked Goods", "#f97316");
     }
 
     /**
@@ -156,11 +157,13 @@ class VendorCategoryRepositoryTest {
     @Test
     void createLabelInsertsAndReturnsGeneratedId() {
         String newLabelName = "Artisan Goods";
+        String newLabelColor = "#ef4444";
 
-        CategoryLabelDto created = vendorCategoryRepository.createLabel(newLabelName);
+        CategoryLabelDto created = vendorCategoryRepository.createLabel(newLabelName, newLabelColor);
 
         assertThat(created.getId()).isNotNull();
         assertThat(created.getName()).isEqualTo(newLabelName);
+        assertThat(created.getColor()).isEqualTo(newLabelColor);
 
         // Verify it exists in DB
         String nameInDb = jdbcTemplate.queryForObject(
@@ -207,13 +210,17 @@ class VendorCategoryRepositoryTest {
      */
     @Test
     void updateCategoryLabelUpdatesName() {
-        vendorCategoryRepository.updateCategoryLabel(2L, "Updated Name");
+        vendorCategoryRepository.updateCategoryLabel(2L, "Updated Name", "#1d4ed8");
 
         String nameInDb = jdbcTemplate.queryForObject(
                 "SELECT name FROM category_labels WHERE id = ?",
                 String.class, 2L);
+        String colorInDb = jdbcTemplate.queryForObject(
+                "SELECT color FROM category_labels WHERE id = ?",
+                String.class, 2L);
 
         assertThat(nameInDb).isEqualTo("Updated Name");
+        assertThat(colorInDb).isEqualTo("#1d4ed8");
     }
 
 }

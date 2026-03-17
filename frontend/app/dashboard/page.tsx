@@ -5,7 +5,6 @@ import DarkModeToggle from "../components/DarkModeToggle";
 import SidebarNavigation from "../components/SidebarNavigation";
 import CategoryRevenueChart from "../components/CategoryRevenueChart";
 import Button from "../components/Button";
-import ManageLabelsDialog from "../components/ManageLabelsDialog";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAllVendorDefaults, VendorDefaults } from "@/lib/api/defaults";
@@ -28,7 +27,6 @@ function DashboardContent() {
     const [pageSize] = useState(5);
     const [totalPages, setTotalPages] = useState(1);
     const [totalElements, setTotalElements] = useState(0);
-    const [isManageLabelsOpen, setIsManageLabelsOpen] = useState(false);
     const { user, logout } = useAuth();
     const userName = user?.username || "Admin User";
 
@@ -72,6 +70,7 @@ function DashboardContent() {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [showUserMenu]);
+
 
     // Fetch vendors and vendor defaults
     useEffect(() => {
@@ -256,14 +255,6 @@ function DashboardContent() {
                     <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <h3 className="font-bold text-lg">Vendor Tracking</h3>
                         <div className="flex items-center gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-[42px]"
-                                onClick={() => setIsManageLabelsOpen(true)}
-                            >
-                                Manage Labels
-                            </Button>
                             <div className="relative">
                                 <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm leading-none">search</span>
                                 <input
@@ -414,10 +405,6 @@ function DashboardContent() {
                     </div>
                 </div>
 
-                <ManageLabelsDialog
-                    isOpen={isManageLabelsOpen}
-                    onOpenChange={setIsManageLabelsOpen}
-                />
 
                 {/* Bottom Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">

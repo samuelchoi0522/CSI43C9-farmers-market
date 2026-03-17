@@ -39,7 +39,7 @@ public class VendorCategoryRepository {
      */
     public List<CategoryLabelDto> findLabelsByVendor(UUID vendorId) {
         String sql = """
-            SELECT cl.id, cl.name
+            SELECT cl.id, cl.name, cl.color
             FROM vendor_category_labels vcl
             JOIN category_labels cl ON vcl.label_id = cl.id
             WHERE vcl.vendor_id = ?
@@ -47,7 +47,8 @@ public class VendorCategoryRepository {
 
         return jdbc.query(sql, (rs, rowNum) -> new CategoryLabelDto(
                 rs.getLong("id"),
-                rs.getString("name")
+                rs.getString("name"),
+                rs.getString("color")
         ), uuidToBytes(vendorId));
     }
 
@@ -116,30 +117,33 @@ public class VendorCategoryRepository {
     /**
      * Inserts a new label into the category_labels table.
      * * @param name The name of the category (e.g., "Organic")
-     * @return A DTO containing the newly generated ID and the name
+     * * @param color The hex color for the label (e.g., "#10b981")
+     * @return A DTO containing the newly generated ID, name, and color
      */
-    public CategoryLabelDto createLabel(String name) {
-        String sql = "INSERT INTO category_labels (name) VALUES (?)";
+    public CategoryLabelDto createLabel(String name, String color) {
+        String sql = "INSERT INTO category_labels (name, color) VALUES (?, ?)";
         KeyHolder keyHolder = new GeneratedKeyHolder();
 
         jdbc.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             ps.setString(1, name);
+            ps.setString(2, color);
             return ps;
         }, keyHolder);
 
         long generatedId = Objects.requireNonNull(keyHolder.getKey()).longValue();
-        return new CategoryLabelDto(generatedId, name);
+        return new CategoryLabelDto(generatedId, name, color);
     }
 
     /**
      * Retrieves all labels available in the database.
      */
     public List<CategoryLabelDto> findAllLabels() {
-        String sql = "SELECT id, name FROM category_labels ORDER BY name ASC";
+        String sql = "SELECT id, name, color FROM category_labels ORDER BY name ASC";
         return jdbc.query(sql, (rs, rowNum) -> new CategoryLabelDto(
                 rs.getLong("id"),
-                rs.getString("name")
+                rs.getString("name"),
+                rs.getString("color")
         ));
     }
 
@@ -157,9 +161,9 @@ public class VendorCategoryRepository {
     /**
      * Updates a category label's name.
      */
-    public CategoryLabelDto updateCategoryLabel(Long labelId, String name) {
-        String sql = "UPDATE category_labels SET name = ? WHERE id = ?";
-        jdbc.update(sql, name, labelId);
-        return new CategoryLabelDto(labelId, name);
+    public CategoryLabelDto updateCategoryLabel(Long labelId, String name, String color) {
+        String sql = "UPDATE category_labels SET name = ?, color = ? WHERE id = ?";
+        jdbc.update(sql, name, color, labelId);
+        return new CategoryLabelDto(labelId, name, color);
     }
 }

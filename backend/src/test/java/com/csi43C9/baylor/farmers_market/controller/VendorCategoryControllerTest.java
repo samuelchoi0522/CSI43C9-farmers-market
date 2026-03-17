@@ -63,8 +63,8 @@ class VendorCategoryControllerTest {
     void getVendorCategoriesReturnsOkWithList() throws Exception {
         UUID vendorId = UUID.randomUUID();
         List<CategoryLabelDto> mockCategories = List.of(
-                new CategoryLabelDto(1L, "Produce"),
-                new CategoryLabelDto(4L, "Organic")
+                new CategoryLabelDto(1L, "Produce", "#10b981"),
+                new CategoryLabelDto(4L, "Organic", "#22c55e")
         );
 
         when(service.getLabelsForVendor(vendorId)).thenReturn(mockCategories);

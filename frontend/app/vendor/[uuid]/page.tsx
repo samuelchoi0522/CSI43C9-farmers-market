@@ -29,7 +29,11 @@ import {
     addLabelsToVendor,
     removeLabelFromVendor,
     createCategoryLabel,
+    updateCategoryLabel,
+    deleteCategoryLabel,
 } from "@/lib/api/vendorLabels";
+import LabelPickerDialog from "../../components/LabelPickerDialog";
+import { getLabelColors } from "@/lib/labelColors";
 
 // Register Chart.js components
 ChartJS.register(
@@ -159,8 +163,7 @@ function VendorDetailContent() {
     const [vendorLabels, setVendorLabels] = useState<CategoryLabel[]>([]);
     const [labelsLoading, setLabelsLoading] = useState(false);
     const [labelError, setLabelError] = useState<string | null>(null);
-    const [showCreateLabelDialog, setShowCreateLabelDialog] = useState(false);
-    const [newLabelName, setNewLabelName] = useState("");
+    const [isLabelDialogOpen, setIsLabelDialogOpen] = useState(false);
 
     const normalizeLabelName = (name: string) => name.trim().toLowerCase();
 
@@ -512,114 +515,49 @@ function VendorDetailContent() {
                                     Manage category labels assigned to this vendor.
                                 </p>
                             </div>
-                            <div className="relative mt-1">
-                                {/* Controls pinned to the right */}
-                                <div className="absolute right-0 top-0 flex flex-col items-stretch gap-2 w-[180px]">
+                            <div className="flex flex-col gap-3">
+                                <div className="flex items-center justify-between">
                                     <Button
                                         type="button"
                                         variant="outline"
-                                        className="h-8 text-xs flex items-center justify-center gap-1"
-                                        onClick={() => setShowCreateLabelDialog(true)}
+                                        size="sm"
+                                        onClick={() => setIsLabelDialogOpen(true)}
                                     >
-                                        <span className="material-icons text-sm">add</span>
-                                        <span>New Label</span>
+                                        Manage Labels
                                     </Button>
-                                    <select
-                                        className="h-8 px-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white"
-                                        value=""
-                                        onChange={async (e) => {
-                                            if (!vendor) return;
-                                            const value = e.target.value;
-                                            if (!value) return;
-                                            const id = Number(value);
-                                            const selected = allLabels.find((l) => l.id === id);
-                                            if (!selected) return;
-
-                                            const existingNames = vendorLabels.map((l) =>
-                                                normalizeLabelName(l.name),
-                                            );
-                                            if (existingNames.includes(normalizeLabelName(selected.name))) {
-                                                setLabelError("That label name is already applied.");
-                                                return;
-                                            }
-
-                                            try {
-                                                await addLabelsToVendor(vendor.id, [id]);
-                                                setVendorLabels((prev) =>
-                                                    prev.find((l) => l.id === id)
-                                                        ? prev
-                                                        : [...prev, selected],
-                                                );
-                                            } catch (err) {
-                                                console.error("Error adding label:", err);
-                                                setLabelError("Failed to add label.");
-                                            }
-                                        }}
-                                    >
-                                        <option value="">Add label...</option>
-                                        {allLabels
-                                            .filter(
-                                                (l) =>
-                                                    !vendorLabels.some(
-                                                        (vl) =>
-                                                            vl.id === l.id ||
-                                                            normalizeLabelName(vl.name) ===
-                                                                normalizeLabelName(l.name),
-                                                    ),
-                                            )
-                                            .map((label) => (
-                                                <option key={label.id} value={label.id}>
-                                                    {label.name}
-                                                </option>
-                                            ))}
-                                    </select>
                                 </div>
-
-                                {/* Labels flow on the left, avoid overlapping controls */}
-                                {labelsLoading ? null : labelError ? null : (
-                                    <div className="pr-[196px] flex flex-wrap gap-2">
-                                        {vendorLabels.length === 0 ? (
-                                            <p className="text-sm text-slate-400 italic">
-                                                No labels applied to this vendor.
-                                            </p>
-                                        ) : (
-                                            vendorLabels.map((label) => (
+                                <div className="flex flex-wrap gap-2">
+                                    {vendorLabels.length === 0 ? (
+                                        <p className="text-sm text-slate-400 italic">
+                                            No labels applied to this vendor.
+                                        </p>
+                                    ) : (
+                                        vendorLabels.map((label) => {
+                                            const colors = getLabelColors(label.name, label.color);
+                                            return (
                                                 <span
                                                     key={label.id}
-                                                    className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-600"
+                                                    className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border"
+                                                    style={{
+                                                        backgroundColor: colors.backgroundColor,
+                                                        color: colors.color,
+                                                        borderColor: colors.borderColor,
+                                                    }}
                                                 >
                                                     {label.name}
-                                                    <button
-                                                        type="button"
-                                                        className="ml-2 text-slate-500 hover:text-slate-700 dark:text-slate-300 dark:hover:text-slate-100"
-                                                        onClick={async () => {
-                                                            if (!vendor) return;
-                                                            try {
-                                                                await removeLabelFromVendor(vendor.id, label.id);
-                                                                setVendorLabels((prev) =>
-                                                                    prev.filter((l) => l.id !== label.id),
-                                                                );
-                                                            } catch (err) {
-                                                                console.error("Error removing label:", err);
-                                                                setLabelError("Failed to remove label.");
-                                                            }
-                                                        }}
-                                                    >
-                                                        <span className="material-icons text-xs">close</span>
-                                                    </button>
                                                 </span>
-                                            ))
-                                        )}
-                                    </div>
-                                )}
+                                            );
+                                        })
+                                    )}
+                                </div>
+                                {labelsLoading ? (
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                                        Loading labels...
+                                    </p>
+                                ) : labelError ? (
+                                    <p className="text-sm text-red-500">{labelError}</p>
+                                ) : null}
                             </div>
-                            {labelsLoading ? (
-                                <p className="text-sm text-slate-500 dark:text-slate-400">
-                                    Loading labels...
-                                </p>
-                            ) : labelError ? (
-                                <p className="text-sm text-red-500">{labelError}</p>
-                            ) : null}
                         </div>
 
                         {/* Right: Summary cards in 2x2 grid */}
@@ -794,103 +732,90 @@ function VendorDetailContent() {
                 </div>
             </main>
 
-            {showCreateLabelDialog && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 w-full max-w-md p-6">
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">
-                            Create New Label
-                        </h3>
-                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                            Add a reusable label that can be applied to any vendor.
-                        </p>
-                        <div className="space-y-2 mb-6">
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                                Label Name
-                            </label>
-                            <input
-                                type="text"
-                                value={newLabelName}
-                                onChange={(e) => setNewLabelName(e.target.value)}
-                                className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none"
-                                placeholder="e.g. High Priority, New This Season"
-                            />
-                        </div>
-                        <div className="flex justify-end gap-3">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => {
-                                    setShowCreateLabelDialog(false);
-                                    setNewLabelName("");
-                                    setLabelError(null);
-                                }}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="primary"
-                                disabled={!newLabelName.trim() || !vendor}
-                                onClick={async () => {
-                                    if (!vendor) return;
-                                    const trimmed = newLabelName.trim();
-                                    if (!trimmed) return;
+            <LabelPickerDialog
+                isOpen={isLabelDialogOpen}
+                onOpenChange={setIsLabelDialogOpen}
+                title="Labels"
+                description="Assign labels to this vendor"
+                labels={allLabels}
+                checkedIds={vendorLabels.map((label) => label.id)}
+                loading={labelsLoading}
+                error={labelError}
+                onToggle={async (label, nextChecked) => {
+                    if (!vendor) return;
+                    try {
+                        if (nextChecked) {
+                            await addLabelsToVendor(vendor.id, [label.id]);
+                            setVendorLabels((prev) =>
+                                prev.find((item) => item.id === label.id)
+                                    ? prev
+                                    : [...prev, label],
+                            );
+                        } else {
+                            await removeLabelFromVendor(vendor.id, label.id);
+                            setVendorLabels((prev) => prev.filter((item) => item.id !== label.id));
+                        }
+                        setLabelError(null);
+                    } catch (err) {
+                        console.error("Error updating label:", err);
+                        setLabelError("Failed to update label.");
+                    }
+                }}
+                onCreate={async (name, color) => {
+                    if (!vendor) return;
+                    const trimmed = name.trim();
+                    if (!trimmed) return;
 
-                                    // Prevent duplicate global labels by name
-                                    const existingGlobal = allLabels.find(
-                                        (l) => normalizeLabelName(l.name) === normalizeLabelName(trimmed),
-                                    );
-                                    if (existingGlobal) {
-                                        // If vendor doesn't already have it by name, attach it; otherwise block
-                                        const vendorHas = vendorLabels.some(
-                                            (l) =>
-                                                normalizeLabelName(l.name) ===
-                                                normalizeLabelName(existingGlobal.name),
-                                        );
-                                        if (!vendorHas) {
-                                            try {
-                                                await addLabelsToVendor(vendor.id, [existingGlobal.id]);
-                                                setVendorLabels((prev) =>
-                                                    prev.find((l) => l.id === existingGlobal.id)
-                                                        ? prev
-                                                        : [...prev, existingGlobal],
-                                                );
-                                                setLabelError(null);
-                                                setShowCreateLabelDialog(false);
-                                            } catch (err) {
-                                                console.error("Error applying label:", err);
-                                                setLabelError("Failed to apply existing label.");
-                                            }
-                                        } else {
-                                            setLabelError("That label name is already applied.");
-                                        }
-                                        return;
-                                    }
+                    const existingGlobal = allLabels.find(
+                        (label) => normalizeLabelName(label.name) === normalizeLabelName(trimmed),
+                    );
+                    if (existingGlobal) {
+                        const vendorHas = vendorLabels.some(
+                            (label) =>
+                                normalizeLabelName(label.name) ===
+                                normalizeLabelName(existingGlobal.name),
+                        );
+                        if (!vendorHas) {
+                            await addLabelsToVendor(vendor.id, [existingGlobal.id]);
+                            setVendorLabels((prev) =>
+                                prev.find((item) => item.id === existingGlobal.id)
+                                    ? prev
+                                    : [...prev, existingGlobal],
+                            );
+                        } else {
+                            setLabelError("That label name is already applied.");
+                        }
+                        return;
+                    }
 
-                                    try {
-                                        const created = await createCategoryLabel(trimmed);
-                                        setAllLabels((prev) => [...prev, created]);
-                                        await addLabelsToVendor(vendor.id, [created.id]);
-                                        setVendorLabels((prev) =>
-                                            prev.find((l) => l.id === created.id)
-                                                ? prev
-                                                : [...prev, created],
-                                        );
-                                        setNewLabelName("");
-                                        setLabelError(null);
-                                        setShowCreateLabelDialog(false);
-                                    } catch (err) {
-                                        console.error("Error creating label:", err);
-                                        setLabelError("Failed to create label.");
-                                    }
-                                }}
-                            >
-                                Create & Apply
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            )}
+                    const created = await createCategoryLabel(trimmed, color);
+                    const normalized = color ? { ...created, color } : created;
+                    setAllLabels((prev) => [...prev, normalized]);
+                    await addLabelsToVendor(vendor.id, [created.id]);
+                    setVendorLabels((prev) =>
+                        prev.find((item) => item.id === created.id)
+                            ? prev
+                            : [...prev, normalized],
+                    );
+                }}
+                onEdit={async (label, name, color) => {
+                    const trimmed = name.trim();
+                    if (!trimmed) return;
+                    const updated = await updateCategoryLabel(label.id, trimmed, color);
+                    const normalized = color ? { ...updated, color } : updated;
+                    setAllLabels((prev) =>
+                        prev.map((item) => (item.id === normalized.id ? normalized : item)),
+                    );
+                    setVendorLabels((prev) =>
+                        prev.map((item) => (item.id === normalized.id ? normalized : item)),
+                    );
+                }}
+                onDelete={async (label) => {
+                    await deleteCategoryLabel(label.id);
+                    setAllLabels((prev) => prev.filter((item) => item.id !== label.id));
+                    setVendorLabels((prev) => prev.filter((item) => item.id !== label.id));
+                }}
+            />
         </div>
     );
 }
@@ -902,4 +827,3 @@ export default function VendorDetailPage() {
         </ProtectedRoute>
     );
 }
-

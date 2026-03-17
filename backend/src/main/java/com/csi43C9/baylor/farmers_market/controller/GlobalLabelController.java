@@ -35,7 +35,7 @@ public class GlobalLabelController {
      */
     @PostMapping
     public ResponseEntity<CategoryLabelDto> createLabel(@Valid @RequestBody CategoryLabelDto request) {
-        CategoryLabelDto created = service.createCategoryLabel(request.getName());
+        CategoryLabelDto created = service.createCategoryLabel(request.getName(), request.getColor());
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
@@ -64,7 +64,7 @@ public class GlobalLabelController {
             @PathVariable Long labelId,
             @Valid @RequestBody CategoryLabelDto request
     ) {
-        CategoryLabelDto updated = service.updateCategoryLabel(labelId, request.getName());
+        CategoryLabelDto updated = service.updateCategoryLabel(labelId, request.getName(), request.getColor());
         return ResponseEntity.ok(updated);
     }
 }

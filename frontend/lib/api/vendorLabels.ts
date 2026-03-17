@@ -3,10 +3,12 @@ import { apiRequest } from "./client";
 export interface CategoryLabel {
   id: number;
   name: string;
+  color?: string | null;
 }
 
 interface CreateCategoryLabelRequest {
   name: string;
+  color?: string | null;
 }
 
 interface VendorLabelRequest {
@@ -27,8 +29,9 @@ export async function getAllCategoryLabels(): Promise<CategoryLabel[]> {
  */
 export async function createCategoryLabel(
   name: string,
+  color?: string | null,
 ): Promise<CategoryLabel> {
-  const body: CreateCategoryLabelRequest = { name };
+  const body: CreateCategoryLabelRequest = { name, color };
 
   return apiRequest<CategoryLabel>("/api/categories", {
     method: "POST",
@@ -51,8 +54,9 @@ export async function deleteCategoryLabel(labelId: number): Promise<void> {
 export async function updateCategoryLabel(
   labelId: number,
   name: string,
+  color?: string | null,
 ): Promise<CategoryLabel> {
-  const body: CreateCategoryLabelRequest = { name };
+  const body: CreateCategoryLabelRequest = { name, color };
 
   return apiRequest<CategoryLabel>(`/api/categories/${labelId}`, {
     method: "PUT",
