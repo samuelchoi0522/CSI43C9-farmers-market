@@ -1,6 +1,7 @@
 package com.csi43C9.baylor.farmers_market.repository;
 
 import com.csi43C9.baylor.farmers_market.dto.vendor.CategoryLabelDto;
+import com.csi43C9.baylor.farmers_market.util.UuidUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,7 +52,8 @@ class VendorCategoryRepositoryTest {
         jdbcTemplate.execute("""
             CREATE TABLE IF NOT EXISTS category_labels (
                id BIGINT AUTO_INCREMENT PRIMARY KEY,
-               name VARCHAR(255) NOT NULL
+               name VARCHAR(255) NOT NULL,
+               color VARCHAR(20)
             )
         """);
 
@@ -72,12 +74,12 @@ class VendorCategoryRepositoryTest {
 
         // 3. Insert a dummy vendor
         jdbcTemplate.update("INSERT INTO vendors (id, vendor) VALUES (?, ?)",
-                vendorCategoryRepository.uuidToBytes(testVendorId), "Test Vendor");
+                UuidUtils.toBytes(testVendorId), "Test Vendor");
 
         // 4. Insert dummy category labels
-        jdbcTemplate.update("INSERT INTO category_labels (id, name) VALUES (?, ?)", 1L, "Produce");
-        jdbcTemplate.update("INSERT INTO category_labels (id, name) VALUES (?, ?)", 2L, "Organic");
-        jdbcTemplate.update("INSERT INTO category_labels (id, name) VALUES (?, ?)", 3L, "Baked Goods");
+        jdbcTemplate.update("INSERT INTO category_labels (id, name, color) VALUES (?, ?, ?)", 1L, "Produce", "#10b981");
+        jdbcTemplate.update("INSERT INTO category_labels (id, name, color) VALUES (?, ?, ?)", 2L, "Organic", "#22c55e");
+        jdbcTemplate.update("INSERT INTO category_labels (id, name, color) VALUES (?, ?, ?)", 3L, "Baked Goods", "#f97316");
     }
 
     /**
@@ -91,7 +93,7 @@ class VendorCategoryRepositoryTest {
 
         Integer count = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM vendor_category_labels WHERE vendor_id = ?",
-                Integer.class, vendorCategoryRepository.uuidToBytes(testVendorId));
+                Integer.class, UuidUtils.toBytes(testVendorId));
 
         assertThat(count).isEqualTo(2);
     }
@@ -110,7 +112,7 @@ class VendorCategoryRepositoryTest {
 
         Integer count = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM vendor_category_labels WHERE vendor_id = ?",
-                Integer.class, vendorCategoryRepository.uuidToBytes(testVendorId));
+                Integer.class, UuidUtils.toBytes(testVendorId));
 
         assertThat(count).isEqualTo(1); // Should still only be 1
     }
@@ -122,9 +124,9 @@ class VendorCategoryRepositoryTest {
     void findLabelsByVendorReturnsMappedDtos() {
         // Arrange: Manually link labels
         jdbcTemplate.update("INSERT INTO vendor_category_labels (vendor_id, label_id) VALUES (?, ?)",
-                vendorCategoryRepository.uuidToBytes(testVendorId), 1L);
+                UuidUtils.toBytes(testVendorId), 1L);
         jdbcTemplate.update("INSERT INTO vendor_category_labels (vendor_id, label_id) VALUES (?, ?)",
-                vendorCategoryRepository.uuidToBytes(testVendorId), 3L);
+                UuidUtils.toBytes(testVendorId), 3L);
 
         // Act
         List<CategoryLabelDto> labels = vendorCategoryRepository.findLabelsByVendor(testVendorId);
@@ -145,7 +147,7 @@ class VendorCategoryRepositoryTest {
 
         Integer count = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM vendor_category_labels WHERE vendor_id = ?",
-                Integer.class, vendorCategoryRepository.uuidToBytes(testVendorId));
+                Integer.class, UuidUtils.toBytes(testVendorId));
 
         assertThat(count).isEqualTo(0);
     }
@@ -156,11 +158,13 @@ class VendorCategoryRepositoryTest {
     @Test
     void createLabelInsertsAndReturnsGeneratedId() {
         String newLabelName = "Artisan Goods";
+        String newLabelColor = "#ef4444";
 
-        CategoryLabelDto created = vendorCategoryRepository.createLabel(newLabelName);
+        CategoryLabelDto created = vendorCategoryRepository.createLabel(newLabelName, newLabelColor);
 
         assertThat(created.getId()).isNotNull();
         assertThat(created.getName()).isEqualTo(newLabelName);
+        assertThat(created.getColor()).isEqualTo(newLabelColor);
 
         // Verify it exists in DB
         String nameInDb = jdbcTemplate.queryForObject(
@@ -187,7 +191,7 @@ class VendorCategoryRepositoryTest {
     @Test
     void deleteCategoryLabelRemovesMappingsAndLabel() {
         jdbcTemplate.update("INSERT INTO vendor_category_labels (vendor_id, label_id) VALUES (?, ?)",
-                vendorCategoryRepository.uuidToBytes(testVendorId), 1L);
+                UuidUtils.toBytes(testVendorId), 1L);
 
         vendorCategoryRepository.deleteCategoryLabel(1L);
 
@@ -200,6 +204,19 @@ class VendorCategoryRepositoryTest {
 
         assertThat(mappingCount).isEqualTo(0);
         assertThat(labelCount).isEqualTo(0);
+    }
+
+    /**
+     * Verifies that a label name can be updated.
+     */
+    @Test
+    void updateCategoryLabelUpdatesName() {
+        vendorCategoryRepository.updateCategoryLabel(2L, "Updated Name", "#1d4ed8");
+
+        CategoryLabelDto updated = vendorCategoryRepository.findById(2L).orElseThrow();
+
+        assertThat(updated.getName()).isEqualTo("Updated Name");
+        assertThat(updated.getColor()).isEqualTo("#1d4ed8");
     }
 
 }

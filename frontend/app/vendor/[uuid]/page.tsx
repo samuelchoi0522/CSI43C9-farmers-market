@@ -21,6 +21,19 @@ import Button from "@/app/components/Button";
 import DarkModeToggle from "@/app/components/DarkModeToggle";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
+import { Vendor, getVendor } from "@/lib/api/vendor";
+import {
+    CategoryLabel,
+    getAllCategoryLabels,
+    getVendorCategoryLabels,
+    addLabelsToVendor,
+    removeLabelFromVendor,
+    createCategoryLabel,
+    updateCategoryLabel,
+    deleteCategoryLabel,
+} from "@/lib/api/vendorLabels";
+import LabelPickerDialog from "../../components/LabelPickerDialog";
+import { getLabelColors } from "@/lib/labelColors";
 
 // Register Chart.js components
 ChartJS.register(
@@ -81,13 +94,12 @@ function VendorDetailContent() {
     const { user, logout } = useAuth();
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(false);
-
-    // Mock vendor data - in a real app, this would come from an API
-    const vendorData: VendorData = {
+    const [vendor, setVendor] = useState<Vendor | null>(null);
+    const [vendorData, setVendorData] = useState<VendorData>({
         id: uuid,
-        name: "Bonnet Farm",
-        vendorId: "V-4429",
-        owner: "Monika Eckert",
+        name: "",
+        vendorId: uuid,
+        owner: "",
         isActive: true,
         attendanceRate: 94.2,
         attendanceChange: 4,
@@ -145,7 +157,15 @@ function VendorDetailContent() {
                 produceDollar: 1420,
             },
         ],
-    };
+    });
+
+    const [allLabels, setAllLabels] = useState<CategoryLabel[]>([]);
+    const [vendorLabels, setVendorLabels] = useState<CategoryLabel[]>([]);
+    const [labelsLoading, setLabelsLoading] = useState(false);
+    const [labelError, setLabelError] = useState<string | null>(null);
+    const [isLabelDialogOpen, setIsLabelDialogOpen] = useState(false);
+
+    const normalizeLabelName = (name: string) => name.trim().toLowerCase();
 
     useEffect(() => {
         const checkDarkMode = () => {
@@ -170,6 +190,40 @@ function VendorDetailContent() {
             window.removeEventListener("darkModeChange", checkDarkMode);
         };
     }, []);
+
+    useEffect(() => {
+        const fetchVendorAndLabels = async () => {
+            setLabelsLoading(true);
+            setLabelError(null);
+            try {
+                const [vendorResp, allLabelsResp, vendorLabelsResp] = await Promise.all([
+                    getVendor(uuid),
+                    getAllCategoryLabels(),
+                    getVendorCategoryLabels(uuid),
+                ]);
+
+                setVendor(vendorResp);
+                setVendorData((prev) => ({
+                    ...prev,
+                    id: vendorResp.id,
+                    name: vendorResp.vendorName,
+                    vendorId: vendorResp.id,
+                    owner: vendorResp.pointPerson || prev.owner,
+                    isActive: vendorResp.isActive,
+                }));
+
+                setAllLabels(allLabelsResp);
+                setVendorLabels(vendorLabelsResp);
+            } catch (err) {
+                console.error("Error loading vendor or labels:", err);
+                setLabelError("Failed to load vendor labels.");
+            } finally {
+                setLabelsLoading(false);
+            }
+        };
+
+        fetchVendorAndLabels();
+    }, [uuid]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -384,82 +438,6 @@ function VendorDetailContent() {
                         </div>
                     </div>
 
-                    {/* Summary Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                            <div className="flex items-center justify-between mb-4">
-                                <div
-                                    className="dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
-                                    style={{ backgroundColor: isDarkMode ? undefined : 'rgba(219, 234, 254, 0.5)' }}
-                                >
-                                    <span className="material-icons leading-none">calendar_today</span>
-                                </div>
-                                <span 
-                                    className="text-xs font-bold text-[#10b981] dark:text-green-400 flex items-center dark:bg-green-900/20 px-2 py-1 rounded-full"
-                                    style={{ 
-                                        backgroundColor: isDarkMode ? undefined : 'rgba(16, 185, 129, 0.1)' 
-                                    }}
-                                >
-                                    +{vendorData.attendanceChange}%
-                                </span>
-                            </div>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-                                Attendance Rate
-                            </p>
-                            <h3 className="text-2xl font-bold mt-1">
-                                {vendorData.attendanceRate}%
-                            </h3>
-                        </div>
-
-                        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="bg-[#10b981]/10 text-[#10b981] p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110">
-                                    <span className="material-icons leading-none">payments</span>
-                                </div>
-                            </div>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-                                Avg. Daily Sales
-                            </p>
-                            <h3 className="text-2xl font-bold mt-1">
-                                {formatCurrency(vendorData.avgDailySales)}
-                            </h3>
-                        </div>
-
-                        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                            <div className="flex items-center justify-between mb-4">
-                                <div
-                                    className="dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
-                                    style={{ backgroundColor: isDarkMode ? undefined : 'rgba(243, 232, 255, 0.5)' }}
-                                >
-                                    <span className="material-icons leading-none">trending_up</span>
-                                </div>
-                            </div>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-                                Top Selling Month
-                            </p>
-                            <h3 className="text-2xl font-bold mt-1">
-                                {vendorData.topSellingMonth}
-                            </h3>
-                        </div>
-
-                        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                            <div className="flex items-center justify-between mb-4">
-                                <div
-                                    className="dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
-                                    style={{ backgroundColor: isDarkMode ? undefined : 'rgba(252, 231, 243, 0.5)' }}
-                                >
-                                    <span className="material-icons leading-none">receipt_long</span>
-                                </div>
-                            </div>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-                                SNAP Transactions
-                            </p>
-                            <h3 className="text-2xl font-bold mt-1">
-                                {vendorData.snapTransactions.toFixed(2)} Units
-                            </h3>
-                        </div>
-                    </div>
-
                     {/* Charts Section */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
                         {/* Sales Trends Chart */}
@@ -523,6 +501,142 @@ function VendorDetailContent() {
                                         {formatCurrency(vendorData.paymentBreakdown.marketTokens)}
                                     </span>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Vendor Labels + Summary Cards */}
+                    <div className="mb-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        {/* Left: Vendor Labels spanning height */}
+                        <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-3">
+                            <div>
+                                <h2 className="text-base font-semibold">Vendor Labels</h2>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                    Manage category labels assigned to this vendor.
+                                </p>
+                            </div>
+                            <div className="flex flex-col gap-3">
+                                <div className="flex items-center justify-between">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setIsLabelDialogOpen(true)}
+                                    >
+                                        Manage Labels
+                                    </Button>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    {vendorLabels.length === 0 ? (
+                                        <p className="text-sm text-slate-400 italic">
+                                            No labels applied to this vendor.
+                                        </p>
+                                    ) : (
+                                        vendorLabels.map((label) => {
+                                            const colors = getLabelColors(label.name, label.color);
+                                            return (
+                                                <span
+                                                    key={label.id}
+                                                    className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border"
+                                                    style={{
+                                                        backgroundColor: colors.backgroundColor,
+                                                        color: colors.color,
+                                                        borderColor: colors.borderColor,
+                                                    }}
+                                                >
+                                                    {label.name}
+                                                </span>
+                                            );
+                                        })
+                                    )}
+                                </div>
+                                {labelsLoading ? (
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                                        Loading labels...
+                                    </p>
+                                ) : labelError ? (
+                                    <p className="text-sm text-red-500">{labelError}</p>
+                                ) : null}
+                            </div>
+                        </div>
+
+                        {/* Right: Summary cards in 2x2 grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {/* Top Selling Month */}
+                            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                                <div className="flex items-center justify-between mb-3">
+                                    <div
+                                        className="dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
+                                        style={{ backgroundColor: isDarkMode ? undefined : 'rgba(243, 232, 255, 0.5)' }}
+                                    >
+                                        <span className="material-icons leading-none">trending_up</span>
+                                    </div>
+                                </div>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                    Top Selling Month
+                                </p>
+                                <h3 className="text-lg font-bold mt-1">
+                                    {vendorData.topSellingMonth}
+                                </h3>
+                            </div>
+
+                            {/* SNAP Transactions */}
+                            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                                <div className="flex items-center justify-between mb-3">
+                                    <div
+                                        className="dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
+                                        style={{ backgroundColor: isDarkMode ? undefined : 'rgba(252, 231, 243, 0.5)' }}
+                                    >
+                                        <span className="material-icons leading-none">receipt_long</span>
+                                    </div>
+                                </div>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                    SNAP Transactions
+                                </p>
+                                <h3 className="text-lg font-bold mt-1">
+                                    {vendorData.snapTransactions.toFixed(2)} Units
+                                </h3>
+                            </div>
+
+                            {/* Attendance Rate */}
+                            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                                <div className="flex items-center justify-between mb-3">
+                                    <div
+                                        className="dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
+                                        style={{ backgroundColor: isDarkMode ? undefined : 'rgba(219, 234, 254, 0.5)' }}
+                                    >
+                                        <span className="material-icons leading-none">calendar_today</span>
+                                    </div>
+                                    <span 
+                                        className="text-[10px] font-bold text-[#10b981] dark:text-green-400 flex items-center dark:bg-green-900/20 px-2 py-0.5 rounded-full"
+                                        style={{ 
+                                            backgroundColor: isDarkMode ? undefined : 'rgba(16, 185, 129, 0.1)' 
+                                        }}
+                                    >
+                                        +{vendorData.attendanceChange}%
+                                    </span>
+                                </div>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                    Attendance Rate
+                                </p>
+                                <h3 className="text-lg font-bold mt-1">
+                                    {vendorData.attendanceRate}%
+                                </h3>
+                            </div>
+
+                            {/* Avg Daily Sales */}
+                            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="bg-[#10b981]/10 text-[#10b981] p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110">
+                                        <span className="material-icons leading-none">payments</span>
+                                    </div>
+                                </div>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                    Avg. Daily Sales
+                                </p>
+                                <h3 className="text-lg font-bold mt-1">
+                                    {formatCurrency(vendorData.avgDailySales)}
+                                </h3>
                             </div>
                         </div>
                     </div>
@@ -617,6 +731,91 @@ function VendorDetailContent() {
                     </div>
                 </div>
             </main>
+
+            <LabelPickerDialog
+                isOpen={isLabelDialogOpen}
+                onOpenChange={setIsLabelDialogOpen}
+                title="Labels"
+                description="Assign labels to this vendor"
+                labels={allLabels}
+                checkedIds={vendorLabels.map((label) => label.id)}
+                loading={labelsLoading}
+                error={labelError}
+                onToggle={async (label, nextChecked) => {
+                    if (!vendor) return;
+                    try {
+                        if (nextChecked) {
+                            await addLabelsToVendor(vendor.id, [label.id]);
+                            setVendorLabels((prev) =>
+                                prev.find((item) => item.id === label.id)
+                                    ? prev
+                                    : [...prev, label],
+                            );
+                        } else {
+                            await removeLabelFromVendor(vendor.id, label.id);
+                            setVendorLabels((prev) => prev.filter((item) => item.id !== label.id));
+                        }
+                        setLabelError(null);
+                    } catch (err) {
+                        console.error("Error updating label:", err);
+                        setLabelError("Failed to update label.");
+                    }
+                }}
+                onCreate={async (name, color) => {
+                    if (!vendor) return;
+                    const trimmed = name.trim();
+                    if (!trimmed) return;
+
+                    const existingGlobal = allLabels.find(
+                        (label) => normalizeLabelName(label.name) === normalizeLabelName(trimmed),
+                    );
+                    if (existingGlobal) {
+                        const vendorHas = vendorLabels.some(
+                            (label) =>
+                                normalizeLabelName(label.name) ===
+                                normalizeLabelName(existingGlobal.name),
+                        );
+                        if (!vendorHas) {
+                            await addLabelsToVendor(vendor.id, [existingGlobal.id]);
+                            setVendorLabels((prev) =>
+                                prev.find((item) => item.id === existingGlobal.id)
+                                    ? prev
+                                    : [...prev, existingGlobal],
+                            );
+                        } else {
+                            setLabelError("That label name is already applied.");
+                        }
+                        return;
+                    }
+
+                    const created = await createCategoryLabel(trimmed, color);
+                    const normalized = color ? { ...created, color } : created;
+                    setAllLabels((prev) => [...prev, normalized]);
+                    await addLabelsToVendor(vendor.id, [created.id]);
+                    setVendorLabels((prev) =>
+                        prev.find((item) => item.id === created.id)
+                            ? prev
+                            : [...prev, normalized],
+                    );
+                }}
+                onEdit={async (label, name, color) => {
+                    const trimmed = name.trim();
+                    if (!trimmed) return;
+                    const updated = await updateCategoryLabel(label.id, trimmed, color);
+                    const normalized = color ? { ...updated, color } : updated;
+                    setAllLabels((prev) =>
+                        prev.map((item) => (item.id === normalized.id ? normalized : item)),
+                    );
+                    setVendorLabels((prev) =>
+                        prev.map((item) => (item.id === normalized.id ? normalized : item)),
+                    );
+                }}
+                onDelete={async (label) => {
+                    await deleteCategoryLabel(label.id);
+                    setAllLabels((prev) => prev.filter((item) => item.id !== label.id));
+                    setVendorLabels((prev) => prev.filter((item) => item.id !== label.id));
+                }}
+            />
         </div>
     );
 }
@@ -628,4 +827,3 @@ export default function VendorDetailPage() {
         </ProtectedRoute>
     );
 }
-

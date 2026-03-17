@@ -5,9 +5,19 @@ import { useRouter } from "next/navigation";
 import DarkModeToggle from "../../components/DarkModeToggle";
 import SidebarNavigation from "../../components/SidebarNavigation";
 import Button from "../../components/Button";
+import LabelPickerDialog from "../../components/LabelPickerDialog";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
 import { createVendor, createVendorDefaults } from "@/lib/api";
+import {
+    CategoryLabel,
+    createCategoryLabel,
+    getAllCategoryLabels,
+    addLabelsToVendor,
+    updateCategoryLabel,
+    deleteCategoryLabel,
+} from "@/lib/api/vendorLabels";
+import { getLabelColors } from "@/lib/labelColors";
 
 interface VendorFormData {
     vendorName: string;
@@ -45,6 +55,12 @@ function AddVendorContent() {
     const userName = user?.username || "Admin User";
     const animationFrameRef = useRef<number | null>(null);
 
+    const [allLabels, setAllLabels] = useState<CategoryLabel[]>([]);
+    const [selectedLabelIds, setSelectedLabelIds] = useState<number[]>([]);
+    const [labelsLoading, setLabelsLoading] = useState(false);
+    const [labelError, setLabelError] = useState<string | null>(null);
+    const [isLabelDialogOpen, setIsLabelDialogOpen] = useState(false);
+
     const [formData, setFormData] = useState<VendorFormData>({
         vendorName: "",
         pointPerson: "",
@@ -65,6 +81,8 @@ function AddVendorContent() {
         pctCottageGoods: "0",
         pctManufactured: "0",
     });
+
+    const normalizeLabelName = (name: string) => name.trim().toLowerCase();
 
     const hasNonZeroPercentage = useMemo(() => {
         return [
@@ -190,6 +208,24 @@ function AddVendorContent() {
             observer.disconnect();
             window.removeEventListener("darkModeChange", checkDarkMode);
         };
+    }, []);
+
+    useEffect(() => {
+        const fetchLabels = async () => {
+            setLabelsLoading(true);
+            setLabelError(null);
+            try {
+                const labels = await getAllCategoryLabels();
+                setAllLabels(labels);
+            } catch (err) {
+                console.error("Error loading labels:", err);
+                setLabelError("Failed to load labels.");
+            } finally {
+                setLabelsLoading(false);
+            }
+        };
+
+        fetchLabels();
     }, []);
 
     useEffect(() => {
@@ -373,6 +409,10 @@ function AddVendorContent() {
                     pctCottageGoods: formData.pctCottageGoods,
                     pctManufactured: formData.pctManufactured,
                 });
+            }
+
+            if (selectedLabelIds.length > 0) {
+                await addLabelsToVendor(newVendor.id, selectedLabelIds);
             }
 
             // Redirect to vendors list
@@ -881,7 +921,66 @@ function AddVendorContent() {
                                     ))}
                                 </div>
                             </div>
-                            
+
+                            {/* Vendor Labels */}
+                            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                                <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                                    <div>
+                                        <h3 className="font-bold text-lg">Vendor Labels</h3>
+                                        <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                                            Apply existing labels or create a new one for this vendor.
+                                        </p>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => setIsLabelDialogOpen(true)}
+                                        className="text-sm"
+                                    >
+                                        Manage Labels
+                                    </Button>
+                                </div>
+                                <div className="p-6 space-y-4">
+                                    {labelsLoading ? (
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                                            Loading labels...
+                                        </p>
+                                    ) : labelError ? (
+                                        <p className="text-sm text-red-500">
+                                            {labelError}
+                                        </p>
+                                    ) : (
+                                        <div className="flex flex-wrap gap-2">
+                                            {selectedLabelIds.length === 0 ? (
+                                                <p className="text-sm text-slate-400 italic">
+                                                    No labels applied.
+                                                </p>
+                                            ) : (
+                                                selectedLabelIds
+                                                    .map((id) => allLabels.find((label) => label.id === id))
+                                                    .filter((label): label is CategoryLabel => !!label)
+                                                    .map((label) => {
+                                                        const colors = getLabelColors(label.name, label.color);
+                                                        return (
+                                                            <span
+                                                                key={label.id}
+                                                                className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border"
+                                                                style={{
+                                                                    backgroundColor: colors.backgroundColor,
+                                                                    color: colors.color,
+                                                                    borderColor: colors.borderColor,
+                                                                }}
+                                                            >
+                                                                {label.name}
+                                                            </span>
+                                                        );
+                                                    })
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
                             {/* Vendor Defaults Percentages */}
                             <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
                                 <div className="p-6 border-b border-slate-200 dark:border-slate-700">
@@ -958,6 +1057,77 @@ function AddVendorContent() {
                 </form>
                 )}
             </main>
+
+            <LabelPickerDialog
+                isOpen={isLabelDialogOpen}
+                onOpenChange={setIsLabelDialogOpen}
+                title="Labels"
+                description="Select labels for this vendor"
+                labels={allLabels}
+                checkedIds={selectedLabelIds}
+                loading={labelsLoading}
+                error={labelError}
+                onToggle={(label, nextChecked) => {
+                    setSelectedLabelIds((prev) =>
+                        nextChecked
+                            ? prev.includes(label.id)
+                                ? prev
+                                : [...prev, label.id]
+                            : prev.filter((id) => id !== label.id),
+                    );
+                    setLabelError(null);
+                }}
+                            onCreate={async (name, color) => {
+                                const trimmed = name.trim();
+                                if (!trimmed) return;
+
+                    const existing = allLabels.find(
+                        (label) =>
+                            normalizeLabelName(label.name) === normalizeLabelName(trimmed),
+                    );
+                    if (existing) {
+                        const selectedNames = selectedLabelIds
+                            .map((id) => allLabels.find((label) => label.id === id))
+                            .filter((label): label is CategoryLabel => !!label)
+                            .map((label) => normalizeLabelName(label.name));
+
+                        if (selectedNames.includes(normalizeLabelName(existing.name))) {
+                            setLabelError("A label with that name already exists.");
+                            return;
+                        }
+
+                        setSelectedLabelIds((prev) =>
+                            prev.includes(existing.id) ? prev : [...prev, existing.id],
+                        );
+                        setLabelError(null);
+                        return;
+                    }
+
+                                const created = await createCategoryLabel(trimmed, color);
+                                const normalized = color ? { ...created, color } : created;
+                                setAllLabels((prev) => [...prev, normalized]);
+                                setSelectedLabelIds((prev) =>
+                                    prev.includes(created.id) ? prev : [...prev, created.id],
+                                );
+                                setLabelError(null);
+                            }}
+                            onEdit={async (label, name, color) => {
+                                const trimmed = name.trim();
+                                if (!trimmed) return;
+                                const updated = await updateCategoryLabel(label.id, trimmed, color);
+                                const normalized = color ? { ...updated, color } : updated;
+                                setAllLabels((prev) =>
+                                    prev.map((item) => (item.id === normalized.id ? normalized : item)),
+                                );
+                            }}
+                            onDelete={async (label) => {
+                                await deleteCategoryLabel(label.id);
+                                setAllLabels((prev) => prev.filter((item) => item.id !== label.id));
+                                setSelectedLabelIds((prev) =>
+                                    prev.filter((id) => id !== label.id),
+                                );
+                            }}
+                        />
         </div>
     );
 }

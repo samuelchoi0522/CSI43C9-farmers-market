@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -57,17 +58,18 @@ class GlobalLabelControllerTest {
     @Test
     @WithMockUser
     void createCategoryLabelReturnsCreated() throws Exception {
-        CategoryLabelDto requestDto = new CategoryLabelDto(null, "New Label");
-        CategoryLabelDto savedDto = new CategoryLabelDto(1L, "New Label");
+        CategoryLabelDto requestDto = new CategoryLabelDto(null, "New Label", "#10b981");
+        CategoryLabelDto savedDto = new CategoryLabelDto(1L, "New Label", "#10b981");
 
-        when(service.createCategoryLabel("New Label")).thenReturn(savedDto);
+        when(service.createCategoryLabel("New Label", "#10b981")).thenReturn(savedDto);
 
         mockMvc.perform(post("/api/categories")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.name").value("New Label"));
+                .andExpect(jsonPath("$.name").value("New Label"))
+                .andExpect(jsonPath("$.color").value("#10b981"));
     }
 
     /**
@@ -78,8 +80,8 @@ class GlobalLabelControllerTest {
     @WithMockUser
     void getAllLabelsReturnsOk() throws Exception {
         List<CategoryLabelDto> mockLabels = List.of(
-                new CategoryLabelDto(1L, "Produce"),
-                new CategoryLabelDto(2L, "Bakery")
+                new CategoryLabelDto(1L, "Produce", "#10b981"),
+                new CategoryLabelDto(2L, "Bakery", "#f59e0b")
         );
 
         when(service.getAllAvailableLabels()).thenReturn(mockLabels);
@@ -102,5 +104,26 @@ class GlobalLabelControllerTest {
                 .andExpect(status().isNoContent());
 
         verify(service).deleteCategoryLabel(1L);
+    }
+
+    /**
+     * Verifies that an authenticated user can update a global category label.
+     * @throws Exception if mock MVC request fails.
+     */
+    @Test
+    @WithMockUser
+    void updateLabelReturnsOk() throws Exception {
+        CategoryLabelDto requestDto = new CategoryLabelDto(null, "Updated Label", "#1d4ed8");
+        CategoryLabelDto updatedDto = new CategoryLabelDto(1L, "Updated Label", "#1d4ed8");
+
+        when(service.updateCategoryLabel(1L, "Updated Label", "#1d4ed8")).thenReturn(updatedDto);
+
+        mockMvc.perform(put("/api/categories/{labelId}", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.name").value("Updated Label"))
+                .andExpect(jsonPath("$.color").value("#1d4ed8"));
     }
 }

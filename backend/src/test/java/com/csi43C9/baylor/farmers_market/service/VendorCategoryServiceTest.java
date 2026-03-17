@@ -38,8 +38,8 @@ class VendorCategoryServiceTest {
     void getLabelsForVendorReturnsMappedDtos() {
         UUID vendorId = UUID.randomUUID();
         List<CategoryLabelDto> expectedLabels = List.of(
-                new CategoryLabelDto(1L, "Produce"),
-                new CategoryLabelDto(2L, "Organic")
+                new CategoryLabelDto(1L, "Produce", "#10b981"),
+                new CategoryLabelDto(2L, "Organic", "#22c55e")
         );
 
         when(repo.findLabelsByVendor(vendorId)).thenReturn(expectedLabels);
@@ -113,14 +113,14 @@ class VendorCategoryServiceTest {
     @Test
     void createCategoryLabelCallsRepositoryAndReturnsDto() {
         String labelName = "Dairy";
-        CategoryLabelDto mockDto = new CategoryLabelDto(10L, labelName);
+        CategoryLabelDto mockDto = new CategoryLabelDto(10L, labelName, "#10b981");
 
-        when(repo.createLabel(labelName)).thenReturn(mockDto);
+        when(repo.createLabel(labelName, "#10b981")).thenReturn(mockDto);
 
-        CategoryLabelDto result = service.createCategoryLabel(labelName);
+        CategoryLabelDto result = service.createCategoryLabel(labelName, "#10b981");
 
         assertThat(result).isEqualTo(mockDto);
-        verify(repo).createLabel(labelName);
+        verify(repo).createLabel(labelName, "#10b981");
     }
 
     /**
@@ -128,7 +128,7 @@ class VendorCategoryServiceTest {
      */
     @Test
     void getAllAvailableLabelsReturnsListFromRepo() {
-        List<CategoryLabelDto> mockList = List.of(new CategoryLabelDto(1L, "Test"));
+        List<CategoryLabelDto> mockList = List.of(new CategoryLabelDto(1L, "Test", "#10b981"));
 
         when(repo.findAllLabels()).thenReturn(mockList);
 
@@ -148,5 +148,22 @@ class VendorCategoryServiceTest {
         service.deleteCategoryLabel(labelId);
 
         verify(repo).deleteCategoryLabel(labelId);
+    }
+
+    /**
+     * Verifies that updating a global label delegates to the repository.
+     */
+    @Test
+    void updateCategoryLabelCallsRepository() {
+        Long labelId = 7L;
+        String name = "Updated";
+        CategoryLabelDto mockDto = new CategoryLabelDto(labelId, name, "#1d4ed8");
+
+        when(repo.updateCategoryLabel(labelId, name, "#1d4ed8")).thenReturn(mockDto);
+
+        CategoryLabelDto result = service.updateCategoryLabel(labelId, name, "#1d4ed8");
+
+        assertThat(result).isEqualTo(mockDto);
+        verify(repo).updateCategoryLabel(labelId, name, "#1d4ed8");
     }
 }

@@ -6,6 +6,18 @@ import { X, Save, AlertCircle } from 'lucide-react';
 import Button from './Button';
 import { Vendor, updateVendor, deleteVendor } from '@/lib/api/vendor';
 import { VendorDefaults, updateVendorDefaults, createVendorDefaults, getVendorDefaultsByVendorId } from '@/lib/api/defaults';
+import {
+    CategoryLabel,
+    addLabelsToVendor,
+    createCategoryLabel,
+    getAllCategoryLabels,
+    getVendorCategoryLabels,
+    removeLabelFromVendor,
+    updateCategoryLabel,
+    deleteCategoryLabel,
+} from '@/lib/api/vendorLabels';
+import LabelPickerDialog from "./LabelPickerDialog";
+import { getLabelColors } from "@/lib/labelColors";
 import { cn } from '@/lib/utils';
 import {
     AlertDialog,
@@ -52,6 +64,11 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
     const [loadingDefaults, setLoadingDefaults] = useState(false);
     const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
     const [showActivateConfirm, setShowActivateConfirm] = useState(false);
+    const [allLabels, setAllLabels] = useState<CategoryLabel[]>([]);
+    const [vendorLabels, setVendorLabels] = useState<CategoryLabel[]>([]);
+    const [labelsLoading, setLabelsLoading] = useState(false);
+    const [labelError, setLabelError] = useState<string | null>(null);
+    const [isLabelDialogOpen, setIsLabelDialogOpen] = useState(false);
 
     const [formData, setFormData] = useState<VendorFormData>({
         vendorName: vendor.vendorName || "",
@@ -99,6 +116,32 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
             fetchDefaults();
         }
     }, [isOpen, vendor.id]);
+
+    useEffect(() => {
+        if (!isOpen || !vendor.id) return;
+
+        const fetchLabels = async () => {
+            setLabelsLoading(true);
+            setLabelError(null);
+            try {
+                const [allLabelsResp, vendorLabelsResp] = await Promise.all([
+                    getAllCategoryLabels(),
+                    getVendorCategoryLabels(vendor.id),
+                ]);
+                setAllLabels(allLabelsResp);
+                setVendorLabels(vendorLabelsResp);
+            } catch (error) {
+                console.error("Error fetching vendor labels:", error);
+                setLabelError("Failed to load vendor labels.");
+            } finally {
+                setLabelsLoading(false);
+            }
+        };
+
+        fetchLabels();
+    }, [isOpen, vendor.id]);
+
+    const normalizeLabelName = (name: string) => name.trim().toLowerCase();
 
     const hasNonZeroPercentage = useMemo(() => {
         return [
@@ -411,6 +454,56 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
                                         className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-dashboard-primary outline-none transition-all resize-none text-slate-900 dark:text-white"
                                     />
                                 </div>
+                                <div className="md:col-span-2 space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                                                Vendor Labels
+                                            </p>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                                                Add or remove labels assigned to this vendor.
+                                            </p>
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-8 text-xs"
+                                            onClick={() => setIsLabelDialogOpen(true)}
+                                        >
+                                            Manage Labels
+                                        </Button>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {vendorLabels.length === 0 ? (
+                                            <p className="text-xs text-slate-400 italic">
+                                                No labels applied.
+                                            </p>
+                                        ) : (
+                                            vendorLabels.map((label) => {
+                                                const colors = getLabelColors(label.name, label.color);
+                                                return (
+                                                    <span
+                                                        key={label.id}
+                                                        className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border"
+                                                        style={{
+                                                            backgroundColor: colors.backgroundColor,
+                                                            color: colors.color,
+                                                            borderColor: colors.borderColor,
+                                                        }}
+                                                    >
+                                                        {label.name}
+                                                    </span>
+                                                );
+                                            })
+                                        )}
+                                    </div>
+                                    {labelsLoading ? (
+                                        <p className="text-xs text-slate-500">Loading labels...</p>
+                                    ) : labelError ? (
+                                        <p className="text-xs text-red-500">{labelError}</p>
+                                    ) : null}
+                                </div>
                             </div>
                         </section>
 
@@ -545,6 +638,92 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
                     </div>
                 </DialogPrimitive.Content>
             </DialogPrimitive.Portal>
+
+            <LabelPickerDialog
+                isOpen={isLabelDialogOpen}
+                onOpenChange={setIsLabelDialogOpen}
+                title="Labels"
+                description="Assign labels to this vendor"
+                labels={allLabels}
+                checkedIds={vendorLabels.map((label) => label.id)}
+                loading={labelsLoading}
+                error={labelError}
+                onToggle={async (label, nextChecked) => {
+                    if (!vendor.id) return;
+                    try {
+                        if (nextChecked) {
+                            await addLabelsToVendor(vendor.id, [label.id]);
+                            setVendorLabels((prev) =>
+                                prev.find((item) => item.id === label.id)
+                                    ? prev
+                                    : [...prev, label],
+                            );
+                        } else {
+                            await removeLabelFromVendor(vendor.id, label.id);
+                            setVendorLabels((prev) => prev.filter((item) => item.id !== label.id));
+                        }
+                        setLabelError(null);
+                    } catch (error) {
+                        console.error("Error updating label:", error);
+                        setLabelError("Failed to update label.");
+                    }
+                }}
+                onCreate={async (name, color) => {
+                    if (!vendor.id) return;
+                    const trimmed = name.trim();
+                    if (!trimmed) return;
+
+                    const existingGlobal = allLabels.find(
+                        (label) =>
+                            normalizeLabelName(label.name) === normalizeLabelName(trimmed),
+                    );
+                    if (existingGlobal) {
+                        const vendorHas = vendorLabels.some(
+                            (label) =>
+                                normalizeLabelName(label.name) ===
+                                normalizeLabelName(existingGlobal.name),
+                        );
+                        if (!vendorHas) {
+                            await addLabelsToVendor(vendor.id, [existingGlobal.id]);
+                            setVendorLabels((prev) =>
+                                prev.find((item) => item.id === existingGlobal.id)
+                                    ? prev
+                                    : [...prev, existingGlobal],
+                            );
+                        } else {
+                            setLabelError("That label name is already applied.");
+                        }
+                        return;
+                    }
+
+                    const created = await createCategoryLabel(trimmed, color);
+                    const normalized = color ? { ...created, color } : created;
+                    setAllLabels((prev) => [...prev, normalized]);
+                    await addLabelsToVendor(vendor.id, [created.id]);
+                    setVendorLabels((prev) =>
+                        prev.find((item) => item.id === created.id)
+                            ? prev
+                            : [...prev, normalized],
+                    );
+                }}
+                onEdit={async (label, name, color) => {
+                    const trimmed = name.trim();
+                    if (!trimmed) return;
+                    const updated = await updateCategoryLabel(label.id, trimmed, color);
+                    const normalized = color ? { ...updated, color } : updated;
+                    setAllLabels((prev) =>
+                        prev.map((item) => (item.id === normalized.id ? normalized : item)),
+                    );
+                    setVendorLabels((prev) =>
+                        prev.map((item) => (item.id === normalized.id ? normalized : item)),
+                    );
+                }}
+                onDelete={async (label) => {
+                    await deleteCategoryLabel(label.id);
+                    setAllLabels((prev) => prev.filter((item) => item.id !== label.id));
+                    setVendorLabels((prev) => prev.filter((item) => item.id !== label.id));
+                }}
+            />
 
             {/* Deactivate Confirmation */}
             <AlertDialog open={showDeactivateConfirm} onOpenChange={setShowDeactivateConfirm}>
