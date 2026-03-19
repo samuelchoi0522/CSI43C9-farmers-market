@@ -144,7 +144,7 @@ class VendorControllerTest {
         PagedResponse<Vendor> response = new PagedResponse<>(
                 Collections.emptyList(), 0, 10, 0L, 0);
 
-        when(vendorService.getVendors(0, 10)).thenReturn(response);
+        when(vendorService.getVendors(0, 10, false)).thenReturn(response);
 
         mockMvc.perform(get("/api/vendor?page=0&size=10"))
                 .andExpect(status().isOk())

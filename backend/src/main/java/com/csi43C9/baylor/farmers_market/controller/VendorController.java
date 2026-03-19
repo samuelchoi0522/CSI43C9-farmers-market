@@ -57,9 +57,10 @@ public class VendorController {
     @GetMapping
     public ResponseEntity<@NonNull PagedResponse<Vendor>> getAllVendors(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "false") boolean includeInactive) {
 
-        return ResponseEntity.ok(vendorService.getVendors(page, size));
+        return ResponseEntity.ok(vendorService.getVendors(page, size, includeInactive));
     }
 
     /**
@@ -86,7 +87,7 @@ public class VendorController {
     }
 
     /**
-     * Deletes a vendor from the system.
+     * Deactivates a vendor.
      * @param uuid the UUID of the vendor to delete.
      * @return a 204 No Content response if the vendor was successfully deleted.
      */

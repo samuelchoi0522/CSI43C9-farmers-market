@@ -69,7 +69,6 @@ export SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3307/farmers_market_db
 export SPRING_DATASOURCE_USERNAME=root
 export SPRING_DATASOURCE_PASSWORD=your_password
 export FARMERS_MARKET_JWT_SECRET=your-secret-key-here
-
 # Run the application
 ./gradlew bootRun
 

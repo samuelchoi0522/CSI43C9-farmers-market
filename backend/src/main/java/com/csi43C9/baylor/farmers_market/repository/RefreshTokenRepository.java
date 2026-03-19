@@ -79,7 +79,7 @@ public class RefreshTokenRepository extends AbstractJdbcRepository {
      */
     public Optional<RefreshToken> findByUserId(UUID userId) {
         String sql = "select * from refresh_tokens where user_id = ?";
-        return jdbcTemplate.query(sql, new RefreshTokenRowMapper(), UuidUtils.toBytesObject(userId))
+        return jdbcTemplate.query(sql, new RefreshTokenRowMapper(), UuidUtils.toBytes(userId))
                 .stream().findFirst();
     }
 
@@ -89,6 +89,6 @@ public class RefreshTokenRepository extends AbstractJdbcRepository {
      */
     public void deleteByUserId(UUID userId) {
         String sql = "delete from refresh_tokens where user_id = ?";
-        jdbcTemplate.update(sql, UuidUtils.toBytesObject(userId));
+        jdbcTemplate.update(sql, UuidUtils.toBytes(userId));
     }
 }

@@ -71,6 +71,7 @@ function DashboardContent() {
         };
     }, [showUserMenu]);
 
+
     // Fetch vendors and vendor defaults
     useEffect(() => {
         const fetchData = async () => {
@@ -403,6 +404,7 @@ function DashboardContent() {
                         </div>
                     </div>
                 </div>
+
 
                 {/* Bottom Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
