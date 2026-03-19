@@ -132,7 +132,9 @@ public class Seeder {
 
             // Shuffle them slightly for more randomness
             ArrayList<Integer> shuffledParts = new ArrayList<>();
-            for (int p : parts) shuffledParts.add(p);
+            for (int p : parts) {
+                shuffledParts.add(p);
+            }
             Collections.shuffle(shuffledParts);
 
             VendorDefaults defaults = VendorDefaults.builder()
@@ -148,6 +150,7 @@ public class Seeder {
         }
         System.out.println("Done seeding vendor defaults!");
     }
+
     /**
      * Seeds the database with user test data.
      */
@@ -171,11 +174,11 @@ public class Seeder {
     private void populateVendorTransactions(VendorRepository vendorRepository, VendorTransactionRepository transactionRepository) {
         List<Vendor> allVendors = vendorRepository.findAll();
         List<java.time.LocalDate> marketDates = List.of(
-            java.time.LocalDate.now().minusWeeks(1),
-            java.time.LocalDate.now().minusWeeks(2),
-            java.time.LocalDate.now().minusWeeks(3),
-            java.time.LocalDate.now().minusWeeks(4),
-            java.time.LocalDate.now().minusWeeks(5)
+                java.time.LocalDate.now().minusWeeks(1),
+                java.time.LocalDate.now().minusWeeks(2),
+                java.time.LocalDate.now().minusWeeks(3),
+                java.time.LocalDate.now().minusWeeks(4),
+                java.time.LocalDate.now().minusWeeks(5)
         );
 
         System.out.println("Seeding transactions for " + allVendors.size() + " vendors...");
@@ -202,13 +205,13 @@ public class Seeder {
                     transaction.setReportedSales(faker.number().randomDouble(2, 100, 1000));
                     transaction.setEstProduceSales(faker.number().randomDouble(2, 50, 500));
                     transaction.setEstNumTransactions((long) faker.number().numberBetween(5, 50));
-                    
+
                     // Simple reimbursement calculation example
                     transaction.setReimbursementDue(
-                        transaction.getSnap() + 
-                        transaction.getDufb() + 
-                        transaction.getWdfmTokens() + 
-                        transaction.getVoucher()
+                            transaction.getSnap() +
+                                    transaction.getDufb() +
+                                    transaction.getWdfmTokens() +
+                                    transaction.getVoucher()
                     );
                 } else {
                     transaction.setSnap(0.0);
@@ -223,7 +226,7 @@ public class Seeder {
                 allTransactions.add(transaction);
             }
         }
-        
+
         transactionRepository.saveAll(allTransactions);
         System.out.println("Done seeding transactions! (" + allTransactions.size() + " records)");
     }
