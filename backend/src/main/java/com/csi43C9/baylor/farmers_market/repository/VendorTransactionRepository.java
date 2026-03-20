@@ -1,6 +1,7 @@
 package com.csi43C9.baylor.farmers_market.repository;
 
 import com.csi43C9.baylor.farmers_market.dto.vendor_transaction.VendorTransactionFilterRequest;
+import com.csi43C9.baylor.farmers_market.dto.vendor_transaction.RevenueBreakdown;
 import com.csi43C9.baylor.farmers_market.entity.VendorTransaction;
 import com.csi43C9.baylor.farmers_market.repository.base.AbstractJdbcRepository;
 import com.csi43C9.baylor.farmers_market.repository.base.MarketRepository;
@@ -10,6 +11,8 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.sql.ResultSet;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -47,6 +50,7 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
 
     /**
      * Persists multiple vendor transactions to the database.
+     *
      * @param transactions the vendor transactions to insert
      * @return the inserted vendor transactions
      */
@@ -91,6 +95,7 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
 
     /**
      * Inserts a new vendor transaction record into the database.
+     *
      * @param transaction the vendor transaction to insert
      * @return the inserted vendor transaction
      */
@@ -125,6 +130,7 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
 
     /**
      * Updates an existing vendor transaction record.
+     *
      * @return the number of rows affected (should be 1 if successful).
      */
     public int update(VendorTransaction transaction) {
@@ -156,6 +162,7 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
 
     /**
      * Retrieves a vendor transaction by its UUID from the database.
+     *
      * @param uuid The UUID of the transaction to retrieve.
      */
     @Override
@@ -184,6 +191,7 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
 
     /**
      * Retrieves a page of vendor transactions from the database.
+     *
      * @param page 0-based page number
      * @param size page size
      * @return a List of vendor transactions
@@ -259,6 +267,7 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
 
     /**
      * Counts the number of vendor transactions in the database.
+     *
      * @return the number of vendor transactions
      */
     @Override
@@ -270,6 +279,7 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
 
     /**
      * Deletes a vendor transaction from the database.
+     *
      * @param uuid The UUID of the transaction to delete.
      */
     @Override
@@ -305,6 +315,55 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
         return new QueryParts(sql, args);
     }
 
-    private record QueryParts(StringBuilder sql, List<Object> args) {
+    private record QueryParts(StringBuilder sql, List<Object> args) {}
+
+    /**
+     * Retrieves the revenue breakdown by vendor type for a specific date range.
+     *
+     * @param startDate the beginning of the market date range (inclusive)
+     * @param endDate   the end of the market date range (inclusive)
+     * @return a RevenueBreakdown record containing the rounded revenue totals
+     */
+    public RevenueBreakdown getRevenueBreakdownForDateRange(LocalDate startDate, LocalDate endDate) {
+        String sql = """
+                /* Vendor sales for the specified date range */
+                with vendor_sales as (
+                    select vendor_id, sum(reported_sales) as reported_sales
+                    from vendor_transactions
+                    where market_date >= ? and market_date <= ?
+                      and present = 1
+                    group by vendor_id
+                ),
+                /* Vendor sales multiplied by their default revenue percentages */
+                vendor_revenues as (
+                    select vs.vendor_id,
+                           vs.reported_sales,
+                           vs.reported_sales * coalesce(vd.pct_handmade / 100.0, 0)      as handmade_revenue,
+                           vs.reported_sales * coalesce(vd.pct_agricultural / 100.0, 0)  as agricultural_revenue,
+                           vs.reported_sales * coalesce(vd.pct_prepared_food / 100.0, 0) as prepared_revenue,
+                           vs.reported_sales * coalesce(vd.pct_cottage_goods / 100.0, 0) as cottage_revenue,
+                           vs.reported_sales * coalesce(vd.pct_manufactured / 100.0, 0)  as manufactured_revenue
+                    from vendor_sales vs
+                    left join vendor_defaults vd on vd.vendor_id = vs.vendor_id
+                )
+                /* Sum the revenues by vendor type, converting nulls to zero */
+                select
+                    coalesce(round(sum(handmade_revenue), 2), 0)     as handmade,
+                    coalesce(round(sum(agricultural_revenue), 2), 0) as agricultural,
+                    coalesce(round(sum(prepared_revenue), 2), 0)     as prepared,
+                    coalesce(round(sum(cottage_revenue), 2), 0)      as cottage,
+                    coalesce(round(sum(manufactured_revenue), 2), 0) as manufactured,
+                    coalesce(round(sum(reported_sales), 2), 0)       as total_sales
+                from vendor_revenues
+                """;
+
+        return jdbcTemplate.queryForObject(sql, (ResultSet rs, int _) -> new RevenueBreakdown(
+                rs.getBigDecimal("handmade"),
+                rs.getBigDecimal("agricultural"),
+                rs.getBigDecimal("prepared"),
+                rs.getBigDecimal("cottage"),
+                rs.getBigDecimal("manufactured"),
+                rs.getBigDecimal("total_sales")
+        ), startDate, endDate);
     }
 }

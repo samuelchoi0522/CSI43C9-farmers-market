@@ -1,6 +1,7 @@
 package com.csi43C9.baylor.farmers_market.service;
 
 import com.csi43C9.baylor.farmers_market.dto.PagedResponse;
+import com.csi43C9.baylor.farmers_market.dto.vendor_transaction.RevenueBreakdown;
 import com.csi43C9.baylor.farmers_market.dto.vendor_transaction.SaveVendorTransactionRequest;
 import com.csi43C9.baylor.farmers_market.dto.vendor_transaction.VendorTransactionFilterRequest;
 import com.csi43C9.baylor.farmers_market.entity.VendorTransaction;
@@ -92,6 +93,14 @@ public class VendorTransactionService {
                 totalElements,
                 totalPages
         );
+    }
+
+    public RevenueBreakdown getRevenueBreakdownForDate(LocalDate date) {
+        return vendorTransactionRepository.getRevenueBreakdownForDate(date);
+    }
+
+    public RevenueBreakdown getRevenueBreakdownForDateRange(LocalDate startDate, LocalDate endDate) {
+        return vendorTransactionRepository.getRevenueBreakdownForDateRange(startDate, endDate);
     }
 
     /**
