@@ -2,11 +2,13 @@ package com.csi43C9.baylor.farmers_market.service;
 
 import com.csi43C9.baylor.farmers_market.dto.PagedResponse;
 import com.csi43C9.baylor.farmers_market.dto.vendor_transaction.SaveVendorTransactionRequest;
+import com.csi43C9.baylor.farmers_market.dto.vendor_transaction.VendorTransactionFilterRequest;
 import com.csi43C9.baylor.farmers_market.entity.VendorTransaction;
 import com.csi43C9.baylor.farmers_market.repository.VendorTransactionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -81,7 +83,7 @@ public class VendorTransactionService {
     public PagedResponse<VendorTransaction> getTransactions(int page, int size) {
         List<VendorTransaction> content = vendorTransactionRepository.findAllPaged(page, size);
         long totalElements = vendorTransactionRepository.count();
-        int totalPages = (int) Math.ceil((double) totalElements / size);
+        int totalPages = calculateTotalPages(totalElements, size);
 
         return new PagedResponse<>(
                 content,
@@ -90,6 +92,83 @@ public class VendorTransactionService {
                 totalElements,
                 totalPages
         );
+    }
+
+    /**
+     * Returns a paged list of vendor transactions matching the provided filters.
+     * @param filter transaction filters
+     * @param page 0-based page number
+     * @param size page size
+     * @return paged response of matching transactions
+     */
+    public PagedResponse<VendorTransaction> getTransactions(VendorTransactionFilterRequest filter, int page, int size) {
+        validateFilter(filter);
+
+        List<VendorTransaction> content = vendorTransactionRepository.findFilteredPaged(filter, page, size);
+        long totalElements = vendorTransactionRepository.countFiltered(filter);
+        int totalPages = calculateTotalPages(totalElements, size);
+
+        return new PagedResponse<>(
+                content,
+                page,
+                size,
+                totalElements,
+                totalPages
+        );
+    }
+
+    /**
+     * Returns a paged list of vendor transactions for the provided vendor.
+     * @param vendorId the vendor UUID
+     * @param page 0-based page number
+     * @param size page size
+     * @return paged response of matching transactions
+     */
+    public PagedResponse<VendorTransaction> getTransactionsByVendorId(UUID vendorId, int page, int size) {
+        List<VendorTransaction> content = vendorTransactionRepository.findByVendorIdPaged(vendorId, page, size);
+        long totalElements = vendorTransactionRepository.countByVendorId(vendorId);
+        int totalPages = calculateTotalPages(totalElements, size);
+
+        return new PagedResponse<>(
+                content,
+                page,
+                size,
+                totalElements,
+                totalPages
+        );
+    }
+
+    private void validateFilter(VendorTransactionFilterRequest filter) {
+        if (filter == null) {
+            throw new IllegalArgumentException("Provide either marketDate or both startMarketDate and endMarketDate.");
+        }
+
+        LocalDate marketDate = filter.getMarketDate();
+        LocalDate startMarketDate = filter.getStartMarketDate();
+        LocalDate endMarketDate = filter.getEndMarketDate();
+        boolean hasMarketDate = marketDate != null;
+        boolean hasRangeStart = startMarketDate != null;
+        boolean hasRangeEnd = endMarketDate != null;
+
+        if (hasMarketDate && (hasRangeStart || hasRangeEnd)) {
+            throw new IllegalArgumentException("marketDate cannot be combined with startMarketDate or endMarketDate.");
+        }
+
+        if (!hasMarketDate && !hasRangeStart && !hasRangeEnd) {
+            throw new IllegalArgumentException("Provide either marketDate or both startMarketDate and endMarketDate.");
+        }
+
+        if (hasRangeStart != hasRangeEnd) {
+            throw new IllegalArgumentException("Provide both startMarketDate and endMarketDate for a range filter.");
+        }
+
+        if (hasRangeStart && startMarketDate.isAfter(endMarketDate)) {
+            throw new IllegalArgumentException("startMarketDate must be on or before endMarketDate.");
+        }
+    }
+
+    private int calculateTotalPages(long totalElements, int size) {
+        return size > 0 ? (int) Math.ceil((double) totalElements / size) : 0;
     }
 
     /**
