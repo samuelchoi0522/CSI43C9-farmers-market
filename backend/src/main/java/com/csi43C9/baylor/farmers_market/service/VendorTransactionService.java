@@ -1,12 +1,14 @@
 package com.csi43C9.baylor.farmers_market.service;
 
 import com.csi43C9.baylor.farmers_market.dto.PagedResponse;
+import com.csi43C9.baylor.farmers_market.dto.vendor_transaction.RevenueBreakdown;
 import com.csi43C9.baylor.farmers_market.dto.vendor_transaction.SaveVendorTransactionRequest;
 import com.csi43C9.baylor.farmers_market.entity.VendorTransaction;
 import com.csi43C9.baylor.farmers_market.repository.VendorTransactionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -90,6 +92,10 @@ public class VendorTransactionService {
                 totalElements,
                 totalPages
         );
+    }
+
+    public RevenueBreakdown getRevenueBreakdownForDate(LocalDate date) {
+        return vendorTransactionRepository.getRevenueBreakdownForDate(date);
     }
 
     /**
