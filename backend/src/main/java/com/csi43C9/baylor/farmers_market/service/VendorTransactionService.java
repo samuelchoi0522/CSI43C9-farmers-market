@@ -98,6 +98,10 @@ public class VendorTransactionService {
         return vendorTransactionRepository.getRevenueBreakdownForDate(date);
     }
 
+    public RevenueBreakdown getRevenueBreakdownForDateRange(LocalDate startDate, LocalDate endDate) {
+        return vendorTransactionRepository.getRevenueBreakdownForDateRange(startDate, endDate);
+    }
+
     /**
      * Helper class for mapping vendor transaction requests to vendor transaction entities.
      */

@@ -229,18 +229,30 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
     }
 
     /**
-     * Retrieves the revenue breakdown by vendor type for a specific market date.
+     * Retrieves the revenue breakdown by vendor type for a single specific market date.
      *
      * @param date the market date to query
-     * @return a map containing the rounded revenue totals for each category
+     * @return a RevenueBreakdown record containing the rounded revenue totals
      */
     public RevenueBreakdown getRevenueBreakdownForDate(LocalDate date) {
+        // Delegate to the range method, using the same date for start and end
+        return getRevenueBreakdownForDateRange(date, date);
+    }
+
+    /**
+     * Retrieves the revenue breakdown by vendor type for a specific date range.
+     *
+     * @param startDate the beginning of the market date range (inclusive)
+     * @param endDate   the end of the market date range (inclusive)
+     * @return a RevenueBreakdown record containing the rounded revenue totals
+     */
+    public RevenueBreakdown getRevenueBreakdownForDateRange(LocalDate startDate, LocalDate endDate) {
         String sql = """
-                /* Vendor sales for the specified date */
+                /* Vendor sales for the specified date range */
                 with vendor_sales as (
                     select vendor_id, sum(reported_sales) as reported_sales
                     from vendor_transactions
-                    where market_date = ?
+                    where market_date >= ? and market_date <= ?
                       and present = 1
                     group by vendor_id
                 ),
@@ -274,6 +286,6 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
                 rs.getBigDecimal("cottage"),
                 rs.getBigDecimal("manufactured"),
                 rs.getBigDecimal("total_sales")
-        ), date);
+        ), startDate, endDate);
     }
 }

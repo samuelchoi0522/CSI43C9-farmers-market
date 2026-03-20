@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -120,14 +121,32 @@ public class VendorTransactionController {
     }
 
     /**
-     * Retrieves the vendor revenue breakdown for a specific date.
+     * Retrieves the vendor revenue breakdown for a specific date or date range.
+     * Clients must provide either a single 'date' or both 'startDate' and 'endDate'.
      *
-     * @param date the market date to query, strictly formatted as YYYY-MM-DD
+     * @param date      the specific market date to query (YYYY-MM-DD), optional
+     * @param startDate the beginning of the date range (YYYY-MM-DD), optional
+     * @param endDate   the end of the date range (YYYY-MM-DD), optional
      * @return a ResponseEntity containing the revenue breakdown
+     * @throws IllegalArgumentException if the parameter combination is invalid
      */
     @GetMapping("/revenue")
-    public ResponseEntity<@NonNull RevenueBreakdown> getRevenueBreakdownForDate(
-            @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        return ResponseEntity.ok(vendorTransactionService.getRevenueBreakdownForDate(date));
+    public ResponseEntity<@NonNull RevenueBreakdown> getRevenueBreakdown(
+            @RequestParam(value = "date", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(value = "startDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(value = "endDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+
+        if (Objects.nonNull(startDate) && Objects.nonNull(endDate)) {
+            if (startDate.isAfter(endDate)) {
+                throw new IllegalArgumentException("The startDate cannot be after the endDate.");
+            }
+            return ResponseEntity.ok(vendorTransactionService.getRevenueBreakdownForDateRange(startDate, endDate));
+        }
+
+        if (Objects.nonNull(date)) {
+            return ResponseEntity.ok(vendorTransactionService.getRevenueBreakdownForDate(date));
+        }
+
+        throw new IllegalArgumentException("You must provide either 'date', or both 'startDate' and 'endDate'.");
     }
 }
