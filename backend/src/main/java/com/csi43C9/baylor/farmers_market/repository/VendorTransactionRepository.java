@@ -305,6 +305,5 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
         return new QueryParts(sql, args);
     }
 
-    private record QueryParts(StringBuilder sql, List<Object> args) {
-    }
+    private record QueryParts(StringBuilder sql, List<Object> args) {}
 }
