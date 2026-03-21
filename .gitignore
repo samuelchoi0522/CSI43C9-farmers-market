@@ -64,6 +64,7 @@ bin/
 
 # Environment files
 backend/.env
+.env
 .env.local
 .env.*.local
 
