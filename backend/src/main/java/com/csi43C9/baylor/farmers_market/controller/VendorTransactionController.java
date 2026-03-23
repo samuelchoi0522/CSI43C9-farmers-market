@@ -3,6 +3,7 @@ package com.csi43C9.baylor.farmers_market.controller;
 import com.csi43C9.baylor.farmers_market.dto.PagedResponse;
 import com.csi43C9.baylor.farmers_market.dto.vendor_transaction.RevenueBreakdown;
 import com.csi43C9.baylor.farmers_market.dto.vendor_transaction.SaveVendorTransactionRequest;
+import com.csi43C9.baylor.farmers_market.dto.vendor_transaction.VendorTransactionFilterRequest;
 import com.csi43C9.baylor.farmers_market.entity.VendorTransaction;
 import com.csi43C9.baylor.farmers_market.service.VendorTransactionService;
 import jakarta.validation.Valid;
@@ -79,6 +80,39 @@ public class VendorTransactionController {
             @RequestParam(defaultValue = "10") int size) {
 
         return ResponseEntity.ok(vendorTransactionService.getTransactions(page, size));
+    }
+
+    /**
+     * Retrieves vendor transactions for one market date or an inclusive market date range.
+     * This endpoint is intentionally filter-driven to support future expansion.
+     * @param filter request filters bound from query parameters
+     * @param page 0-based page number
+     * @param size page size
+     * @return a paged response of matching vendor transactions
+     */
+    @GetMapping("/search")
+    public ResponseEntity<@NonNull PagedResponse<VendorTransaction>> getVendorTransactionsByFilter(
+            VendorTransactionFilterRequest filter,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        return ResponseEntity.ok(vendorTransactionService.getTransactions(filter, page, size));
+    }
+
+    /**
+     * Retrieves vendor transactions for a single vendor.
+     * @param vendorId the vendor UUID
+     * @param page 0-based page number
+     * @param size page size
+     * @return a paged response of matching vendor transactions
+     */
+    @GetMapping("/vendor/{vendorId}")
+    public ResponseEntity<@NonNull PagedResponse<VendorTransaction>> getVendorTransactionsByVendorId(
+            @PathVariable UUID vendorId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        return ResponseEntity.ok(vendorTransactionService.getTransactionsByVendorId(vendorId, page, size));
     }
 
     /**

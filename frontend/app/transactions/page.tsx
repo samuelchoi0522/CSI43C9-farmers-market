@@ -449,7 +449,7 @@ function TransactionsContent() {
 
         <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left border-collapse">
+            <table className="transactions-table w-full text-sm text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 text-xs uppercase text-slate-600 dark:text-slate-400 font-semibold">
                   <th className="px-4 py-4 min-w-[200px] sticky left-0 bg-slate-50 dark:bg-slate-900/50 z-10 border-r border-slate-200 dark:border-slate-700">Vendor Name</th>
@@ -578,7 +578,7 @@ function SalesRow({ record, isEditing, isInvalid, onEdit, onSave, onDelete, onUp
         group transition-colors cursor-pointer
         ${isInvalid ? 'bg-red-50 dark:bg-red-900/20 border-l-4 border-l-red-400 dark:border-l-red-500' : ''}
         ${isEditing && !isInvalid ? 'bg-[#10b981]/10 dark:bg-[#10b981]/15' : ''}
-        ${!isEditing && !isInvalid ? 'hover:bg-slate-50/80 dark:hover:bg-slate-800/80' : ''}
+        ${!isEditing && !isInvalid ? 'hover:bg-slate-100 dark:hover:bg-slate-700/60' : ''}
       `}
     >
       {/* Vendor Name — always editable when invalid */}

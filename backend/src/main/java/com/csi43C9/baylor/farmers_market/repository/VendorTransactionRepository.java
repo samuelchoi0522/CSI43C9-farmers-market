@@ -1,5 +1,6 @@
 package com.csi43C9.baylor.farmers_market.repository;
 
+import com.csi43C9.baylor.farmers_market.dto.vendor_transaction.VendorTransactionFilterRequest;
 import com.csi43C9.baylor.farmers_market.dto.vendor_transaction.RevenueBreakdown;
 import com.csi43C9.baylor.farmers_market.entity.VendorTransaction;
 import com.csi43C9.baylor.farmers_market.repository.base.AbstractJdbcRepository;
@@ -15,6 +16,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.ArrayList;
 
 /**
  * JDBC implementation of VendorTransaction management.
@@ -206,6 +208,64 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
     }
 
     /**
+     * Retrieves a page of vendor transactions matching the provided filters.
+     * @param filter filter values to apply
+     * @param page 0-based page number
+     * @param size page size
+     * @return a list of matching vendor transactions
+     */
+    public List<VendorTransaction> findFilteredPaged(VendorTransactionFilterRequest filter, int page, int size) {
+        QueryParts query = buildFilteredQuery(filter, false, null);
+        query.sql.append("""
+                order by market_date desc, vendor_name
+                offset ? rows fetch next ? rows only
+                """);
+        query.args.add(page * size);
+        query.args.add(size);
+        return jdbcTemplate.query(query.sql.toString(), new VendorTransactionRowMapper(), query.args.toArray());
+    }
+
+    /**
+     * Counts vendor transactions matching the provided filters.
+     * @param filter filter values to apply
+     * @return the number of matching vendor transactions
+     */
+    public long countFiltered(VendorTransactionFilterRequest filter) {
+        QueryParts query = buildFilteredQuery(filter, true, null);
+        Long count = jdbcTemplate.queryForObject(query.sql.toString(), Long.class, query.args.toArray());
+        return count != null ? count : 0L;
+    }
+
+    /**
+     * Retrieves a page of vendor transactions for a specific vendor.
+     * @param vendorId the vendor UUID
+     * @param page 0-based page number
+     * @param size page size
+     * @return a list of matching vendor transactions
+     */
+    public List<VendorTransaction> findByVendorIdPaged(UUID vendorId, int page, int size) {
+        QueryParts query = buildFilteredQuery(null, false, vendorId);
+        query.sql.append("""
+                order by market_date desc, vendor_name
+                offset ? rows fetch next ? rows only
+                """);
+        query.args.add(page * size);
+        query.args.add(size);
+        return jdbcTemplate.query(query.sql.toString(), new VendorTransactionRowMapper(), query.args.toArray());
+    }
+
+    /**
+     * Counts vendor transactions for a specific vendor.
+     * @param vendorId the vendor UUID
+     * @return the number of matching vendor transactions
+     */
+    public long countByVendorId(UUID vendorId) {
+        QueryParts query = buildFilteredQuery(null, true, vendorId);
+        Long count = jdbcTemplate.queryForObject(query.sql.toString(), Long.class, query.args.toArray());
+        return count != null ? count : 0L;
+    }
+
+    /**
      * Counts the number of vendor transactions in the database.
      *
      * @return the number of vendor transactions
@@ -226,6 +286,36 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
     public void deleteById(UUID uuid) {
         String sql = "delete from vendor_transactions where id = ?";
         jdbcTemplate.update(sql, UuidUtils.toBytes(uuid));
+    }
+
+    private QueryParts buildFilteredQuery(VendorTransactionFilterRequest filter, boolean countQuery, UUID vendorId) {
+        StringBuilder sql = new StringBuilder(countQuery
+                ? "select count(*) from vendor_transactions where 1 = 1"
+                : "select * from vendor_transactions where 1 = 1");
+        List<Object> args = new ArrayList<>();
+
+        if (vendorId != null) {
+            sql.append(" and vendor_id = ?");
+            args.add(UuidUtils.toBytes(vendorId));
+        }
+
+        if (filter != null) {
+            if (filter.getMarketDate() != null) {
+                sql.append(" and market_date = ?");
+                args.add(filter.getMarketDate());
+            }
+
+            if (filter.getStartMarketDate() != null && filter.getEndMarketDate() != null) {
+                sql.append(" and market_date between ? and ?");
+                args.add(filter.getStartMarketDate());
+                args.add(filter.getEndMarketDate());
+            }
+        }
+
+        return new QueryParts(sql, args);
+    }
+
+    private record QueryParts(StringBuilder sql, List<Object> args) {
     }
 
     /**
