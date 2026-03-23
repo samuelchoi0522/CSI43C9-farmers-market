@@ -294,7 +294,7 @@ function TransactionsContent() {
   const invalidCount = records.filter(r => r.isInvalid).length;
 
   return (
-    <div className="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-screen flex transition-colors duration-300">
+    <div className="transactions-page bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-screen flex transition-colors duration-300">
       <style dangerouslySetInnerHTML={{ __html: `
         input::-webkit-outer-spin-button,
         input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
@@ -406,7 +406,7 @@ function TransactionsContent() {
                   <th className="px-4 py-4 w-16 text-center"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+              <tbody className="divide-y divide-slate-200/60">
                 <AnimatePresence initial={false}>
                   {records.map(record => (
                     <SalesRow 
@@ -498,6 +498,12 @@ function SalesRow({ record, isEditing, isInvalid, onEdit, onSave, onDelete, onUp
     }
   };
 
+  const stickyCellBackgroundClass = isInvalid
+    ? 'bg-red-50'
+    : isEditing
+      ? 'bg-[#10b981]/10'
+      : 'bg-white group-hover:bg-green-50';
+
   return (
     <motion.tr 
       layout
@@ -507,13 +513,13 @@ function SalesRow({ record, isEditing, isInvalid, onEdit, onSave, onDelete, onUp
       onClick={() => !isEditing && onEdit()}
       className={`
         group transition-colors cursor-pointer
-        ${isInvalid ? 'bg-red-50 dark:bg-red-900/20 border-l-4 border-l-red-400 dark:border-l-red-500' : ''}
-        ${isEditing && !isInvalid ? 'bg-[#10b981]/10 dark:bg-[#10b981]/15' : ''}
-        ${!isEditing && !isInvalid ? 'hover:bg-slate-50/80 dark:hover:bg-slate-800/80' : ''}
+        ${isInvalid ? 'bg-red-50 border-l-4 border-l-red-400' : ''}
+        ${isEditing && !isInvalid ? 'bg-[#10b981]/10' : ''}
+        ${!isEditing && !isInvalid ? 'hover:bg-green-50' : ''}
       `}
     >
       {/* Vendor Name — always editable when invalid */}
-      <td className="px-4 py-3 font-medium sticky left-0 bg-inherit z-10 border-r border-slate-100 dark:border-slate-700">
+      <td className={`px-4 py-3 font-medium sticky left-0 z-10 border-r border-slate-200/60 ${stickyCellBackgroundClass}`}>
         {isEditing || isInvalid ? (
           <div>
             <input
@@ -529,7 +535,7 @@ function SalesRow({ record, isEditing, isInvalid, onEdit, onSave, onDelete, onUp
               placeholder="Enter valid vendor name..."
             />
             {isInvalid && (
-              <p className="text-xs text-red-500 mt-1">Vendor not found — check spelling</p>
+              <p className="text-xs text-red-500 mt-1">Vendor not found</p>
             )}
           </div>
         ) : (

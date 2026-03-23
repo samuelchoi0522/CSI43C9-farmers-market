@@ -467,7 +467,7 @@ html.dark .transactions-page .text-blue-700,
 
 /* Row states */
 .transactions-page tbody tr:hover:not([class*="bg-red"]) {
-    background-color: rgba(248, 250, 252, 0.5) !important;
+    background-color: rgb(240, 253, 244) !important;
 }
 
 html.dark .transactions-page tbody tr:hover:not([class*="bg-red"]),
