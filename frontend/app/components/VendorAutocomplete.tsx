@@ -18,6 +18,12 @@ interface VendorAutocompleteProps {
 export function VendorAutocomplete({ vendors, onSelect, placeholder = "Search vendor..." }: VendorAutocompleteProps) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
+  const [search, setSearch] = useState("");
+
+  const filteredVendors = vendors.filter((vendor) =>
+    vendor.name.toLowerCase().includes(search.toLowerCase())
+  );
+  const shouldScroll = filteredVendors.length > 6;
 
   return (
     <div className="relative w-full">
@@ -37,15 +43,25 @@ export function VendorAutocomplete({ vendors, onSelect, placeholder = "Search ve
           </button>
         </PopoverTrigger>
         <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-white border-gray-200 text-gray-900" align="start">
-          <Command className="w-full bg-white text-gray-900">
+          <Command className="w-full bg-white text-gray-900" shouldFilter={false}>
             <CommandInput 
               placeholder="Start typing name..." 
               className="flex h-11 w-full rounded-t-md bg-white py-3 px-3 text-sm text-gray-900 placeholder:text-gray-500 outline-none border-b border-gray-200"
+              value={search}
+              onValueChange={setSearch}
             />
-            <CommandList className="max-h-[250px] overflow-y-auto p-1 bg-white">
+            <CommandList className={cn(
+              "p-1 bg-white overscroll-contain",
+              shouldScroll ? "max-h-[250px] overflow-y-auto" : "overflow-y-visible"
+            )}
+            onWheelCapture={(event) => {
+              if (shouldScroll) {
+                event.stopPropagation();
+              }
+            }}>
               <CommandEmpty className="py-6 text-center text-sm text-gray-500">No results found.</CommandEmpty>
               <CommandGroup className="text-gray-900">
-                {vendors.map((vendor) => (
+                {filteredVendors.map((vendor) => (
                   <CommandItem
                     key={vendor.id}
                     value={vendor.name}
@@ -55,6 +71,7 @@ export function VendorAutocomplete({ vendors, onSelect, placeholder = "Search ve
                       const found = vendors.find(v => v.name.toLowerCase() === currentValue.toLowerCase());
                       if (found) {
                         setValue(found.name);
+                        setSearch("");
                         onSelect(found);
                         setOpen(false);
                       }
