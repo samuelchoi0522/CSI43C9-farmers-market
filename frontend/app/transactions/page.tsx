@@ -502,7 +502,7 @@ function SalesRow({ record, isEditing, isInvalid, onEdit, onSave, onDelete, onUp
     ? 'bg-red-50'
     : isEditing
       ? 'bg-[#10b981]/10'
-      : 'bg-white group-hover:bg-green-50';
+      : 'bg-inherit';
 
   return (
     <motion.tr 
