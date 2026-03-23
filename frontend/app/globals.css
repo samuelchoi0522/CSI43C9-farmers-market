@@ -326,8 +326,8 @@ html.dark .transactions-page,
 
 /* Header */
 .transactions-page header {
-    background-color: white !important;
-    border-color: rgb(226 232 240) !important;
+    background-color: transparent !important;
+    border-color: transparent !important;
 }
 
 html.dark .transactions-page header,
