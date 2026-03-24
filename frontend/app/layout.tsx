@@ -32,30 +32,6 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/icon?family=Material+Icons"
           rel="stylesheet"
         />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  const storedDarkMode = localStorage.getItem("darkMode");
-                  if (storedDarkMode === null) {
-                    // If no preference, default to light mode and save it
-                    document.documentElement.classList.remove("dark");
-                    localStorage.setItem("darkMode", "false");
-                  } else if (storedDarkMode === "true") {
-                    document.documentElement.classList.add("dark");
-                  } else {
-                    document.documentElement.classList.remove("dark");
-                  }
-                } catch (e) {
-                  console.error("Failed to access localStorage for dark mode:", e);
-                  // Fallback to light mode if localStorage is unavailable
-                  document.documentElement.classList.remove("dark");
-                }
-              })();
-            `,
-          }}
-        />
       </head>
       <body
         className={`${inter.variable} ${fraunces.variable} antialiased`}

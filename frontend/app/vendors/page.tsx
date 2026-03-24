@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import DarkModeToggle from "../components/DarkModeToggle";
 import SidebarNavigation from "../components/SidebarNavigation";
 import Button from "../components/Button";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -19,10 +18,6 @@ interface VendorWithDefaults extends Vendor {
 function VendorsContent() {
     const router = useRouter();
     const [showUserMenu, setShowUserMenu] = useState(false);
-    const [isDarkMode, setIsDarkMode] = useState(() => {
-        if (typeof window === "undefined") return false;
-        return document.documentElement.classList.contains("dark");
-    });
     const [searchQuery, setSearchQuery] = useState("");
     const [showInactive, setShowInactive] = useState(false);
     const [vendors, setVendors] = useState<VendorWithDefaults[]>([]);
@@ -170,29 +165,6 @@ function VendorsContent() {
     }, [searchQuery, vendors]);
 
     useEffect(() => {
-        const checkDarkMode = () => {
-            const isDark = document.documentElement.classList.contains("dark");
-            setIsDarkMode(isDark);
-        };
-
-        // Initial state is already set via useState initializer, so we don't need to set it here
-        // Just set up the observer and event listener
-
-        const observer = new MutationObserver(checkDarkMode);
-        observer.observe(document.documentElement, {
-            attributes: true,
-            attributeFilter: ["class"],
-        });
-
-        window.addEventListener("darkModeChange", checkDarkMode);
-
-        return () => {
-            observer.disconnect();
-            window.removeEventListener("darkModeChange", checkDarkMode);
-        };
-    }, []);
-
-    useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             const target = event.target as HTMLElement;
             if (showUserMenu && !target.closest('.user-menu-container')) {
@@ -256,8 +228,6 @@ function VendorsContent() {
 
     return (
         <div className="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-screen flex transition-colors duration-300">
-            <DarkModeToggle position="fixed" className="bottom-6 right-6 top-auto" />
-
             <SidebarNavigation activeItem="Vendors" />
 
             {/* Main Content */}
@@ -294,9 +264,7 @@ function VendorsContent() {
                                 </div>
                                 <span
                                     className="text-sm font-medium hidden md:block"
-                                    style={{
-                                        color: isDarkMode ? 'rgb(203, 213, 225)' : 'rgb(0, 0, 0)'
-                                    }}
+                                    style={{ color: 'rgb(0, 0, 0)' }}
                                 >
                                     {userName}
                                 </span>
@@ -340,7 +308,7 @@ function VendorsContent() {
                         <div className="flex items-center justify-between mb-4">
                             <div
                                 className="dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
-                                style={{ backgroundColor: isDarkMode ? undefined : 'rgba(219, 234, 254, 0.5)' }}
+                                style={{ backgroundColor: 'rgba(219, 234, 254, 0.5)' }}
                             >
                                 <span className="material-icons leading-none">agriculture</span>
                             </div>
@@ -353,7 +321,7 @@ function VendorsContent() {
                         <div className="flex items-center justify-between mb-4">
                             <div
                                 className="dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
-                                style={{ backgroundColor: isDarkMode ? undefined : 'rgba(243, 232, 255, 0.5)' }}
+                                style={{ backgroundColor: 'rgba(243, 232, 255, 0.5)' }}
                             >
                                 <span className="material-icons leading-none">eco</span>
                             </div>
@@ -366,7 +334,7 @@ function VendorsContent() {
                         <div className="flex items-center justify-between mb-4">
                             <div
                                 className="dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
-                                style={{ backgroundColor: isDarkMode ? undefined : 'rgba(252, 231, 243, 0.5)' }}
+                                style={{ backgroundColor: 'rgba(252, 231, 243, 0.5)' }}
                             >
                                 <span className="material-icons leading-none">business</span>
                             </div>
@@ -608,4 +576,3 @@ export default function VendorsPage() {
         </ProtectedRoute>
     );
 }
-
