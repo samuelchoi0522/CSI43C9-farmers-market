@@ -10,7 +10,6 @@ import {
   Upload,
   Download
 } from 'lucide-react';
-import DarkModeToggle from '../components/DarkModeToggle';
 import SidebarNavigation from '../components/SidebarNavigation';
 import Button from '../components/Button';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -360,7 +359,6 @@ function TransactionsContent() {
         input[type=number] { -moz-appearance: textfield; }
       `}} />
       <Toaster position="top-right" />
-      <DarkModeToggle position="fixed" className="bottom-6 right-6 top-auto" />
       <SidebarNavigation activeItem="Transactions" />
 
       <main className="flex-1 overflow-y-auto p-4 lg:p-8">

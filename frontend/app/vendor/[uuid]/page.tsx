@@ -18,7 +18,6 @@ import {
 import { Line, Doughnut } from "react-chartjs-2";
 import SidebarNavigation from "@/app/components/SidebarNavigation";
 import Button from "@/app/components/Button";
-import DarkModeToggle from "@/app/components/DarkModeToggle";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
 import { Vendor, getVendor } from "@/lib/api/vendor";
@@ -48,9 +47,9 @@ ChartJS.register(
     Filler
 );
 
-// Set Chart.js defaults for dark mode support
+// Set Chart.js defaults for consistent light-mode styling
 if (typeof window !== "undefined") {
-    ChartJS.defaults.color = "#94a3b8";
+    ChartJS.defaults.color = "#64748b";
     ChartJS.defaults.font.family = "Inter, sans-serif";
 }
 
@@ -93,7 +92,6 @@ function VendorDetailContent() {
     const uuid = params.uuid as string;
     const { user, logout } = useAuth();
     const [showUserMenu, setShowUserMenu] = useState(false);
-    const [isDarkMode, setIsDarkMode] = useState(false);
     const [vendor, setVendor] = useState<Vendor | null>(null);
     const [vendorData, setVendorData] = useState<VendorData>({
         id: uuid,
@@ -166,30 +164,6 @@ function VendorDetailContent() {
     const [isLabelDialogOpen, setIsLabelDialogOpen] = useState(false);
 
     const normalizeLabelName = (name: string) => name.trim().toLowerCase();
-
-    useEffect(() => {
-        const checkDarkMode = () => {
-            const isDark = document.documentElement.classList.contains("dark");
-            setIsDarkMode(isDark);
-            // Update Chart.js defaults when dark mode changes
-            ChartJS.defaults.color = isDark ? "#94a3b8" : "#64748b";
-        };
-
-        checkDarkMode();
-
-        const observer = new MutationObserver(checkDarkMode);
-        observer.observe(document.documentElement, {
-            attributes: true,
-            attributeFilter: ["class"],
-        });
-
-        window.addEventListener("darkModeChange", checkDarkMode);
-
-        return () => {
-            observer.disconnect();
-            window.removeEventListener("darkModeChange", checkDarkMode);
-        };
-    }, []);
 
     useEffect(() => {
         const fetchVendorAndLabels = async () => {
@@ -327,8 +301,6 @@ function VendorDetailContent() {
 
     return (
         <div className="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-screen flex transition-colors duration-300">
-            <DarkModeToggle position="fixed" className="bottom-6 right-6 top-auto" />
-
             <SidebarNavigation activeItem="Vendors" />
 
             {/* Main Content */}
@@ -351,9 +323,7 @@ function VendorDetailContent() {
                                 {vendorData.isActive ? (
                                     <span 
                                         className="px-3 py-1 rounded-full text-xs font-bold text-[#10b981] dark:bg-green-900/30 dark:text-green-400"
-                                        style={{ 
-                                            backgroundColor: isDarkMode ? undefined : 'rgba(16, 185, 129, 0.1)' 
-                                        }}
+                                        style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)' }}
                                     >
                                         ACTIVE
                                     </span>
@@ -402,11 +372,7 @@ function VendorDetailContent() {
                                     </div>
                                     <span
                                         className="text-sm font-medium hidden md:block"
-                                        style={{
-                                            color: isDarkMode
-                                                ? "rgb(203, 213, 225)"
-                                                : "rgb(0, 0, 0)",
-                                        }}
+                                        style={{ color: "rgb(0, 0, 0)" }}
                                     >
                                         {userName}
                                     </span>
@@ -565,10 +531,10 @@ function VendorDetailContent() {
                             {/* Top Selling Month */}
                             <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
                                 <div className="flex items-center justify-between mb-3">
-                                    <div
-                                        className="dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
-                                        style={{ backgroundColor: isDarkMode ? undefined : 'rgba(243, 232, 255, 0.5)' }}
-                                    >
+                                <div
+                                    className="dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
+                                    style={{ backgroundColor: 'rgba(243, 232, 255, 0.5)' }}
+                                >
                                         <span className="material-icons leading-none">trending_up</span>
                                     </div>
                                 </div>
@@ -583,10 +549,10 @@ function VendorDetailContent() {
                             {/* SNAP Transactions */}
                             <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
                                 <div className="flex items-center justify-between mb-3">
-                                    <div
-                                        className="dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
-                                        style={{ backgroundColor: isDarkMode ? undefined : 'rgba(252, 231, 243, 0.5)' }}
-                                    >
+                                <div
+                                    className="dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
+                                    style={{ backgroundColor: 'rgba(252, 231, 243, 0.5)' }}
+                                >
                                         <span className="material-icons leading-none">receipt_long</span>
                                     </div>
                                 </div>
@@ -601,17 +567,15 @@ function VendorDetailContent() {
                             {/* Attendance Rate */}
                             <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
                                 <div className="flex items-center justify-between mb-3">
-                                    <div
-                                        className="dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
-                                        style={{ backgroundColor: isDarkMode ? undefined : 'rgba(219, 234, 254, 0.5)' }}
-                                    >
+                                <div
+                                    className="dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
+                                    style={{ backgroundColor: 'rgba(219, 234, 254, 0.5)' }}
+                                >
                                         <span className="material-icons leading-none">calendar_today</span>
                                     </div>
                                     <span 
                                         className="text-[10px] font-bold text-[#10b981] dark:text-green-400 flex items-center dark:bg-green-900/20 px-2 py-0.5 rounded-full"
-                                        style={{ 
-                                            backgroundColor: isDarkMode ? undefined : 'rgba(16, 185, 129, 0.1)' 
-                                        }}
+                                        style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)' }}
                                     >
                                         +{vendorData.attendanceChange}%
                                     </span>
@@ -646,9 +610,7 @@ function VendorDetailContent() {
                         <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
                             <h2 
                                 className="text-lg font-bold dark:text-slate-100"
-                                style={{ 
-                                    color: isDarkMode ? undefined : 'rgb(15, 23, 42)' 
-                                }}
+                                style={{ color: 'rgb(15, 23, 42)' }}
                             >
                                 Market History Recap
                             </h2>
@@ -656,14 +618,12 @@ function VendorDetailContent() {
                                 <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">
                                     search
                                 </span>
-                                <input
-                                    className="pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm w-64 focus:ring-[#10b981] focus:border-[#10b981] dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400"
-                                    placeholder="Search sessions..."
-                                    type="text"
-                                    style={{ 
-                                        color: isDarkMode ? undefined : 'rgb(51, 65, 85)' 
-                                    }}
-                                />
+                                    <input
+                                        className="pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm w-64 focus:ring-[#10b981] focus:border-[#10b981] dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400"
+                                        placeholder="Search sessions..."
+                                        type="text"
+                                        style={{ color: 'rgb(51, 65, 85)' }}
+                                    />
                             </div>
                         </div>
                         <div className="overflow-x-auto">

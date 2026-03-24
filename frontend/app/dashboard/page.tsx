@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import DarkModeToggle from "../components/DarkModeToggle";
 import SidebarNavigation from "../components/SidebarNavigation";
 import CategoryRevenueChart from "../components/CategoryRevenueChart";
 import Button from "../components/Button";
@@ -16,10 +15,6 @@ interface VendorWithDefaults extends Vendor {
 
 function DashboardContent() {
     const [showUserMenu, setShowUserMenu] = useState(false);
-    const [isDarkMode, setIsDarkMode] = useState(() => {
-        if (typeof window === "undefined") return false;
-        return document.documentElement.classList.contains("dark");
-    });
     const [vendors, setVendors] = useState<VendorWithDefaults[]>([]);
     const [vendorDefaults, setVendorDefaults] = useState<VendorDefaults[]>([]);
     const [loading, setLoading] = useState(true);
@@ -29,29 +24,6 @@ function DashboardContent() {
     const [totalElements, setTotalElements] = useState(0);
     const { user, logout } = useAuth();
     const userName = user?.username || "Admin User";
-
-    useEffect(() => {
-        // Listen for dark mode changes to trigger re-renders
-        const checkDarkMode = () => {
-            // Force re-render when dark mode changes
-            const isDark = document.documentElement.classList.contains("dark");
-            setIsDarkMode(isDark);
-        };
-
-        const observer = new MutationObserver(checkDarkMode);
-        observer.observe(document.documentElement, {
-            attributes: true,
-            attributeFilter: ["class"],
-        });
-
-        // Also listen for custom event
-        window.addEventListener("darkModeChange", checkDarkMode);
-
-        return () => {
-            observer.disconnect();
-            window.removeEventListener("darkModeChange", checkDarkMode);
-        };
-    }, []);
 
     useEffect(() => {
         // Close user menu when clicking outside
@@ -147,8 +119,6 @@ function DashboardContent() {
 
     return (
         <div className="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-screen flex transition-colors duration-300">
-            <DarkModeToggle position="fixed" className="bottom-6 right-6 top-auto" />
-
             <SidebarNavigation activeItem="Dashboard" />
 
             {/* Main Content */}
@@ -171,9 +141,7 @@ function DashboardContent() {
                                 </div>
                                 <span
                                     className="text-sm font-medium hidden md:block"
-                                    style={{
-                                        color: isDarkMode ? 'rgb(203, 213, 225)' : 'rgb(0, 0, 0)'
-                                    }}
+                                    style={{ color: 'rgb(0, 0, 0)' }}
                                 >
                                     {userName}
                                 </span>
@@ -207,7 +175,7 @@ function DashboardContent() {
                         <div className="flex items-center justify-between mb-4">
                             <div
                                 className="dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
-                                style={{ backgroundColor: isDarkMode ? undefined : 'rgba(219, 234, 254, 0.5)' }}
+                                style={{ backgroundColor: 'rgba(219, 234, 254, 0.5)' }}
                             >
                                 <span className="material-icons leading-none">credit_card</span>
                             </div>
@@ -236,7 +204,7 @@ function DashboardContent() {
                         <div className="flex items-center justify-between mb-4">
                             <div
                                 className="dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
-                                style={{ backgroundColor: isDarkMode ? undefined : 'rgba(254, 243, 199, 0.5)' }}
+                                style={{ backgroundColor: 'rgba(254, 243, 199, 0.5)' }}
                             >
                                 <span className="material-icons leading-none">folder</span>
                             </div>
