@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import DarkModeToggle from "./components/DarkModeToggle";
 import Button from "./components/Button";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -43,7 +42,6 @@ export default function LoginPage() {
 
   return (
     <div className="bg-[#F9FAF2] dark:bg-[#121412] font-sans transition-colors duration-300 animate-fade-in">
-      <DarkModeToggle />
       
       <div className="min-h-screen flex items-center justify-center market-bg p-4">
         <div className="w-full max-w-md">

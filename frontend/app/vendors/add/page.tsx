@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
-import DarkModeToggle from "../../components/DarkModeToggle";
 import SidebarNavigation from "../../components/SidebarNavigation";
 import Button from "../../components/Button";
 import LabelPickerDialog from "../../components/LabelPickerDialog";
@@ -43,10 +42,6 @@ interface VendorFormData {
 function AddVendorContent() {
     const router = useRouter();
     const [showUserMenu, setShowUserMenu] = useState(false);
-    const [isDarkMode, setIsDarkMode] = useState(() => {
-        if (typeof window === "undefined") return false;
-        return document.documentElement.classList.contains("dark");
-    });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [animatedPercentage, setAnimatedPercentage] = useState(0);
@@ -186,29 +181,6 @@ function AddVendorContent() {
             }
         };
     }, [profileCompletion, animatedPercentage]);
-
-    useEffect(() => {
-        const checkDarkMode = () => {
-            const isDark = document.documentElement.classList.contains("dark");
-            setIsDarkMode(isDark);
-        };
-
-        const isDark = document.documentElement.classList.contains("dark");
-        setIsDarkMode(isDark);
-
-        const observer = new MutationObserver(checkDarkMode);
-        observer.observe(document.documentElement, {
-            attributes: true,
-            attributeFilter: ["class"],
-        });
-
-        window.addEventListener("darkModeChange", checkDarkMode);
-
-        return () => {
-            observer.disconnect();
-            window.removeEventListener("darkModeChange", checkDarkMode);
-        };
-    }, []);
 
     useEffect(() => {
         const fetchLabels = async () => {
@@ -444,8 +416,6 @@ function AddVendorContent() {
 
     return (
         <div className="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-screen flex transition-colors duration-300">
-            <DarkModeToggle position="fixed" className="bottom-6 right-6 top-auto" />
-
             <SidebarNavigation activeItem="Vendors" />
 
             {/* Main Content */}
@@ -469,9 +439,7 @@ function AddVendorContent() {
                             </div>
                             <span
                                 className="text-sm font-medium hidden md:block"
-                                style={{
-                                    color: isDarkMode ? 'rgb(203, 213, 225)' : 'rgb(0, 0, 0)'
-                                }}
+                                style={{ color: 'rgb(0, 0, 0)' }}
                             >
                                 {userName}
                             </span>
