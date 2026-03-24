@@ -23,8 +23,8 @@ create table vendor_transactions
     id                   binary(16) primary key,
     vendor_id            binary(16) not null,
     vendor_name          varchar(255) not null,
-    market_date          date not null,
-    present              boolean default false,
+    market_date          date         not null,
+    present              boolean   default false,
     snap                 double,
     dufb                 double,
     wdfm_tokens          double,
@@ -33,6 +33,7 @@ create table vendor_transactions
     reported_sales       double,
     est_produce_sales    double,
     est_num_transactions bigint,
+    custom_data          json,
     created_at           timestamp default current_timestamp,
     updated_at           timestamp
 );
@@ -57,3 +58,20 @@ create table refresh_tokens
     expiry_date TIMESTAMP    not null,
     constraint fk_users_token foreign key (user_id) references users (id) on delete cascade
 );
+
+drop table if exists custom_columns cascade;
+
+create table custom_columns
+(
+    id             INT auto_increment primary key,
+    name           VARCHAR(255) not null,
+    is_required    boolean   default false,
+    type           VARCHAR(255) null,
+    created_at     TIMESTAMP default current_timestamp,
+    updated_at     TIMESTAMP default current_timestamp,
+    deactivated_at TIMESTAMP,
+    constraint cc_name_unique unique (name)
+);
+
+create index cc_name_idx
+    on custom_columns (name);
