@@ -1,17 +1,24 @@
 package com.csi43C9.baylor.farmers_market.service;
 
 import com.csi43C9.baylor.farmers_market.dto.PagedResponse;
+import com.csi43C9.baylor.farmers_market.dto.custom_column.CustomColumnMetadata;
 import com.csi43C9.baylor.farmers_market.dto.vendor_transaction.RevenueBreakdown;
 import com.csi43C9.baylor.farmers_market.dto.vendor_transaction.SaveVendorTransactionRequest;
 import com.csi43C9.baylor.farmers_market.entity.VendorTransaction;
+import com.csi43C9.baylor.farmers_market.repository.CustomColumnRepository;
 import com.csi43C9.baylor.farmers_market.repository.VendorTransactionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Service class handling the business logic for VendorTransaction management.
@@ -21,25 +28,24 @@ import java.util.UUID;
 public class VendorTransactionService {
 
     private final VendorTransactionRepository vendorTransactionRepository;
+    private final CustomColumnRepository customColumnRepository;
 
     /**
      * Creates a new vendor transaction based on the provided request DTO.
-     *
-     * @param request The DTO containing vendor transaction details.
-     * @return The fully persisted VendorTransaction entity.
      */
     public VendorTransaction create(SaveVendorTransactionRequest request) {
+        validateCustomData(request.getCustomData());
         VendorTransaction transaction = new RequestMapper().mapRequest(request);
         return vendorTransactionRepository.save(transaction);
     }
 
     /**
      * Creates multiple vendor transactions based on the provided request DTOs.
-     *
-     * @param requests The DTOs containing vendor transaction details.
-     * @return The fully persisted VendorTransaction entities.
      */
     public List<VendorTransaction> createBulk(List<SaveVendorTransactionRequest> requests) {
+        List<CustomColumnMetadata> activeColumns = customColumnRepository.findAllActiveColumns();
+        requests.forEach(req -> validateCustomData(req.getCustomData(), activeColumns));
+
         List<VendorTransaction> transactions = requests.stream()
                 .map(request -> new RequestMapper().mapRequest(request))
                 .toList();
@@ -48,8 +54,6 @@ public class VendorTransactionService {
 
     /**
      * Retrieves a vendor transaction by its UUID.
-     * @param uuid the UUID of the vendor transaction to retrieve.
-     * @return VendorTransaction
      */
     public Optional<VendorTransaction> get(UUID uuid) {
         return vendorTransactionRepository.findById(uuid);
@@ -57,18 +61,15 @@ public class VendorTransactionService {
 
     /**
      * Updates an existing vendor transaction based on the provided request DTO.
-     * @param uuid the UUID of the vendor transaction to update.
-     * @param request the DTO containing updated vendor transaction details.
-     * @return the updated VendorTransaction entity.
      */
     public VendorTransaction update(UUID uuid, SaveVendorTransactionRequest request) {
+        validateCustomData(request.getCustomData());
         VendorTransaction transaction = new RequestMapper().mapRequest(request, uuid);
         return vendorTransactionRepository.save(transaction);
     }
 
     /**
      * Deletes a vendor transaction from the system.
-     * @param uuid the UUID of the vendor transaction to delete.
      */
     public void delete(UUID uuid) {
         vendorTransactionRepository.deleteById(uuid);
@@ -76,9 +77,6 @@ public class VendorTransactionService {
 
     /**
      * Returns a paged list of all vendor transactions in the system.
-     * @param page 0-based page number
-     * @param size page size
-     * @return PagedResponse
      */
     public PagedResponse<VendorTransaction> getTransactions(int page, int size) {
         List<VendorTransaction> content = vendorTransactionRepository.findAllPaged(page, size);
@@ -103,6 +101,53 @@ public class VendorTransactionService {
     }
 
     /**
+     * Validates the custom data payload against the database's column metadata.
+     */
+    private void validateCustomData(Map<String, Object> customData) {
+        List<CustomColumnMetadata> activeColumns = customColumnRepository.findAllActiveColumns();
+        validateCustomData(customData, activeColumns);
+    }
+
+    /**
+     * Validates the custom data payload against the database's column metadata.
+     */
+    private void validateCustomData(Map<String, Object> customData, List<CustomColumnMetadata> activeColumns) {
+        Map<String, Object> dataToValidate = Objects.nonNull(customData) ? customData : Collections.emptyMap();
+
+        Set<String> validColumnNames = activeColumns.stream()
+                .map(CustomColumnMetadata::name)
+                .collect(Collectors.toSet());
+
+        // Check for extra/unrecognized columns
+        for (String providedKey : dataToValidate.keySet()) {
+            if (!validColumnNames.contains(providedKey)) {
+                throw new IllegalArgumentException("Unrecognized custom column provided: " + providedKey);
+            }
+        }
+
+        for (CustomColumnMetadata column : activeColumns) {
+            Object value = dataToValidate.get(column.name());
+
+            // Check Required Rule
+            if (column.isRequired() && (Objects.isNull(value) || value.toString().isBlank())) {
+                throw new IllegalArgumentException("Missing required custom column: " + column.name());
+            }
+
+            // Check Type Rule
+            if (Objects.nonNull(value) && !value.toString().isBlank()) {
+                if ("number".equals(column.type())) {
+                    try {
+                        Double.parseDouble(value.toString());
+                    } catch (NumberFormatException e) {
+                        throw new IllegalArgumentException("Column '" + column.name() + "' must be a valid number.");
+                    }
+                }
+            }
+        }
+
+    }
+
+    /**
      * Helper class for mapping vendor transaction requests to vendor transaction entities.
      */
     private static class RequestMapper {
@@ -120,6 +165,7 @@ public class VendorTransactionService {
             transaction.setReportedSales(request.getReportedSales());
             transaction.setEstProduceSales(request.getEstProduceSales());
             transaction.setEstNumTransactions(request.getEstNumTransactions());
+            transaction.setCustomData(request.getCustomData());
             return transaction;
         }
 

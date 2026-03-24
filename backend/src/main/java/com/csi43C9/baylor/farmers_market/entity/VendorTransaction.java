@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -57,6 +58,9 @@ public class VendorTransaction implements IdentifiableUuid {
 
     /** Estimated number of transactions. */
     private Long estNumTransactions;
+
+    /** Flexible payload for dynamic column data. */
+    private Map<String, Object> customData;
 
     /** Timestamp for record creation. */
     private LocalDateTime createdAt;

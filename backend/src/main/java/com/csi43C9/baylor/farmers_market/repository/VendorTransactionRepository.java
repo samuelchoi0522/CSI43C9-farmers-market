@@ -9,10 +9,13 @@ import com.csi43C9.baylor.farmers_market.util.UuidUtils;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 import java.sql.ResultSet;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -23,14 +26,15 @@ import java.util.UUID;
 @Repository
 public class VendorTransactionRepository extends AbstractJdbcRepository implements MarketRepository<VendorTransaction, UUID> {
 
-    protected VendorTransactionRepository(JdbcTemplate jdbcTemplate) {
+    private final ObjectMapper objectMapper;
+
+    protected VendorTransactionRepository(JdbcTemplate jdbcTemplate, ObjectMapper objectMapper) {
         super(jdbcTemplate);
+        this.objectMapper = objectMapper;
     }
 
     /**
      * Persists a new vendor transaction to the database.
-     * Generates a random {@link UUID} and converts it to a 16-byte array for
-     * storage in a BINARY(16) column.
      */
     @Override
     public VendorTransaction save(VendorTransaction transaction) {
@@ -48,9 +52,6 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
 
     /**
      * Persists multiple vendor transactions to the database.
-     *
-     * @param transactions the vendor transactions to insert
-     * @return the inserted vendor transactions
      */
     public List<VendorTransaction> saveAll(List<VendorTransaction> transactions) {
         if (transactions.isEmpty()) {
@@ -67,9 +68,9 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
                 insert into vendor_transactions (
                     id, vendor_id, vendor_name, market_date, present, snap, dufb,
                     wdfm_tokens, voucher, reimbursement_due, reported_sales,
-                    est_produce_sales, est_num_transactions
+                    est_produce_sales, est_num_transactions, custom_data
                 )
-                values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         jdbcTemplate.batchUpdate(sql, transactions, transactions.size(), (ps, transaction) -> {
@@ -86,6 +87,7 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
             ps.setObject(11, transaction.getReportedSales());
             ps.setObject(12, transaction.getEstProduceSales());
             ps.setObject(13, transaction.getEstNumTransactions());
+            ps.setString(14, toJsonString(transaction.getCustomData()));
         });
 
         return transactions;
@@ -93,18 +95,15 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
 
     /**
      * Inserts a new vendor transaction record into the database.
-     *
-     * @param transaction the vendor transaction to insert
-     * @return the inserted vendor transaction
      */
     private VendorTransaction insert(VendorTransaction transaction) {
         String sql = """
                 insert into vendor_transactions (
                     id, vendor_id, vendor_name, market_date, present, snap, dufb,
                     wdfm_tokens, voucher, reimbursement_due, reported_sales,
-                    est_produce_sales, est_num_transactions
+                    est_produce_sales, est_num_transactions, custom_data
                 )
-                values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         jdbcTemplate.update(sql,
@@ -120,7 +119,8 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
                 transaction.getReimbursementDue(),
                 transaction.getReportedSales(),
                 transaction.getEstProduceSales(),
-                transaction.getEstNumTransactions()
+                transaction.getEstNumTransactions(),
+                toJsonString(transaction.getCustomData())
         );
 
         return transaction;
@@ -128,8 +128,6 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
 
     /**
      * Updates an existing vendor transaction record.
-     *
-     * @return the number of rows affected (should be 1 if successful).
      */
     public int update(VendorTransaction transaction) {
         String sql = """
@@ -137,7 +135,7 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
                 set vendor_id = ?, vendor_name = ?, market_date = ?, present = ?,
                     snap = ?, dufb = ?, wdfm_tokens = ?, voucher = ?,
                     reimbursement_due = ?, reported_sales = ?, est_produce_sales = ?,
-                    est_num_transactions = ?
+                    est_num_transactions = ?, custom_data = ?
                 where id = ?
                 """;
 
@@ -154,14 +152,13 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
                 transaction.getReportedSales(),
                 transaction.getEstProduceSales(),
                 transaction.getEstNumTransactions(),
+                toJsonString(transaction.getCustomData()),
                 UuidUtils.toBytes(transaction.getId())
         );
     }
 
     /**
      * Retrieves a vendor transaction by its UUID from the database.
-     *
-     * @param uuid The UUID of the transaction to retrieve.
      */
     @Override
     public Optional<VendorTransaction> findById(UUID uuid) {
@@ -169,7 +166,7 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
         try {
             VendorTransaction transaction = jdbcTemplate.queryForObject(
                     sql,
-                    new VendorTransactionRowMapper(),
+                    new VendorTransactionRowMapper(objectMapper),
                     UuidUtils.toBytes(uuid)
             );
             return Optional.ofNullable(transaction);
@@ -184,15 +181,11 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
     @Override
     public List<VendorTransaction> findAll() {
         String sql = "select * from vendor_transactions";
-        return jdbcTemplate.query(sql, new VendorTransactionRowMapper());
+        return jdbcTemplate.query(sql, new VendorTransactionRowMapper(objectMapper));
     }
 
     /**
      * Retrieves a page of vendor transactions from the database.
-     *
-     * @param page 0-based page number
-     * @param size page size
-     * @return a List of vendor transactions
      */
     @Override
     public List<VendorTransaction> findAllPaged(int page, int size) {
@@ -202,13 +195,11 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
                 order by market_date desc, vendor_name
                 offset ? rows fetch next ? rows only
                 """;
-        return jdbcTemplate.query(sql, new VendorTransactionRowMapper(), offset, size);
+        return jdbcTemplate.query(sql, new VendorTransactionRowMapper(objectMapper), offset, size);
     }
 
     /**
      * Counts the number of vendor transactions in the database.
-     *
-     * @return the number of vendor transactions
      */
     @Override
     public Long count() {
@@ -219,8 +210,6 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
 
     /**
      * Deletes a vendor transaction from the database.
-     *
-     * @param uuid The UUID of the transaction to delete.
      */
     @Override
     public void deleteById(UUID uuid) {
@@ -287,5 +276,19 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
                 rs.getBigDecimal("manufactured"),
                 rs.getBigDecimal("total_sales")
         ), startDate, endDate);
+    }
+
+    /**
+     * Helper to safely convert the custom data map into a JSON string.
+     */
+    private String toJsonString(Map<String, Object> data) {
+        if (data == null || data.isEmpty()) {
+            return null;
+        }
+        try {
+            return objectMapper.writeValueAsString(data);
+        } catch (JacksonException e) {
+            throw new RuntimeException("Failed to serialize custom data payload", e);
+        }
     }
 }

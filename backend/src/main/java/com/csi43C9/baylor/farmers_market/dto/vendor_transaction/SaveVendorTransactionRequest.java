@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -76,4 +77,9 @@ public class SaveVendorTransactionRequest {
      * Estimated number of transactions.
      */
     private Long estNumTransactions;
+
+    /**
+     * Flexible payload for dynamic column data.
+     */
+    private Map<String, Object> customData;
 }

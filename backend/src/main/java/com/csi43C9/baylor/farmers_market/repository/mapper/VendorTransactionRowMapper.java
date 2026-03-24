@@ -3,6 +3,9 @@ package com.csi43C9.baylor.farmers_market.repository.mapper;
 import com.csi43C9.baylor.farmers_market.entity.VendorTransaction;
 import com.csi43C9.baylor.farmers_market.util.UuidUtils;
 import org.springframework.jdbc.core.RowMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -12,6 +15,18 @@ import java.sql.Timestamp;
  * RowMapper implementation for mapping database rows to VendorTransaction entities.
  */
 public class VendorTransactionRowMapper implements RowMapper<VendorTransaction> {
+
+    private final ObjectMapper objectMapper;
+
+    /**
+     * Constructs a new VendorTransactionRowMapper.
+     *
+     * @param objectMapper the Jackson mapper for JSON processing
+     */
+    public VendorTransactionRowMapper(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
+
     @Override
     public VendorTransaction mapRow(ResultSet rs, int rowNum) throws SQLException {
         VendorTransaction transaction = new VendorTransaction();
@@ -28,6 +43,16 @@ public class VendorTransactionRowMapper implements RowMapper<VendorTransaction> 
         transaction.setReportedSales(rs.getObject("reported_sales", Double.class));
         transaction.setEstProduceSales(rs.getObject("est_produce_sales", Double.class));
         transaction.setEstNumTransactions(rs.getObject("est_num_transactions", Long.class));
+
+        String customDataJson = rs.getString("custom_data");
+        if (customDataJson != null && !customDataJson.isBlank()) {
+            try {
+                transaction.setCustomData(objectMapper.readValue(customDataJson, new TypeReference<>() {
+                }));
+            } catch (JacksonException e) {
+                throw new SQLException("Failed to parse custom_data JSON from database", e);
+            }
+        }
 
         Timestamp createdAt = rs.getTimestamp("created_at");
         if (createdAt != null) {
