@@ -48,6 +48,7 @@ interface SalesRecord {
   reimbursement_due: number;
   est_produce_sales: number;
   est_num_transactions: number;
+  autoAdded?: boolean;
   isInvalid?: boolean;
 }
 
@@ -97,7 +98,21 @@ function TransactionsContent() {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
   const [allVendors, setAllVendors] = useState<Vendor[]>([]);
+  const [activeVendors, setActiveVendors] = useState<ApiVendor[]>([]);
+  const [includeActiveVendors, setIncludeActiveVendors] = useState(false);
+  const [vendorsLoading, setVendorsLoading] = useState(true);
   const [showUserMenu, setShowUserMenu] = useState(false);
+
+  const generateRecordId = () => {
+    if (
+      typeof globalThis.crypto !== "undefined" &&
+      typeof globalThis.crypto.randomUUID === "function"
+    ) {
+      return globalThis.crypto.randomUUID();
+    }
+
+    return Math.random().toString(36).slice(2, 11);
+  };
   const { user, logout } = useAuth();
   const userName = user?.username || "Admin User";
 
@@ -111,15 +126,44 @@ function TransactionsContent() {
   }, [showUserMenu]);
 
   useEffect(() => {
-    getVendors(0, 100)
-      .then(res => {
-        console.log('Vendors response:', res);
-        setAllVendors(res.data.map((v: ApiVendor) => ({ id: v.id, name: v.vendorName })));
-      })
-      .catch(error => {
-        console.error('Failed to load vendors:', error);
-        toast.error('Failed to load vendors.');
-      });
+    let isMounted = true;
+
+    const loadVendors = async () => {
+      setVendorsLoading(true);
+
+      try {
+        const response = await getVendors(0, 1000);
+        if (!isMounted) return;
+
+        const vendorList: ApiVendor[] = Array.isArray(response)
+          ? response
+          : response?.data ?? [];
+
+        const activeOnly = vendorList
+          .filter((vendor) => vendor.isActive)
+          .sort((a, b) => a.vendorName.localeCompare(b.vendorName));
+
+        setActiveVendors(activeOnly);
+        setAllVendors(
+          vendorList
+            .map((vendor) => ({ id: vendor.id, name: vendor.vendorName }))
+            .sort((a, b) => a.name.localeCompare(b.name))
+        );
+      } catch (error) {
+        console.error("Failed to load vendors:", error);
+        toast.error("Failed to load vendors.");
+      } finally {
+        if (isMounted) {
+          setVendorsLoading(false);
+        }
+      }
+    };
+
+    loadVendors();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -160,6 +204,11 @@ function TransactionsContent() {
   }, [currentMarketDate]);
 
   const handleMarketDateChange = (newDate: string) => {
+    if (includeActiveVendors) {
+      setRecords(prev => prev.filter(record => !record.autoAdded));
+      setIncludeActiveVendors(false);
+    }
+
     setCurrentMarketDate(newDate);
   };
 
@@ -272,6 +321,56 @@ function TransactionsContent() {
     setRecords(prev => [newRecord, ...prev]);
     setTimeout(() => setEditingId(newRecord.id), 50);
     toast.success(`Added ${vendor.name}`);
+  };
+
+  const handleToggleActiveVendors = () => {
+    if (includeActiveVendors) {
+      setRecords(prev => prev.filter(record => !record.autoAdded));
+      setIncludeActiveVendors(false);
+      toast.info('Removed auto-added active vendor rows.');
+      return;
+    }
+
+    if (vendorsLoading) {
+      toast.info('Active vendor list is still loading.');
+      return;
+    }
+
+    if (activeVendors.length === 0) {
+      toast.info('No active vendors are available.');
+      return;
+    }
+
+    const existingVendorIds = new Set(records.map(record => record.vendor_id));
+    const vendorsToAdd = activeVendors.filter(vendor => !existingVendorIds.has(vendor.id));
+
+    if (vendorsToAdd.length === 0) {
+      toast.info('All active vendors are already present.');
+      return;
+    }
+
+    const newRecords = vendorsToAdd.map(vendor => ({
+      id: generateRecordId(),
+      vendor_id: vendor.id,
+      vendor_name: vendor.vendorName,
+      market_date: currentMarketDate,
+      present: true,
+      snap: 0,
+      dufb: 0,
+      wdfm_tokens: 0,
+      voucher: 0,
+      reimbursement_due: 0,
+      reported_sales: 0,
+      est_produce_sales: 0,
+      est_num_transactions: 0,
+      isInvalid: false,
+      autoAdded: true,
+    }));
+
+    setRecords(prev => [...newRecords, ...prev]);
+    setIncludeActiveVendors(true);
+    setEditingId(newRecords[0].id);
+    toast.success(`Added ${newRecords.length} active vendor${newRecords.length === 1 ? '' : 's'}.`);
   };
 
   const handleUpdateRecord = (id: string, updates: Partial<SalesRecord>) => {
@@ -391,6 +490,37 @@ function TransactionsContent() {
               Import Excel
             </button>
             <AddVendorDialog vendors={allVendors} onAdd={handleAddVendor} />
+            <div className="flex flex-col gap-1 text-right">
+              <div className="flex items-center justify-end gap-3">
+                <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">Current Active vendors</span>
+                <button
+                  type="button"
+                  onClick={handleToggleActiveVendors}
+                  aria-pressed={includeActiveVendors}
+                  aria-label={
+                    includeActiveVendors
+                      ? "Remove auto-added active vendor rows"
+                      : "Add every active vendor row"
+                  }
+                  className={`relative h-6 w-12 rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#10b981] ${
+                    includeActiveVendors ? "bg-[#10b981] border-[#10b981]" : "bg-slate-200 border-slate-300"
+                  }`}
+                >
+                  <span
+                    className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                      includeActiveVendors ? "translate-x-6" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {vendorsLoading
+                  ? "Loading active vendors..."
+                  : includeActiveVendors
+                    ? "Auto rows are added; toggle off to remove them."
+                    : "Toggle to insert every active vendor into the sheet."}
+              </p>
+            </div>
             <div className="relative user-menu-container">
               <Button
                 onClick={() => setShowUserMenu(!showUserMenu)}
@@ -430,7 +560,7 @@ function TransactionsContent() {
         <div className="mb-6 flex flex-col md:flex-row md:items-end md:justify-end gap-4">
           <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 shadow-sm flex items-center gap-3">
             <span className="text-sm font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Market Date</span>
-            <input 
+            <input
               type="date"
               className="bg-transparent border-none focus:ring-0 text-slate-900 dark:text-slate-100 font-medium outline-none cursor-pointer"
               value={currentMarketDate}
