@@ -32,6 +32,9 @@ public class VendorTransactionService {
 
     /**
      * Creates a new vendor transaction based on the provided request DTO.
+     *
+     * @param request The data transfer object containing transaction details.
+     * @return The saved VendorTransaction entity.
      */
     public VendorTransaction create(SaveVendorTransactionRequest request) {
         validateCustomData(request.getCustomData());
@@ -41,6 +44,9 @@ public class VendorTransactionService {
 
     /**
      * Creates multiple vendor transactions based on the provided request DTOs.
+     *
+     * @param requests A list of data transfer objects containing transaction details.
+     * @return A list of the saved VendorTransaction entities.
      */
     public List<VendorTransaction> createBulk(List<SaveVendorTransactionRequest> requests) {
         List<CustomColumnMetadata> activeColumns = customColumnRepository.findAllActiveColumns();
@@ -54,6 +60,9 @@ public class VendorTransactionService {
 
     /**
      * Retrieves a vendor transaction by its UUID.
+     *
+     * @param uuid The unique identifier of the transaction.
+     * @return An Optional containing the transaction if found, or empty otherwise.
      */
     public Optional<VendorTransaction> get(UUID uuid) {
         return vendorTransactionRepository.findById(uuid);
@@ -61,6 +70,10 @@ public class VendorTransactionService {
 
     /**
      * Updates an existing vendor transaction based on the provided request DTO.
+     *
+     * @param uuid The unique identifier of the transaction to update.
+     * @param request The data transfer object containing updated details.
+     * @return The updated VendorTransaction entity.
      */
     public VendorTransaction update(UUID uuid, SaveVendorTransactionRequest request) {
         validateCustomData(request.getCustomData());
@@ -70,6 +83,8 @@ public class VendorTransactionService {
 
     /**
      * Deletes a vendor transaction from the system.
+     *
+     * @param uuid The unique identifier of the transaction to delete.
      */
     public void delete(UUID uuid) {
         vendorTransactionRepository.deleteById(uuid);
@@ -77,11 +92,15 @@ public class VendorTransactionService {
 
     /**
      * Returns a paged list of all vendor transactions in the system.
+     *
+     * @param page The page number to retrieve.
+     * @param size The number of records per page.
+     * @return A paged response of VendorTransaction entities.
      */
     public PagedResponse<VendorTransaction> getTransactions(int page, int size) {
         List<VendorTransaction> content = vendorTransactionRepository.findAllPaged(page, size);
         long totalElements = vendorTransactionRepository.count();
-        int totalPages = (int) Math.ceil((double) totalElements / size);
+        int totalPages = size > 0 ? (int) Math.ceil((double) totalElements / size) : 0;
 
         return new PagedResponse<>(
                 content,
@@ -92,16 +111,32 @@ public class VendorTransactionService {
         );
     }
 
+    /**
+     * Retrieves a revenue breakdown for a specific date.
+     *
+     * @param date The market date.
+     * @return The revenue breakdown.
+     */
     public RevenueBreakdown getRevenueBreakdownForDate(LocalDate date) {
         return vendorTransactionRepository.getRevenueBreakdownForDate(date);
     }
 
+    /**
+     * Retrieves a revenue breakdown for a specific date range.
+     *
+     * @param startDate The start of the date range.
+     * @param endDate The end of the date range.
+     * @return The revenue breakdown.
+     */
     public RevenueBreakdown getRevenueBreakdownForDateRange(LocalDate startDate, LocalDate endDate) {
         return vendorTransactionRepository.getRevenueBreakdownForDateRange(startDate, endDate);
     }
 
     /**
      * Validates the custom data payload against the database's column metadata.
+     * Fetches active columns directly from the repository.
+     *
+     * @param customData The payload containing the dynamic column data to validate.
      */
     private void validateCustomData(Map<String, Object> customData) {
         List<CustomColumnMetadata> activeColumns = customColumnRepository.findAllActiveColumns();
@@ -109,28 +144,34 @@ public class VendorTransactionService {
     }
 
     /**
-     * Validates the custom data payload against the database's column metadata.
+     * Validates the custom data payload against the database's column metadata using column IDs.
+     * Checks for required columns, data types, and rejects any unrecognized extra columns.
+     *
+     * @param customData The payload containing the dynamic column data to validate.
+     * @param activeColumns The list of currently active column definitions.
+     * @throws IllegalArgumentException If extra columns exist, required columns are missing, or types are invalid.
      */
     private void validateCustomData(Map<String, Object> customData, List<CustomColumnMetadata> activeColumns) {
         Map<String, Object> dataToValidate = Objects.nonNull(customData) ? customData : Collections.emptyMap();
 
-        Set<String> validColumnNames = activeColumns.stream()
-                .map(CustomColumnMetadata::name)
+        Set<String> validColumnIds = activeColumns.stream()
+                .map(column -> String.valueOf(column.id()))
                 .collect(Collectors.toSet());
 
-        // Check for extra/unrecognized columns
+        // Check for extra/unrecognized columns by ID
         for (String providedKey : dataToValidate.keySet()) {
-            if (!validColumnNames.contains(providedKey)) {
-                throw new IllegalArgumentException("Unrecognized custom column provided: " + providedKey);
+            if (!validColumnIds.contains(providedKey)) {
+                throw new IllegalArgumentException("Unrecognized custom column ID provided: " + providedKey);
             }
         }
 
         for (CustomColumnMetadata column : activeColumns) {
-            Object value = dataToValidate.get(column.name());
+            String columnIdKey = String.valueOf(column.id());
+            Object value = dataToValidate.get(columnIdKey);
 
             // Check Required Rule
             if (column.isRequired() && (Objects.isNull(value) || value.toString().isBlank())) {
-                throw new IllegalArgumentException("Missing required custom column: " + column.name());
+                throw new IllegalArgumentException("Missing required custom column: " + column.name() + " (ID: " + column.id() + ")");
             }
 
             // Check Type Rule
@@ -139,12 +180,11 @@ public class VendorTransactionService {
                     try {
                         Double.parseDouble(value.toString());
                     } catch (NumberFormatException e) {
-                        throw new IllegalArgumentException("Column '" + column.name() + "' must be a valid number.");
+                        throw new IllegalArgumentException("Column '" + column.name() + "' (ID: " + column.id() + ") must be a valid number.");
                     }
                 }
             }
         }
-
     }
 
     /**

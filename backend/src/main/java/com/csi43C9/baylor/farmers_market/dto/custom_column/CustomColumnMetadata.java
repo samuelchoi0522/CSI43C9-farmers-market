@@ -8,6 +8,7 @@ package com.csi43C9.baylor.farmers_market.dto.custom_column;
  * @param isRequired whether the transaction must contain a value for this column
  */
 public record CustomColumnMetadata(
+        Long id,
         String name,
         String type,
         boolean isRequired
