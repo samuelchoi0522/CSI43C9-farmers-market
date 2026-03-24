@@ -23,8 +23,8 @@ create table vendor_transactions
     id                   binary(16) primary key,
     vendor_id            binary(16) not null,
     vendor_name          varchar(255) not null,
-    market_date          date not null,
-    present              boolean default false,
+    market_date          date         not null,
+    present              boolean   default false,
     snap                 double,
     dufb                 double,
     wdfm_tokens          double,
@@ -33,6 +33,7 @@ create table vendor_transactions
     reported_sales       double,
     est_produce_sales    double,
     est_num_transactions bigint,
+    custom_data          json,
     created_at           timestamp default current_timestamp,
     updated_at           timestamp
 );
