@@ -1,4 +1,5 @@
 drop table if exists vendors;
+drop table if exists vendor_transactions;
 
 create table vendors
 (
@@ -15,6 +16,25 @@ create table vendors
     woman_owned   boolean default false,
     bipoc_owned   boolean default false,
     veteran_owned boolean default false
+);
+
+create table vendor_transactions
+(
+    id                   binary(16) primary key,
+    vendor_id            binary(16) not null,
+    vendor_name          varchar(255) not null,
+    market_date          date not null,
+    present              boolean default false,
+    snap                 double,
+    dufb                 double,
+    wdfm_tokens          double,
+    voucher              double,
+    reimbursement_due    double,
+    reported_sales       double,
+    est_produce_sales    double,
+    est_num_transactions bigint,
+    created_at           timestamp default current_timestamp,
+    updated_at           timestamp
 );
 
 drop table if exists refresh_tokens;

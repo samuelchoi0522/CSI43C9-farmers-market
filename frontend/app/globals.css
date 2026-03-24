@@ -547,6 +547,16 @@ html.dark .transactions-page .bg-red-50 {
     background-color: rgba(127, 29, 29, 0.3) !important;
 }
 
+/* Transactions page table row hover - light grey in light mode, darker in dark mode */
+html:not(.dark) .transactions-table tbody tr:hover:not(.bg-red-50):not([class*="bg-red"]) {
+  background-color: rgb(241 245 249) !important; /* slate-100 - light grey */
+}
+
+html.dark .transactions-table tbody tr:hover:not(.bg-red-50):not([class*="bg-red"]),
+.dark .transactions-table tbody tr:hover:not(.bg-red-50):not([class*="bg-red"]) {
+  background-color: rgba(51, 65, 85, 0.6) !important;
+}
+
 /* Light mode table row hover - FIXED: increased opacity from 0.05 to 0.5 for visibility */
 html:not(.dark) tbody tr.light-hover-bg {
     background-color: rgba(248, 250, 252, 0.5) !important;
