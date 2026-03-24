@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import DarkModeToggle from "../../components/DarkModeToggle";
 import SidebarNavigation from "../../components/SidebarNavigation";
 import Button from "../../components/Button";
+import LabelPickerDialog from "../../components/LabelPickerDialog";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
 import { createVendor, createVendorDefaults } from "@/lib/api";
@@ -13,7 +14,10 @@ import {
     createCategoryLabel,
     getAllCategoryLabels,
     addLabelsToVendor,
+    updateCategoryLabel,
+    deleteCategoryLabel,
 } from "@/lib/api/vendorLabels";
+import { getLabelColors } from "@/lib/labelColors";
 
 interface VendorFormData {
     vendorName: string;
@@ -55,8 +59,7 @@ function AddVendorContent() {
     const [selectedLabelIds, setSelectedLabelIds] = useState<number[]>([]);
     const [labelsLoading, setLabelsLoading] = useState(false);
     const [labelError, setLabelError] = useState<string | null>(null);
-    const [showCreateLabelDialog, setShowCreateLabelDialog] = useState(false);
-    const [newLabelName, setNewLabelName] = useState("");
+    const [isLabelDialogOpen, setIsLabelDialogOpen] = useState(false);
 
     const [formData, setFormData] = useState<VendorFormData>({
         vendorName: "",
@@ -931,11 +934,10 @@ function AddVendorContent() {
                                     <Button
                                         type="button"
                                         variant="outline"
-                                        onClick={() => setShowCreateLabelDialog(true)}
+                                        onClick={() => setIsLabelDialogOpen(true)}
                                         className="text-sm"
                                     >
-                                        <span className="material-icons text-sm mr-1">add</span>
-                                        New Label
+                                        Manage Labels
                                     </Button>
                                 </div>
                                 <div className="p-6 space-y-4">
@@ -948,98 +950,33 @@ function AddVendorContent() {
                                             {labelError}
                                         </p>
                                     ) : (
-                                        <>
-                                            <div className="space-y-2">
-                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                                                    Apply Labels
-                                                </label>
-                                                <select
-                                                    className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white"
-                                                    value=""
-                                                    onChange={(e) => {
-                                                        const value = e.target.value;
-                                                        if (!value) return;
-                                                        const id = Number(value);
-                                                        const selected = allLabels.find((l) => l.id === id);
-                                                        if (!selected) return;
-
-                                                        const selectedNames = selectedLabelIds
-                                                            .map((lid) => allLabels.find((l) => l.id === lid))
-                                                            .filter((l): l is CategoryLabel => !!l)
-                                                            .map((l) => normalizeLabelName(l.name));
-
-                                                        if (selectedNames.includes(normalizeLabelName(selected.name))) {
-                                                            setLabelError("That label name is already applied.");
-                                                            return;
-                                                        }
-
-                                                        setSelectedLabelIds((prev) =>
-                                                            prev.includes(id)
-                                                                ? prev
-                                                                : [...prev, id]
-                                                        );
-                                                    }}
-                                                >
-                                                    <option value="">Select a label...</option>
-                                                    {allLabels
-                                                        .filter(
-                                                            (l) =>
-                                                                !selectedLabelIds.includes(l.id) &&
-                                                                !selectedLabelIds
-                                                                    .map((lid) => allLabels.find((al) => al.id === lid))
-                                                                    .filter((al): al is CategoryLabel => !!al)
-                                                                    .some(
-                                                                        (existing) =>
-                                                                            normalizeLabelName(existing.name) ===
-                                                                            normalizeLabelName(l.name),
-                                                                    )
-                                                        )
-                                                        .map((label) => (
-                                                            <option key={label.id} value={label.id}>
-                                                                {label.name}
-                                                            </option>
-                                                        ))}
-                                                </select>
-                                            </div>
-
-                                            <div className="space-y-2">
-                                                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                                                    Applied Labels
+                                        <div className="flex flex-wrap gap-2">
+                                            {selectedLabelIds.length === 0 ? (
+                                                <p className="text-sm text-slate-400 italic">
+                                                    No labels applied.
                                                 </p>
-                                                {selectedLabelIds.length === 0 ? (
-                                                    <p className="text-sm text-slate-400 italic">
-                                                        No labels applied.
-                                                    </p>
-                                                ) : (
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {selectedLabelIds
-                                                            .map((id) => allLabels.find((l) => l.id === id))
-                                                            .filter((l): l is CategoryLabel => !!l)
-                                                            .map((label) => (
-                                                                <span
-                                                                    key={label.id}
-                                                                    className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-600"
-                                                                >
-                                                                    {label.name}
-                                                                    <button
-                                                                        type="button"
-                                                                        className="ml-2 text-slate-500 hover:text-slate-700 dark:text-slate-300 dark:hover:text-slate-100"
-                                                                        onClick={() =>
-                                                                            setSelectedLabelIds((prev) =>
-                                                                                prev.filter((lid) => lid !== label.id)
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        <span className="material-icons text-xs">
-                                                                            close
-                                                                        </span>
-                                                                    </button>
-                                                                </span>
-                                                            ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </>
+                                            ) : (
+                                                selectedLabelIds
+                                                    .map((id) => allLabels.find((label) => label.id === id))
+                                                    .filter((label): label is CategoryLabel => !!label)
+                                                    .map((label) => {
+                                                        const colors = getLabelColors(label.name, label.color);
+                                                        return (
+                                                            <span
+                                                                key={label.id}
+                                                                className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border"
+                                                                style={{
+                                                                    backgroundColor: colors.backgroundColor,
+                                                                    color: colors.color,
+                                                                    borderColor: colors.borderColor,
+                                                                }}
+                                                            >
+                                                                {label.name}
+                                                            </span>
+                                                        );
+                                                    })
+                                            )}
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -1121,76 +1058,76 @@ function AddVendorContent() {
                 )}
             </main>
 
-            {showCreateLabelDialog && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 w-full max-w-md p-6">
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">
-                            Create New Label
-                        </h3>
-                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                            Add a reusable label that can be applied to any vendor.
-                        </p>
-                        <div className="space-y-2 mb-6">
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                                Label Name
-                            </label>
-                            <input
-                                type="text"
-                                value={newLabelName}
-                                onChange={(e) => setNewLabelName(e.target.value)}
-                                className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none"
-                                placeholder="e.g. High Priority, New This Season"
-                            />
-                        </div>
-                        <div className="flex justify-end gap-3">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => {
-                                    setShowCreateLabelDialog(false);
-                                    setNewLabelName("");
-                                    setLabelError(null);
-                                }}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="primary"
-                                disabled={!newLabelName.trim()}
-                                onClick={async () => {
-                                    const trimmed = newLabelName.trim();
-                                    if (!trimmed) return;
+            <LabelPickerDialog
+                isOpen={isLabelDialogOpen}
+                onOpenChange={setIsLabelDialogOpen}
+                title="Labels"
+                description="Select labels for this vendor"
+                labels={allLabels}
+                checkedIds={selectedLabelIds}
+                loading={labelsLoading}
+                error={labelError}
+                onToggle={(label, nextChecked) => {
+                    setSelectedLabelIds((prev) =>
+                        nextChecked
+                            ? prev.includes(label.id)
+                                ? prev
+                                : [...prev, label.id]
+                            : prev.filter((id) => id !== label.id),
+                    );
+                    setLabelError(null);
+                }}
+                            onCreate={async (name, color) => {
+                                const trimmed = name.trim();
+                                if (!trimmed) return;
 
-                                    const existing = allLabels.find(
-                                        (l) => normalizeLabelName(l.name) === normalizeLabelName(trimmed),
-                                    );
-                                    if (existing) {
-                                        setLabelError("A label with that name already exists.");
-                                        return;
-                                    }
+                    const existing = allLabels.find(
+                        (label) =>
+                            normalizeLabelName(label.name) === normalizeLabelName(trimmed),
+                    );
+                    if (existing) {
+                        const selectedNames = selectedLabelIds
+                            .map((id) => allLabels.find((label) => label.id === id))
+                            .filter((label): label is CategoryLabel => !!label)
+                            .map((label) => normalizeLabelName(label.name));
 
-                                    try {
-                                        const created = await createCategoryLabel(trimmed);
-                                        setAllLabels((prev) => [...prev, created]);
-                                        setSelectedLabelIds((prev) =>
-                                            prev.includes(created.id) ? prev : [...prev, created.id],
-                                        );
-                                        setNewLabelName("");
-                                        setLabelError(null);
-                                        setShowCreateLabelDialog(false);
-                                    } catch (err) {
-                                        console.error("Error creating label:", err);
-                                        setLabelError("Failed to create label.");
-                                    }
-                                }}
-                            >
-                                Create Label
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            )}
+                        if (selectedNames.includes(normalizeLabelName(existing.name))) {
+                            setLabelError("A label with that name already exists.");
+                            return;
+                        }
+
+                        setSelectedLabelIds((prev) =>
+                            prev.includes(existing.id) ? prev : [...prev, existing.id],
+                        );
+                        setLabelError(null);
+                        return;
+                    }
+
+                                const created = await createCategoryLabel(trimmed, color);
+                                const normalized = color ? { ...created, color } : created;
+                                setAllLabels((prev) => [...prev, normalized]);
+                                setSelectedLabelIds((prev) =>
+                                    prev.includes(created.id) ? prev : [...prev, created.id],
+                                );
+                                setLabelError(null);
+                            }}
+                            onEdit={async (label, name, color) => {
+                                const trimmed = name.trim();
+                                if (!trimmed) return;
+                                const updated = await updateCategoryLabel(label.id, trimmed, color);
+                                const normalized = color ? { ...updated, color } : updated;
+                                setAllLabels((prev) =>
+                                    prev.map((item) => (item.id === normalized.id ? normalized : item)),
+                                );
+                            }}
+                            onDelete={async (label) => {
+                                await deleteCategoryLabel(label.id);
+                                setAllLabels((prev) => prev.filter((item) => item.id !== label.id));
+                                setSelectedLabelIds((prev) =>
+                                    prev.filter((id) => id !== label.id),
+                                );
+                            }}
+                        />
         </div>
     );
 }

@@ -75,7 +75,8 @@ create table if not exists vendor_defaults
 
 create table if not exists category_labels (
    id bigint auto_increment primary key,
-   name varchar(255) not null
+   name varchar(255) not null,
+   color varchar(20) null
 );
 
 create table if not exists vendor_category_labels (

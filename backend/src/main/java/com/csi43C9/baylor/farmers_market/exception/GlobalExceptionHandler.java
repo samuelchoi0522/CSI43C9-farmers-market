@@ -12,10 +12,12 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
@@ -34,6 +36,31 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<@NonNull ErrorResponse> handleBadRequest(HttpMessageNotReadableException ignoredEx, WebRequest request) {
         return buildResponse(HttpStatus.BAD_REQUEST, "Malformed JSON request or missing body", request);
+    }
+
+    /**
+     * Handles missing required request parameters.
+     */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<@NonNull ErrorResponse> handleMissingParameter(MissingServletRequestParameterException ex, WebRequest request) {
+        String parameterName = ex.getParameterName();
+        String message = String.format("Required request parameter '%s' is missing.", parameterName);
+
+        logger.warn("Missing request parameter: {}", parameterName);
+        return buildResponse(HttpStatus.BAD_REQUEST, message, request);
+    }
+
+    /**
+     * Handles type mismatches for request parameters or path variables (e.g., malformed dates).
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<@NonNull ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex, WebRequest request) {
+        String parameterName = ex.getName();
+        String expectedType = ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : "unknown";
+        String message = String.format("Invalid value provided for parameter '%s'. Expected format: %s", parameterName, expectedType);
+
+        logger.warn("Type mismatch for parameter {}: ", parameterName, ex);
+        return buildResponse(HttpStatus.BAD_REQUEST, message, request);
     }
 
     /**

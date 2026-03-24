@@ -19,7 +19,12 @@ import { AddVendorDialog } from '../components/AddVendorDialog'
 import { motion, AnimatePresence } from 'motion/react';
 import { toast, Toaster } from 'sonner';
 import * as XLSX from 'xlsx';
-import { bulkCreateVendorTransactions, type CreateVendorTransactionRequest } from '@/lib/api/transactions';
+import {
+  bulkCreateVendorTransactions,
+  searchVendorTransactions,
+  type CreateVendorTransactionRequest,
+  type VendorTransaction,
+} from '@/lib/api/transactions';
 import { getVendors, type Vendor as ApiVendor } from '@/lib/api/vendor';
 
 // --- Types ---
@@ -48,6 +53,23 @@ interface SalesRecord {
 
 const initialRecords: SalesRecord[] = [];
 
+const mapTransactionToSalesRecord = (transaction: VendorTransaction): SalesRecord => ({
+  id: transaction.id,
+  vendor_id: transaction.vendorId,
+  vendor_name: transaction.vendorName,
+  market_date: transaction.marketDate,
+  present: transaction.present,
+  snap: transaction.snap,
+  dufb: transaction.dufb,
+  wdfm_tokens: transaction.wdfmTokens,
+  voucher: transaction.voucher,
+  reported_sales: transaction.reportedSales,
+  reimbursement_due: transaction.reimbursementDue,
+  est_produce_sales: transaction.estProduceSales,
+  est_num_transactions: transaction.estNumTransactions,
+  isInvalid: false,
+});
+
 // Helper to get the most recent Saturday
 const getMostRecentSaturday = () => {
   const d = new Date();
@@ -73,6 +95,7 @@ function TransactionsContent() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
   const [allVendors, setAllVendors] = useState<Vendor[]>([]);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const { user, logout } = useAuth();
@@ -99,9 +122,45 @@ function TransactionsContent() {
       });
   }, []);
 
+  useEffect(() => {
+    let isActive = true;
+
+    const loadTransactions = async () => {
+      setIsLoadingTransactions(true);
+
+      try {
+        const response = await searchVendorTransactions({
+          marketDate: currentMarketDate,
+          page: 0,
+          size: 500,
+        });
+
+        if (!isActive) return;
+
+        setRecords(response.data.map(mapTransactionToSalesRecord));
+        setEditingId(null);
+      } catch (error) {
+        console.error('Failed to load transactions:', error);
+        if (!isActive) return;
+
+        setRecords([]);
+        toast.error('Failed to load transactions for the selected market date.');
+      } finally {
+        if (isActive) {
+          setIsLoadingTransactions(false);
+        }
+      }
+    };
+
+    loadTransactions();
+
+    return () => {
+      isActive = false;
+    };
+  }, [currentMarketDate]);
+
   const handleMarketDateChange = (newDate: string) => {
     setCurrentMarketDate(newDate);
-    setRecords(prev => prev.map(r => ({ ...r, market_date: newDate })));
   };
 
   const handleImportClick = () => {
@@ -390,7 +449,7 @@ function TransactionsContent() {
 
         <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left border-collapse">
+            <table className="transactions-table w-full text-sm text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 text-xs uppercase text-slate-600 dark:text-slate-400 font-semibold">
                   <th className="px-4 py-4 min-w-[200px] sticky left-0 bg-slate-50 dark:bg-slate-900/50 z-10 border-r border-slate-200 dark:border-slate-700">Vendor Name</th>
@@ -421,12 +480,22 @@ function TransactionsContent() {
                     />
                   ))}
                 </AnimatePresence>
-                {records.length === 0 && (
+                {isLoadingTransactions && (
+                  <tr>
+                    <td colSpan={11} className="px-4 py-20 text-center text-slate-500 dark:text-slate-400">
+                      <div className="flex flex-col items-center gap-3">
+                        <Loader2 size={32} className="animate-spin opacity-60" />
+                        <p>Loading vendor transactions for {currentMarketDate}...</p>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                {!isLoadingTransactions && records.length === 0 && (
                   <tr>
                     <td colSpan={11} className="px-4 py-20 text-center text-slate-500 dark:text-slate-400">
                       <div className="flex flex-col items-center gap-2">
                         <AlertCircle size={32} className="opacity-20" />
-                        <p>No sales records added yet. Click "Add Vendor" to begin or import an Excel sheet.</p>
+                        <p>No vendor transactions found for {currentMarketDate}. Add a vendor or import an Excel sheet to start this market day.</p>
                       </div>
                     </td>
                   </tr>
@@ -509,7 +578,7 @@ function SalesRow({ record, isEditing, isInvalid, onEdit, onSave, onDelete, onUp
         group transition-colors cursor-pointer
         ${isInvalid ? 'bg-red-50 dark:bg-red-900/20 border-l-4 border-l-red-400 dark:border-l-red-500' : ''}
         ${isEditing && !isInvalid ? 'bg-[#10b981]/10 dark:bg-[#10b981]/15' : ''}
-        ${!isEditing && !isInvalid ? 'hover:bg-slate-50/80 dark:hover:bg-slate-800/80' : ''}
+        ${!isEditing && !isInvalid ? 'hover:bg-slate-100 dark:hover:bg-slate-700/60' : ''}
       `}
     >
       {/* Vendor Name — always editable when invalid */}

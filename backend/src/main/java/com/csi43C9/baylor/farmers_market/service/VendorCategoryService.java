@@ -67,10 +67,10 @@ public class VendorCategoryService {
     }
 
     @Transactional
-    public CategoryLabelDto createCategoryLabel(String name) {
+    public CategoryLabelDto createCategoryLabel(String name, String color) {
         // You could add logic here to check if the name already exists
         // to avoid a DuplicateKeyException
-        return repo.createLabel(name);
+        return repo.createLabel(name, color);
     }
 
     public List<CategoryLabelDto> getAllAvailableLabels() {
@@ -80,5 +80,10 @@ public class VendorCategoryService {
     @Transactional
     public void deleteCategoryLabel(Long labelId) {
         repo.deleteCategoryLabel(labelId);
+    }
+
+    @Transactional
+    public CategoryLabelDto updateCategoryLabel(Long labelId, String name, String color) {
+        return repo.updateCategoryLabel(labelId, name, color);
     }
 }

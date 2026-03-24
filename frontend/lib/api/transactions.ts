@@ -31,6 +31,15 @@ export interface VendorTransaction {
   estNumTransactions: number;
 }
 
+export interface VendorTransactionSearchParams {
+  page?: number;
+  size?: number;
+  marketDate?: string;
+  startMarketDate?: string;
+  endMarketDate?: string;
+  [key: string]: string | number | boolean | undefined;
+}
+
 /**
  * Create a new vendor transaction
  */
@@ -82,6 +91,30 @@ export async function getVendorTransactionsByDate(
     `/api/vendor-transaction?marketDate=${marketDate}&page=${page}&size=${size}`,
     { method: 'GET' }
   );
+}
+
+/**
+ * Search vendor transactions using flexible query parameters.
+ */
+export async function searchVendorTransactions(
+  params: VendorTransactionSearchParams = {}
+): Promise<PagedResponse<VendorTransaction>> {
+  const searchParams = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined) {
+      searchParams.set(key, String(value));
+    }
+  });
+
+  const queryString = searchParams.toString();
+  const endpoint = queryString
+    ? `/api/vendor-transaction/search?${queryString}`
+    : '/api/vendor-transaction/search';
+
+  return apiRequest<PagedResponse<VendorTransaction>>(endpoint, {
+    method: 'GET',
+  });
 }
 
 /**
