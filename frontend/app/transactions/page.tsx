@@ -1,12 +1,24 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
+import { Box, IconButton, Tooltip } from '@mui/material';
+import {
+  DataGrid,
+  GridColDef,
+  GridRowParams,
+  GridRenderEditCellParams,
+  GridRowId,
+  GridRowModes,
+  GridRowModesModel,
+  useGridApiContext,
+} from '@mui/x-data-grid';
 import { 
-  Table as TableIcon, 
   Trash2, 
   Loader2,
   AlertCircle,
-  Check,
+  Pencil,
+  Save,
+  X,
   Upload,
   Download
 } from 'lucide-react';
@@ -15,7 +27,6 @@ import Button from '../components/Button';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { AddVendorDialog } from '../components/AddVendorDialog'
-import { motion, AnimatePresence } from 'motion/react';
 import { toast, Toaster } from 'sonner';
 import * as XLSX from 'xlsx';
 import {
@@ -84,6 +95,62 @@ const formatCurrency = (amount: number = 0) => {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 };
 
+const parseNumericValue = (value: unknown) => {
+  if (value === '' || value === null || value === undefined) return 0;
+
+  const parsed = typeof value === 'number' ? value : parseFloat(String(value));
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+function VendorNameEditCell(params: GridRenderEditCellParams<SalesRecord, string>) {
+  const apiRef = useGridApiContext();
+  const hasError = Boolean(params.error);
+
+  return (
+    <div className="flex h-full w-full items-center px-2 py-1">
+      <input
+        type="text"
+        value={params.value ?? ''}
+        onChange={(event) => {
+          apiRef.current.setEditCellValue({
+            id: params.id,
+            field: params.field,
+            value: event.target.value,
+          });
+        }}
+        className={`w-full rounded border bg-white px-2 py-1 text-sm text-slate-900 outline-none dark:bg-slate-900 dark:text-slate-100 ${
+          hasError
+            ? 'border-red-400 text-red-700 focus:ring-2 focus:ring-red-300 dark:border-red-500 dark:text-red-400 dark:focus:ring-red-500'
+            : 'border-[#10b981]/30 focus:ring-2 focus:ring-[#10b981]'
+        }`}
+        placeholder="Enter valid vendor name..."
+      />
+    </div>
+  );
+}
+
+function NumericEditCell(params: GridRenderEditCellParams<SalesRecord, number | string>) {
+  const apiRef = useGridApiContext();
+
+  return (
+    <div className="flex h-full w-full items-center justify-end px-2 py-1">
+      <input
+        type="number"
+        step={params.field === 'est_num_transactions' ? '1' : '0.01'}
+        value={params.value ?? ''}
+        onChange={(event) => {
+          apiRef.current.setEditCellValue({
+            id: params.id,
+            field: params.field,
+            value: event.target.value,
+          });
+        }}
+        className="w-full rounded border border-slate-300 bg-white px-2 py-1 text-right text-sm text-slate-900 outline-none focus:ring-2 focus:ring-[#10b981] dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+      />
+    </div>
+  );
+}
+
 function TransactionsContent() {
   const [currentMarketDate, setCurrentMarketDate] = useState(getMostRecentSaturday());
   const [records, setRecords] = useState<SalesRecord[]>(() => {
@@ -91,14 +158,42 @@ function TransactionsContent() {
     return initialRecords.map(r => ({ ...r, market_date: saturday }));
   });
   const [isImporting, setIsImporting] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
   const [allVendors, setAllVendors] = useState<Vendor[]>([]);
+  const [highlightedRowId, setHighlightedRowId] = useState<GridRowId | null>(null);
+  const [rowModesModel, setRowModesModel] = useState<GridRowModesModel>({});
   const [showUserMenu, setShowUserMenu] = useState(false);
   const { user, logout } = useAuth();
   const userName = user?.username || "Admin User";
+
+  const getMatchedVendor = (vendorName: string) =>
+    allVendors.find(v => v.name.toLowerCase() === vendorName.trim().toLowerCase());
+
+  const normalizeRecord = (record: SalesRecord): SalesRecord => {
+    const matchedVendor = getMatchedVendor(record.vendor_name);
+    const snap = parseNumericValue(record.snap);
+    const dufb = parseNumericValue(record.dufb);
+    const wdfm = parseNumericValue(record.wdfm_tokens);
+    const voucher = parseNumericValue(record.voucher);
+
+    return {
+      ...record,
+      vendor_name: record.vendor_name.trim(),
+      vendor_id: matchedVendor?.id ?? '',
+      present: Boolean(record.present),
+      snap,
+      dufb,
+      wdfm_tokens: wdfm,
+      voucher,
+      reimbursement_due: parseNumericValue(record.reimbursement_due || snap + dufb + wdfm + voucher),
+      reported_sales: parseNumericValue(record.reported_sales),
+      est_produce_sales: parseNumericValue(record.est_produce_sales),
+      est_num_transactions: parseNumericValue(record.est_num_transactions),
+      isInvalid: !matchedVendor,
+    };
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -137,7 +232,8 @@ function TransactionsContent() {
         if (!isActive) return;
 
         setRecords(response.data.map(mapTransactionToSalesRecord));
-        setEditingId(null);
+        setHighlightedRowId(null);
+        setRowModesModel({});
       } catch (error) {
         console.error('Failed to load transactions:', error);
         if (!isActive) return;
@@ -180,7 +276,7 @@ function TransactionsContent() {
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
         
-        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as unknown[][];
         const dataRows = rows.slice(1);
 
         if (dataRows.length === 0) {
@@ -194,17 +290,15 @@ function TransactionsContent() {
           const presentValue = row[1]?.toString().trim().toUpperCase();
           const isPresent = presentValue === 'Y' || presentValue === 'YES' || presentValue === 'TRUE';
           
-          const snap = parseFloat(row[2] || 0);
-          const dufb = parseFloat(row[3] || 0);
-          const wdfm = parseFloat(row[4] || 0);
-          const voucher = parseFloat(row[5] || 0);
-          const reportedSales = parseFloat(row[6] || 0);
+          const snap = parseNumericValue(row[2]);
+          const dufb = parseNumericValue(row[3]);
+          const wdfm = parseNumericValue(row[4]);
+          const voucher = parseNumericValue(row[5]);
+          const reportedSales = parseNumericValue(row[6]);
 
-          const matchedVendor = allVendors.find(v => v.name.toLowerCase() === vendorName.toLowerCase());
-
-          return {
+          return normalizeRecord({
             id: Math.random().toString(36).substr(2, 9),
-            vendor_id: matchedVendor?.id ?? '',
+            vendor_id: '',
             vendor_name: vendorName,
             market_date: currentMarketDate,
             present: isPresent,
@@ -216,8 +310,8 @@ function TransactionsContent() {
             reported_sales: reportedSales,
             est_produce_sales: 0,
             est_num_transactions: 0,
-            isInvalid: !matchedVendor,
-          };
+            isInvalid: false,
+          });
         });
 
         setRecords(prev => [...importedRecords, ...prev]);
@@ -269,44 +363,57 @@ function TransactionsContent() {
     };
 
     setRecords(prev => [newRecord, ...prev]);
-    setTimeout(() => setEditingId(newRecord.id), 50);
-    toast.success(`Added ${vendor.name}`);
-  };
-
-  const handleUpdateRecord = (id: string, updates: Partial<SalesRecord>) => {
-    setRecords(prev => prev.map(r => {
-      if (r.id !== id) return r;
-      const updated = { ...r, ...updates };
-
-      // Re-validate vendor name if it changed
-      if ('vendor_name' in updates) {
-        for(const v of allVendors) {
-          if(v.name.toLowerCase() === updated.vendor_name.toLowerCase()) {
-            console.log(v.id)
-          }
-        }
-        const matchedVendor = allVendors.find(
-          v => v.name.toLowerCase() === updated.vendor_name.toLowerCase()
-        );
-        updated.vendor_id = matchedVendor?.id ?? '';
-        updated.isInvalid = !matchedVendor;
-        //console.log(updated)
-      }
-
-      if (
-        ('snap' in updates || 'dufb' in updates || 'wdfm_tokens' in updates || 'voucher' in updates) &&
-        !('reimbursement_due' in updates)
-      ) {
-        updated.reimbursement_due = (updated.snap || 0) + (updated.dufb || 0) + (updated.wdfm_tokens || 0) + (updated.voucher || 0);
-      }
-
-      return updated;
+    setRowModesModel(prev => ({
+      ...prev,
+      [newRecord.id]: { mode: GridRowModes.Edit, fieldToFocus: 'snap' },
     }));
+    toast.success(`Added ${vendor.name}`);
   };
 
   const handleDeleteRecord = (id: string) => {
     setRecords(prev => prev.filter(r => r.id !== id));
+    setHighlightedRowId(prev => (prev === id ? null : prev));
+    setRowModesModel(prev => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
     toast.info('Row removed');
+  };
+
+  const handleEditClick = (id: GridRowId) => () => {
+    setHighlightedRowId(id);
+    setRowModesModel(prev => ({ ...prev, [id]: { mode: GridRowModes.Edit } }));
+  };
+
+  const handleRowClick = (params: GridRowParams<SalesRecord>) => {
+    setHighlightedRowId(params.id);
+  };
+
+  const handleSaveClick = (id: GridRowId) => () => {
+    setRowModesModel(prev => ({ ...prev, [id]: { mode: GridRowModes.View } }));
+  };
+
+  const handleCancelClick = (id: GridRowId) => () => {
+    setRowModesModel(prev => ({
+      ...prev,
+      [id]: { mode: GridRowModes.View, ignoreModifications: true },
+    }));
+  };
+
+  const processRowUpdate = (updatedRow: SalesRecord) => {
+    const normalized = normalizeRecord({
+      ...updatedRow,
+      market_date: currentMarketDate,
+      reimbursement_due:
+        parseNumericValue(updatedRow.snap) +
+        parseNumericValue(updatedRow.dufb) +
+        parseNumericValue(updatedRow.wdfm_tokens) +
+        parseNumericValue(updatedRow.voucher),
+    });
+
+    setRecords(prev => prev.map(record => (record.id === normalized.id ? normalized : record)));
+    return normalized;
   };
 
   const handleSaveToBackend = async () => {
@@ -350,6 +457,170 @@ function TransactionsContent() {
   };
 
   const invalidCount = records.filter(r => r.isInvalid).length;
+
+  const columns: GridColDef<SalesRecord>[] = [
+    {
+      field: 'vendor_name',
+      headerName: 'Vendor Name',
+      minWidth: 240,
+      flex: 1.2,
+      editable: true,
+      preProcessEditCellProps: (params) => {
+        const hasError = !getMatchedVendor(String(params.props.value ?? ''));
+        return { ...params.props, error: hasError };
+      },
+      renderEditCell: (params) => <VendorNameEditCell {...params} />,
+      cellClassName: (params) => (params.row.isInvalid ? '!text-red-700 dark:!text-red-400 font-medium' : ''),
+    },
+    {
+      field: 'present',
+      headerName: 'Present',
+      type: 'boolean',
+      editable: true,
+      width: 110,
+      align: 'center',
+      headerAlign: 'center',
+    },
+    {
+      field: 'snap',
+      headerName: 'SNAP ($)',
+      type: 'number',
+      editable: true,
+      width: 120,
+      align: 'right',
+      headerAlign: 'right',
+      valueParser: parseNumericValue,
+      valueFormatter: (value) => formatCurrency(Number(value ?? 0)),
+      renderEditCell: (params) => <NumericEditCell {...params} />,
+    },
+    {
+      field: 'dufb',
+      headerName: 'DUFB ($)',
+      type: 'number',
+      editable: true,
+      width: 120,
+      align: 'right',
+      headerAlign: 'right',
+      valueParser: parseNumericValue,
+      valueFormatter: (value) => formatCurrency(Number(value ?? 0)),
+      renderEditCell: (params) => <NumericEditCell {...params} />,
+    },
+    {
+      field: 'wdfm_tokens',
+      headerName: 'WDFM ($)',
+      type: 'number',
+      editable: true,
+      width: 125,
+      align: 'right',
+      headerAlign: 'right',
+      valueParser: parseNumericValue,
+      valueFormatter: (value) => formatCurrency(Number(value ?? 0)),
+      renderEditCell: (params) => <NumericEditCell {...params} />,
+    },
+    {
+      field: 'voucher',
+      headerName: 'Voucher ($)',
+      type: 'number',
+      editable: true,
+      width: 130,
+      align: 'right',
+      headerAlign: 'right',
+      valueParser: parseNumericValue,
+      valueFormatter: (value) => formatCurrency(Number(value ?? 0)),
+      renderEditCell: (params) => <NumericEditCell {...params} />,
+    },
+    {
+      field: 'reimbursement_due',
+      headerName: 'Reimburse.',
+      type: 'number',
+      width: 140,
+      align: 'right',
+      headerAlign: 'right',
+      valueGetter: (_, row) => row.snap + row.dufb + row.wdfm_tokens + row.voucher,
+      valueFormatter: (value) => formatCurrency(Number(value ?? 0)),
+      cellClassName: 'font-semibold !text-[#059669] dark:!text-[#34d399]',
+    },
+    {
+      field: 'reported_sales',
+      headerName: 'Reported Sales',
+      type: 'number',
+      editable: true,
+      width: 150,
+      align: 'right',
+      headerAlign: 'right',
+      valueParser: parseNumericValue,
+      valueFormatter: (value) => formatCurrency(Number(value ?? 0)),
+      renderEditCell: (params) => <NumericEditCell {...params} />,
+    },
+    {
+      field: 'est_produce_sales',
+      headerName: 'Est. Produce',
+      type: 'number',
+      editable: true,
+      width: 145,
+      align: 'right',
+      headerAlign: 'right',
+      valueParser: parseNumericValue,
+      valueFormatter: (value) => formatCurrency(Number(value ?? 0)),
+      renderEditCell: (params) => <NumericEditCell {...params} />,
+    },
+    {
+      field: 'est_num_transactions',
+      headerName: 'Trans.',
+      type: 'number',
+      editable: true,
+      width: 100,
+      align: 'center',
+      headerAlign: 'center',
+      valueParser: parseNumericValue,
+      renderEditCell: (params) => <NumericEditCell {...params} />,
+    },
+    {
+      field: 'actions',
+      headerName: '',
+      sortable: false,
+      filterable: false,
+      disableColumnMenu: true,
+      width: 120,
+      align: 'center',
+      headerAlign: 'center',
+      renderCell: (params) => {
+        const isEditing = rowModesModel[params.id]?.mode === GridRowModes.Edit;
+
+        if (isEditing) {
+          return (
+            <div className="flex items-center gap-1">
+              <Tooltip title="Save row">
+                <IconButton size="small" onClick={handleSaveClick(params.id)}>
+                  <Save size={16} className="text-[#10b981]" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Cancel">
+                <IconButton size="small" onClick={handleCancelClick(params.id)}>
+                  <X size={16} className="text-slate-500 dark:text-slate-400" />
+                </IconButton>
+              </Tooltip>
+            </div>
+          );
+        }
+
+        return (
+          <div className="flex items-center gap-1">
+            <Tooltip title="Edit row">
+              <IconButton size="small" onClick={handleEditClick(params.id)}>
+                <Pencil size={16} className="text-slate-500 dark:text-slate-300" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Delete row">
+              <IconButton size="small" onClick={() => handleDeleteRecord(String(params.id))}>
+                <Trash2 size={16} className="text-red-500" />
+              </IconButton>
+            </Tooltip>
+          </div>
+        );
+      },
+    },
+  ];
 
   return (
     <div className="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-screen flex transition-colors duration-300">
@@ -446,61 +717,85 @@ function TransactionsContent() {
         )}
 
         <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="transactions-table w-full text-sm text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 text-xs uppercase text-slate-600 dark:text-slate-400 font-semibold">
-                  <th className="px-4 py-4 min-w-[200px] sticky left-0 bg-slate-50 dark:bg-slate-900/50 z-10 border-r border-slate-200 dark:border-slate-700">Vendor Name</th>
-                  <th className="px-3 py-4 w-20 text-center">Present</th>
-                  <th className="px-3 py-4 w-24 text-center bg-[#10b981]/10">SNAP ($)</th>
-                  <th className="px-3 py-4 w-24 text-center bg-[#10b981]/10">DUFB ($)</th>
-                  <th className="px-3 py-4 w-24 text-center bg-[#10b981]/10">WDFM ($)</th>
-                  <th className="px-3 py-4 w-24 text-center bg-[#10b981]/10">Voucher ($)</th>
-                  <th className="px-4 py-4 w-32 text-right font-bold text-[#059669] bg-[#10b981]/10 border-x border-[#10b981]/20">Reimburse.</th>
-                  <th className="px-4 py-4 w-32 text-right bg-amber-500/10 dark:bg-amber-500/5">Reported Sales</th>
-                  <th className="px-4 py-4 w-32 text-right bg-emerald-500/10 dark:bg-emerald-500/5">Est. Produce</th>
-                  <th className="px-4 py-4 w-24 text-center bg-slate-50 dark:bg-slate-900/30">Trans.</th>
-                  <th className="px-4 py-4 w-16 text-center"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                <AnimatePresence initial={false}>
-                  {records.map(record => (
-                    <SalesRow 
-                      key={record.id} 
-                      record={record}
-                      isEditing={editingId === record.id}
-                      isInvalid={!!record.isInvalid}
-                      onEdit={() => setEditingId(record.id)}
-                      onSave={() => setEditingId(null)}
-                      onDelete={() => handleDeleteRecord(record.id)}
-                      onUpdate={(updates) => handleUpdateRecord(record.id, updates)}
-                    />
-                  ))}
-                </AnimatePresence>
-                {isLoadingTransactions && (
-                  <tr>
-                    <td colSpan={11} className="px-4 py-20 text-center text-slate-500 dark:text-slate-400">
-                      <div className="flex flex-col items-center gap-3">
-                        <Loader2 size={32} className="animate-spin opacity-60" />
-                        <p>Loading vendor transactions for {currentMarketDate}...</p>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-                {!isLoadingTransactions && records.length === 0 && (
-                  <tr>
-                    <td colSpan={11} className="px-4 py-20 text-center text-slate-500 dark:text-slate-400">
-                      <div className="flex flex-col items-center gap-2">
-                        <AlertCircle size={32} className="opacity-20" />
-                        <p>No vendor transactions found for {currentMarketDate}. Add a vendor or import an Excel sheet to start this market day.</p>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <Box
+            sx={{
+              height: 640,
+              '& .MuiDataGrid-root': { border: 'none' },
+              '& .MuiDataGrid-columnHeaders': {
+                backgroundColor: 'rgba(148, 163, 184, 0.08)',
+                borderBottom: '1px solid rgba(148, 163, 184, 0.2)',
+              },
+              '& .MuiDataGrid-cell': {
+                borderColor: 'rgba(148, 163, 184, 0.12)',
+              },
+              '& .MuiDataGrid-row.invalid-row': {
+                backgroundColor: 'rgba(239, 68, 68, 0.08)',
+              },
+              '& .MuiDataGrid-row.invalid-row:hover': {
+                backgroundColor: 'rgba(239, 68, 68, 0.12)',
+              },
+              '& .MuiDataGrid-row.highlighted-row': {
+                backgroundColor: 'rgba(16, 185, 129, 0.10)',
+              },
+              '& .MuiDataGrid-row.highlighted-row:hover': {
+                backgroundColor: 'rgba(16, 185, 129, 0.14)',
+              },
+              '& .MuiDataGrid-row.invalid-row.highlighted-row': {
+                backgroundColor: 'rgba(239, 68, 68, 0.14)',
+              },
+              '& .MuiDataGrid-row.invalid-row.highlighted-row:hover': {
+                backgroundColor: 'rgba(239, 68, 68, 0.18)',
+              },
+              '& .MuiDataGrid-row.Mui-selected': {
+                backgroundColor: 'transparent',
+              },
+            }}
+          >
+            <DataGrid
+              rows={records}
+              columns={columns}
+              editMode="row"
+              loading={isLoadingTransactions}
+              onRowClick={handleRowClick}
+              rowModesModel={rowModesModel}
+              onRowModesModelChange={setRowModesModel}
+              processRowUpdate={processRowUpdate}
+              onProcessRowUpdateError={() => {
+                toast.error('Please fix the invalid row before saving.');
+              }}
+              disableRowSelectionOnClick
+              pageSizeOptions={[10, 25, 50, 100]}
+              initialState={{
+                pagination: {
+                  paginationModel: { pageSize: 25, page: 0 },
+                },
+              }}
+              checkboxSelection
+              getRowClassName={(params) => {
+                const classes = [];
+
+                if (params.row.isInvalid) classes.push('invalid-row');
+                if (params.id === highlightedRowId) classes.push('highlighted-row');
+
+                return classes.join(' ');
+              }}
+              sx={{
+                border: 'none',
+                '& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus': {
+                  outline: 'none',
+                },
+                '& .MuiDataGrid-overlay': {
+                  backgroundColor: 'transparent',
+                },
+              }}
+              slotProps={{
+                loadingOverlay: {
+                  variant: 'linear-progress',
+                  noRowsVariant: 'linear-progress',
+                },
+              }}
+            />
+          </Box>
         </div>
 
         {/* Save to Backend Button */}
@@ -534,224 +829,5 @@ export default function TransactionsPage() {
     <ProtectedRoute>
       <TransactionsContent />
     </ProtectedRoute>
-  );
-}
-
-interface SalesRowProps {
-  record: SalesRecord;
-  isEditing: boolean;
-  isInvalid: boolean;
-  onEdit: () => void;
-  onSave: () => void;
-  onDelete: () => void;
-  onUpdate: (updates: Partial<SalesRecord>) => void;
-}
-
-function SalesRow({ record, isEditing, isInvalid, onEdit, onSave, onDelete, onUpdate }: SalesRowProps) {
-  const snap = record.snap ?? 0;
-  const dufb = record.dufb ?? 0;
-  const wdfm_tokens = record.wdfm_tokens ?? 0;
-  const voucher = record.voucher ?? 0;
-  const reported_sales = record.reported_sales ?? 0;
-  const reimbursement_due = record.reimbursement_due ?? 0;
-  const est_produce_sales = record.est_produce_sales ?? 0;
-  const est_num_transactions = record.est_num_transactions ?? 0;
-  const present = record.present ?? false;
-
-  const handleNumberChange = (field: keyof SalesRecord, value: string) => {
-    const numValue = value === '' ? 0 : parseFloat(value);
-    if (!isNaN(numValue)) {
-      onUpdate({ [field]: numValue });
-    }
-  };
-
-  return (
-    <motion.tr 
-      layout
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      onClick={() => !isEditing && onEdit()}
-      className={`
-        group transition-colors cursor-pointer
-        ${isInvalid ? 'bg-red-50 dark:bg-red-900/20 border-l-4 border-l-red-400 dark:border-l-red-500' : ''}
-        ${isEditing && !isInvalid ? 'bg-[#10b981]/10 dark:bg-[#10b981]/15' : ''}
-        ${!isEditing && !isInvalid ? 'hover:bg-slate-100 dark:hover:bg-slate-700/60' : ''}
-      `}
-    >
-      {/* Vendor Name — always editable when invalid */}
-      <td className="px-4 py-3 font-medium sticky left-0 bg-inherit z-10 border-r border-slate-100 dark:border-slate-700">
-        {isEditing || isInvalid ? (
-          <div>
-            <input
-              type="text"
-              className={`w-full px-2 py-1 border rounded outline-none text-sm font-medium
-                ${isInvalid
-                  ? 'border-red-400 dark:border-red-500 bg-white dark:bg-slate-800 text-red-700 dark:text-red-400 focus:ring-2 focus:ring-red-300 dark:focus:ring-red-500'
-                  : 'border-[#10b981]/30 focus:ring-2 focus:ring-[#10b981]'
-                }`}
-              value={record.vendor_name}
-              onChange={(e) => onUpdate({ vendor_name: e.target.value })}
-              onClick={(e) => e.stopPropagation()}
-              placeholder="Enter valid vendor name..."
-            />
-            {isInvalid && (
-              <p className="text-xs text-red-500 mt-1">Vendor not found — check spelling</p>
-            )}
-          </div>
-        ) : (
-          <span className="text-slate-900 dark:text-slate-100">{record.vendor_name}</span>
-        )}
-      </td>
-
-      {/* Present Toggle */}
-      <td className="px-3 py-3 text-center">
-        <input 
-          type="checkbox"
-          className="w-4 h-4 accent-[#10b981] border-slate-300 dark:border-slate-600 rounded focus:ring-[#10b981]"
-          checked={present}
-          onChange={(e) => onUpdate({ present: e.target.checked })}
-          onClick={(e) => e.stopPropagation()}
-        />
-      </td>
-
-      {/* SNAP */}
-      <td className="px-2 py-3">
-        {isEditing ? (
-          <input 
-            type="number" step="0.01"
-            className="w-full px-2 py-1 text-right border border-[#10b981]/30 dark:border-slate-600 rounded focus:ring-2 focus:ring-[#10b981] outline-none text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
-            value={snap === 0 && isEditing ? '' : snap}
-            onChange={(e) => handleNumberChange('snap', e.target.value)}
-            autoFocus
-          />
-        ) : (
-          <div className="text-right text-slate-600 dark:text-slate-400 tabular-nums">{formatCurrency(snap)}</div>
-        )}
-      </td>
-
-      {/* DUFB */}
-      <td className="px-2 py-3">
-        {isEditing ? (
-          <input 
-            type="number" step="0.01"
-            className="w-full px-2 py-1 text-right border border-[#10b981]/30 dark:border-slate-600 rounded focus:ring-2 focus:ring-[#10b981] outline-none text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
-            value={dufb === 0 && isEditing ? '' : dufb}
-            onChange={(e) => handleNumberChange('dufb', e.target.value)}
-          />
-        ) : (
-          <div className="text-right text-slate-600 dark:text-slate-400 tabular-nums">{formatCurrency(dufb)}</div>
-        )}
-      </td>
-
-      {/* WDFM */}
-      <td className="px-2 py-3">
-        {isEditing ? (
-          <input 
-            type="number" step="0.01"
-            className="w-full px-2 py-1 text-right border border-[#10b981]/30 dark:border-slate-600 rounded focus:ring-2 focus:ring-[#10b981] outline-none text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
-            value={wdfm_tokens === 0 && isEditing ? '' : wdfm_tokens}
-            onChange={(e) => handleNumberChange('wdfm_tokens', e.target.value)}
-          />
-        ) : (
-          <div className="text-right text-slate-600 dark:text-slate-400 tabular-nums">{formatCurrency(wdfm_tokens)}</div>
-        )}
-      </td>
-
-      {/* Voucher */}
-      <td className="px-2 py-3">
-        {isEditing ? (
-          <input 
-            type="number" step="0.01"
-            className="w-full px-2 py-1 text-right border border-[#10b981]/30 dark:border-slate-600 rounded focus:ring-2 focus:ring-[#10b981] outline-none text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
-            value={voucher === 0 && isEditing ? '' : voucher}
-            onChange={(e) => handleNumberChange('voucher', e.target.value)}
-          />
-        ) : (
-          <div className="text-right text-slate-600 dark:text-slate-400 tabular-nums">{formatCurrency(voucher)}</div>
-        )}
-      </td>
-
-      {/* Reimbursement Due */}
-      <td className="px-4 py-3 bg-[#10b981]/10 border-x border-[#10b981]/20">
-        {isEditing ? (
-          <input 
-            type="number" step="0.01"
-            className="w-full px-2 py-1 text-right font-bold text-[#059669] dark:text-[#34d399] border border-[#10b981]/40 dark:border-slate-600 rounded focus:ring-2 focus:ring-[#10b981] outline-none text-sm bg-white dark:bg-slate-900"
-            value={reimbursement_due === 0 && isEditing ? '' : reimbursement_due}
-            onChange={(e) => handleNumberChange('reimbursement_due', e.target.value)}
-          />
-        ) : (
-          <div className={`text-right font-bold tabular-nums ${reimbursement_due > 0 ? 'text-[#059669] dark:text-[#34d399]' : 'text-slate-300 dark:text-slate-500'}`}>
-            {formatCurrency(reimbursement_due)}
-          </div>
-        )}
-      </td>
-
-      {/* Reported Sales */}
-      <td className="px-2 py-3">
-        {isEditing ? (
-          <input 
-            type="number" step="0.01"
-            className="w-full px-2 py-1 text-right border border-amber-200 dark:border-slate-600 rounded focus:ring-2 focus:ring-amber-500 outline-none text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
-            value={reported_sales === 0 && isEditing ? '' : reported_sales}
-            onChange={(e) => handleNumberChange('reported_sales', e.target.value)}
-          />
-        ) : (
-          <div className="text-right font-semibold text-slate-700 dark:text-slate-300 tabular-nums">{formatCurrency(reported_sales)}</div>
-        )}
-      </td>
-
-      {/* Est. Produce Sales */}
-      <td className="px-2 py-3">
-        {isEditing ? (
-          <input 
-            type="number" step="0.01"
-            className="w-full px-2 py-1 text-right border border-emerald-200 dark:border-slate-600 rounded focus:ring-2 focus:ring-emerald-500 outline-none text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
-            value={est_produce_sales === 0 && isEditing ? '' : est_produce_sales}
-            onChange={(e) => handleNumberChange('est_produce_sales', e.target.value)}
-          />
-        ) : (
-          <div className="text-right text-emerald-700 dark:text-emerald-400 tabular-nums">{formatCurrency(est_produce_sales)}</div>
-        )}
-      </td>
-
-      {/* Trans. */}
-      <td className="px-2 py-3">
-        {isEditing ? (
-          <input 
-            type="number"
-            className="w-full px-2 py-1 text-center border border-slate-200 dark:border-slate-600 rounded focus:ring-2 focus:ring-[#10b981] outline-none text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
-            value={est_num_transactions === 0 && isEditing ? '' : est_num_transactions}
-            onChange={(e) => handleNumberChange('est_num_transactions', e.target.value)}
-          />
-        ) : (
-          <div className="text-center text-slate-500 dark:text-slate-400 tabular-nums">{est_num_transactions}</div>
-        )}
-      </td>
-
-      {/* Actions */}
-      <td className="px-4 py-4 text-center">
-        <div className="flex items-center justify-center">
-          {isEditing ? (
-            <button 
-              onClick={(e) => { e.stopPropagation(); onSave(); }}
-              className="p-1 text-[#10b981] hover:bg-[#10b981]/15 rounded transition-colors"
-              title="Save Row"
-            >
-              <Check size={18} />
-            </button>
-          ) : (
-            <button 
-              onClick={(e) => { e.stopPropagation(); onDelete(); }}
-              className="p-1 text-slate-400 dark:text-slate-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors opacity-0 group-hover:opacity-100"
-              title="Delete Row"
-            >
-              <Trash2 size={18} />
-            </button>
-          )}
-        </div>
-      </td>
-    </motion.tr>
   );
 }
