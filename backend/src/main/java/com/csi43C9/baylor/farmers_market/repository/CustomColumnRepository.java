@@ -182,6 +182,20 @@ public class CustomColumnRepository extends AbstractJdbcRepository implements Ma
     }
 
     /**
+     * Reactivates a custom column by clearing its deactivated_at timestamp.
+     *
+     * @param id The ID of the column to reactivate.
+     */
+    public void reactivate(Long id) {
+        String sql = """
+                UPDATE custom_columns
+                SET deactivated_at = NULL
+                WHERE id = ?
+                """;
+        jdbcTemplate.update(sql, id);
+    }
+
+    /**
      * RowMapper for parsing custom column metadata.
      */
     private static class ColumnMetadataMapper implements RowMapper<CustomColumnMetadata> {

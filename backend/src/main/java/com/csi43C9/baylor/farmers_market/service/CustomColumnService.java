@@ -121,6 +121,15 @@ public class CustomColumnService {
     }
 
     /**
+     * Reactivates a custom column.
+     *
+     * @param id The ID of the column to reactivate.
+     */
+    public void reactivateColumn(Long id) {
+        customColumnRepository.reactivate(id);
+    }
+
+    /**
      * Physically deletes a custom column.
      *
      * @param id The ID of the column to delete.

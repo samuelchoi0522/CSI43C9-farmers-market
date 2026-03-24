@@ -128,6 +128,18 @@ public class CustomColumnController {
     }
 
     /**
+     * Reactivates a custom column.
+     *
+     * @param id The ID of the column to reactivate.
+     * @return A 204 No Content response.
+     */
+    @PatchMapping("/{id}/reactivate")
+    public ResponseEntity<Void> reactivateColumn(@PathVariable Long id) {
+        customColumnService.reactivateColumn(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
      * Physically deletes a custom column.
      *
      * @param id The ID of the column to delete.
