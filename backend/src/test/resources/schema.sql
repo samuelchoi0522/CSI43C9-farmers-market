@@ -37,3 +37,20 @@ create table refresh_tokens
     expiry_date TIMESTAMP    not null,
     constraint fk_users_token foreign key (user_id) references users (id) on delete cascade
 );
+
+drop table if exists custom_columns cascade;
+
+create table custom_columns
+(
+    id             INT auto_increment primary key,
+    name           VARCHAR(255) not null,
+    is_required    boolean   default false,
+    type           VARCHAR(255) null,
+    created_at     TIMESTAMP default current_timestamp,
+    updated_at     TIMESTAMP default current_timestamp,
+    deactivated_at TIMESTAMP,
+    constraint cc_name_unique unique (name)
+);
+
+create index cc_name_idx
+    on custom_columns (name);

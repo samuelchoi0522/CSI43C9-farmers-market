@@ -56,8 +56,14 @@ public class CustomColumnRepository extends AbstractJdbcRepository implements Ma
                 return ps;
             }, keyHolder);
 
-            Number key = keyHolder.getKey();
-            Long newId = Objects.nonNull(key) ? key.longValue() : null;
+            Long newId = null;
+            java.util.Map<String, Object> keys = keyHolder.getKeys();
+            if (Objects.nonNull(keys)) {
+                Object idObj = Objects.nonNull(keys.get("ID")) ? keys.get("ID") : keys.get("id");
+                if (Objects.nonNull(idObj)) {
+                    newId = ((Number) idObj).longValue();
+                }
+            }
 
             return new CustomColumnMetadata(newId, entity.name(), entity.type(), entity.isRequired());
         } else {
