@@ -1315,28 +1315,8 @@ function ReportsContent() {
                     </div>
                   )}
                 </div>
-                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead className="bg-slate-50 dark:bg-slate-900/50 text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                      <tr>
-                        <th className="px-6 py-3 text-left">Category</th>
-                        <th className="px-6 py-3 text-right">Allocated sales</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                      {categoryRows.map((r) => (
-                        <tr key={r.name}>
-                          <td className="px-6 py-3">{r.name}</td>
-                          <td className="px-6 py-3 text-right font-mono">
-                            <SmoothCurrencyValue value={r.value} resetKey={dateRangeKey} className="font-mono" />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
 
-                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden mt-8">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden mb-8">
                   <div className="p-6 border-b border-slate-200 dark:border-slate-700">
                     <h4 className="font-bold text-lg text-slate-900 dark:text-slate-100">
                       Category trends by market date
@@ -1417,6 +1397,27 @@ function ReportsContent() {
                       </ResponsiveContainer>
                     </div>
                   )}
+                </div>
+
+                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-50 dark:bg-slate-900/50 text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                      <tr>
+                        <th className="px-6 py-3 text-left">Category</th>
+                        <th className="px-6 py-3 text-right">Allocated sales</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                      {categoryRows.map((r) => (
+                        <tr key={r.name}>
+                          <td className="px-6 py-3">{r.name}</td>
+                          <td className="px-6 py-3 text-right font-mono">
+                            <SmoothCurrencyValue value={r.value} resetKey={dateRangeKey} className="font-mono" />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </>
             )}
