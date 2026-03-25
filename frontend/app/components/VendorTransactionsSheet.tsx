@@ -38,6 +38,7 @@ interface VendorTransactionsSheetProps {
   isLoading: boolean;
   isSaving: boolean;
   invalidCount: number;
+  normalizeRow: (row: VendorTransactionsSheetRow) => VendorTransactionsSheetRow;
   onRowsChange: (rows: VendorTransactionsSheetRow[]) => void;
   onSave: () => void;
 }
@@ -100,6 +101,7 @@ export default function VendorTransactionsSheet({
   isLoading,
   isSaving,
   invalidCount,
+  normalizeRow,
   onRowsChange,
   onSave,
 }: VendorTransactionsSheetProps) {
@@ -126,9 +128,10 @@ export default function VendorTransactionsSheet({
   };
 
   const processRowUpdate = (updatedRow: VendorTransactionsSheetRow) => {
-    const nextRows = rows.map(row => (row.id === updatedRow.id ? updatedRow : row));
+    const normalizedRow = normalizeRow(updatedRow);
+    const nextRows = rows.map(row => (row.id === normalizedRow.id ? normalizedRow : row));
     onRowsChange(nextRows);
-    return updatedRow;
+    return normalizedRow;
   };
 
   const columns: GridColDef<VendorTransactionsSheetRow>[] = [
@@ -280,25 +283,7 @@ export default function VendorTransactionsSheet({
       )}
 
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
-        <Box
-          sx={{
-            height: 660,
-            '& .MuiDataGrid-root': { border: 'none' },
-            '& .MuiDataGrid-columnHeaders': {
-              backgroundColor: 'rgba(148, 163, 184, 0.08)',
-              borderBottom: '1px solid rgba(148, 163, 184, 0.18)',
-            },
-            '& .MuiDataGrid-cell': {
-              borderColor: 'rgba(148, 163, 184, 0.12)',
-            },
-            '& .MuiDataGrid-row.invalid-row': {
-              backgroundColor: 'rgba(239, 68, 68, 0.08)',
-            },
-            '& .MuiDataGrid-row.invalid-row:hover': {
-              backgroundColor: 'rgba(239, 68, 68, 0.12)',
-            },
-          }}
-        >
+        <Box sx={{ height: 660 }}>
           <DataGrid
             rows={rows}
             columns={columns}
@@ -316,12 +301,30 @@ export default function VendorTransactionsSheet({
                 paginationModel: { pageSize: 25, page: 0 },
               },
             }}
+            getCellClassName={(params) => (params.row.isInvalid ? 'invalid-cell' : '')}
             getRowClassName={(params) => (params.row.isInvalid ? 'invalid-row' : '')}
             localeText={{
               noRowsLabel: `No vendor transactions for ${currentMarketDate}. Import a spreadsheet or add a vendor to get started.`,
             }}
             sx={{
               border: 'none',
+              '& .MuiDataGrid-columnHeaders': {
+                backgroundColor: 'rgba(148, 163, 184, 0.08)',
+                borderBottom: '1px solid rgba(148, 163, 184, 0.18)',
+              },
+              '& .MuiDataGrid-cell': {
+                borderColor: 'rgba(148, 163, 184, 0.12)',
+              },
+              '& .MuiDataGrid-cell.invalid-cell': {
+                backgroundColor: 'rgba(254, 226, 226, 0.95) !important',
+              },
+              '& .MuiDataGrid-row:hover .MuiDataGrid-cell.invalid-cell': {
+                backgroundColor: 'rgba(254, 202, 202, 0.98) !important',
+              },
+              '& .MuiDataGrid-cell.invalid-cell[data-field="vendor_name"]': {
+                boxShadow: 'inset 4px 0 0 rgb(239, 68, 68)',
+                fontWeight: 600,
+              },
               '& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus': {
                 outline: 'none',
               },

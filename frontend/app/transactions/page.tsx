@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Download, Loader2 } from 'lucide-react';
 import SidebarNavigation from '../components/SidebarNavigation';
 import Button from '../components/Button';
@@ -70,10 +70,12 @@ function TransactionsContent() {
   const { user, logout } = useAuth();
   const userName = user?.username || 'Admin User';
 
-  const getMatchedVendor = (vendorName: string) =>
-    allVendors.find(v => v.name.toLowerCase() === vendorName.trim().toLowerCase());
+  const getMatchedVendor = useCallback(
+    (vendorName: string) => allVendors.find(v => v.name.toLowerCase() === vendorName.trim().toLowerCase()),
+    [allVendors]
+  );
 
-  const buildRecord = (
+  const buildRecord = useCallback((
     record: Partial<VendorTransactionsSheetRow> & Pick<VendorTransactionsSheetRow, 'id' | 'vendor_name'>
   ): VendorTransactionsSheetRow => {
     const vendorName = record.vendor_name.trim();
@@ -99,7 +101,7 @@ function TransactionsContent() {
       est_num_transactions: parseNumericValue(record.est_num_transactions),
       isInvalid: !matchedVendor,
     };
-  };
+  }, [currentMarketDate, getMatchedVendor]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -144,7 +146,7 @@ function TransactionsContent() {
         });
 
         if (!isActive) return;
-        setRecords(response.data.map(mapTransactionToSalesRecord));
+        setRecords(response.data.map(transaction => buildRecord(mapTransactionToSalesRecord(transaction))));
       } catch (error) {
         console.error('Failed to load transactions:', error);
         if (!isActive) return;
@@ -163,7 +165,7 @@ function TransactionsContent() {
     return () => {
       isActive = false;
     };
-  }, [currentMarketDate]);
+  }, [buildRecord, currentMarketDate]);
 
   const invalidCount = records.filter(record => record.isInvalid).length;
 
@@ -399,6 +401,7 @@ function TransactionsContent() {
           isLoading={isLoadingTransactions}
           isSaving={isSaving}
           invalidCount={invalidCount}
+          normalizeRow={buildRecord}
           onRowsChange={(nextRows) => setRecords(normalizeRows(nextRows))}
           onSave={handleSaveToBackend}
         />
