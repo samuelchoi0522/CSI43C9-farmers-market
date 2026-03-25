@@ -245,7 +245,7 @@ export default function VendorTransactionsSheet({
   const Toolbar = () => (
     <GridToolbarContainer className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-700">
       <div className="text-sm text-slate-600 dark:text-slate-400">
-        {selectedRowIds.length > 0 ? `${selectedRowIds.length} row(s) selected` : 'Select rows with the checkboxes to delete them'}
+        {selectedRowIds.length > 0 ? `${selectedRowIds.length} row(s) selected` : 'Search by any value...'}
       </div>
       <div className="flex items-center gap-3">
         <GridToolbarQuickFilter
