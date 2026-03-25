@@ -309,12 +309,17 @@ function VendorDetailContent() {
                     {/* Header Section */}
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
                         <div>
-                            <nav className="flex items-center gap-2 text-xs font-medium text-slate-400 mb-2 uppercase tracking-wider">
-                                <Link href="/vendors" className="hover:text-[#10b981] transition-colors">
+                            <nav className="flex items-center gap-2 text-xs font-medium text-slate-400 mb-2 uppercase tracking-wider transition-colors duration-300">
+                                <Link
+                                    href="/vendors"
+                                    className="hover:text-[#10b981] transition-colors duration-300"
+                                >
                                     Vendors
                                 </Link>
-                                <span className="material-icons text-xs">chevron_right</span>
-                                <span className="text-slate-400 dark:text-slate-300">
+                                <span className="material-icons text-xs transition-colors duration-300">
+                                    chevron_right
+                                </span>
+                                <span className="text-slate-400 dark:text-slate-300 transition-colors duration-300">
                                     {vendorData.name}
                                 </span>
                             </nav>
@@ -370,10 +375,7 @@ function VendorDetailContent() {
                                     <div className="w-8 h-8 rounded-full bg-[#10b981] flex items-center justify-center text-white text-sm font-semibold flex-shrink-0 aspect-square">
                                         {userName.charAt(0).toUpperCase()}
                                     </div>
-                                    <span
-                                        className="text-sm font-medium hidden md:block"
-                                        style={{ color: "rgb(0, 0, 0)" }}
-                                    >
+                                    <span className="text-sm font-medium hidden md:block text-slate-900 dark:text-slate-100 transition-colors duration-300">
                                         {userName}
                                     </span>
                                     <span className="material-icons text-lg leading-none text-slate-600 dark:text-slate-400">
@@ -608,10 +610,7 @@ function VendorDetailContent() {
                     {/* Market History Recap Table */}
                     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
                         <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                            <h2 
-                                className="text-lg font-bold dark:text-slate-100"
-                                style={{ color: 'rgb(15, 23, 42)' }}
-                            >
+                            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 transition-colors duration-300">
                                 Market History Recap
                             </h2>
                             <div className="relative">
@@ -619,10 +618,9 @@ function VendorDetailContent() {
                                     search
                                 </span>
                                     <input
-                                        className="pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm w-64 focus:ring-[#10b981] focus:border-[#10b981] dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400"
+                                        className="pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm w-64 text-slate-700 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:ring-[#10b981] focus:border-[#10b981] transition-colors duration-300"
                                         placeholder="Search sessions..."
                                         type="text"
-                                        style={{ color: 'rgb(51, 65, 85)' }}
                                     />
                             </div>
                         </div>
