@@ -11,15 +11,19 @@ interface CategoryRevenueChartProps {
   data?: CategoryData[];
 }
 
-export default function CategoryRevenueChart({ 
-  data = [
-    { category: "Agriculture", revenue: 8240 },
-    { category: "Handcrafted Goods", revenue: 5120 },
-    { category: "Bakery", revenue: 3072 },
-    { category: "Ready-to-Eat", revenue: 2450 },
-    { category: "Artisan Crafts", revenue: 1800 },
-  ]
-}: CategoryRevenueChartProps) {
+const FALLBACK_DEMO: CategoryData[] = [
+  { category: "Agriculture", revenue: 8240 },
+  { category: "Handcrafted Goods", revenue: 5120 },
+  { category: "Bakery", revenue: 3072 },
+  { category: "Ready-to-Eat", revenue: 2450 },
+  { category: "Artisan Crafts", revenue: 1800 },
+];
+
+export default function CategoryRevenueChart({ data }: CategoryRevenueChartProps) {
+  const source = data !== undefined ? data : FALLBACK_DEMO;
+  const hasApiData = data !== undefined;
+  const isEmpty = hasApiData && source.length === 0;
+
   const colors = [
     "#10b981", // emerald-500 (green)
     "#3b82f6", // blue-500
@@ -28,8 +32,7 @@ export default function CategoryRevenueChart({
     "#8b5cf6", // violet-500 (purple)
   ];
 
-  // Format data for Recharts
-  const chartData = data.map((item, index) => ({
+  const chartData = source.map((item, index) => ({
     name: item.category,
     revenue: item.revenue,
     color: colors[index % colors.length],
@@ -38,6 +41,12 @@ export default function CategoryRevenueChart({
   return (
     <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 mb-8 w-full">
       <h3 className="font-bold text-lg mb-6 text-slate-900 dark:text-slate-100">Revenue by Category</h3>
+      {isEmpty ? (
+        <p className="text-sm text-slate-600 dark:text-slate-400 py-16 text-center">
+          No transaction data for this month, or no category allocation yet.
+        </p>
+      ) : null}
+      {!isEmpty ? (
       <ResponsiveContainer width="100%" height={280}>
         <BarChart
           data={chartData}
@@ -80,6 +89,7 @@ export default function CategoryRevenueChart({
           </Bar>
         </BarChart>
       </ResponsiveContainer>
+      ) : null}
     </div>
   );
 }
