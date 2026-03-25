@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Download, Loader2 } from 'lucide-react';
 import SidebarNavigation from '../components/SidebarNavigation';
 import Button from '../components/Button';
+import MarketDatePicker from '../components/MarketDatePicker';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { AddVendorDialog } from '../components/AddVendorDialog';
@@ -385,17 +386,11 @@ function TransactionsContent() {
         </header>
 
         <div className="mb-6">
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800 lg:inline-block">
-            <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-              Market Date
-            </div>
-            <input
-              type="date"
-              className="cursor-pointer rounded-md border border-slate-200 bg-transparent px-3 py-2 font-medium outline-none focus:ring-2 focus:ring-[#10b981] dark:border-slate-600"
-              value={currentMarketDate}
-              onChange={(event) => setCurrentMarketDate(event.target.value)}
-            />
-          </div>
+          <MarketDatePicker
+            value={currentMarketDate}
+            onChange={setCurrentMarketDate}
+            className="lg:inline-block"
+          />
         </div>
 
         <VendorTransactionsSheet
