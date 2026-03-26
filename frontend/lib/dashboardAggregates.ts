@@ -13,6 +13,25 @@ export function monthRangeStrings(d = new Date()) {
   };
 }
 
+/**
+ * Single calendar day (YYYY-MM-DD) for the most recent Saturday in local time.
+ * If today is Saturday, returns today; otherwise the prior Saturday.
+ */
+export function mostRecentSaturdayDate(d = new Date()): string {
+  const local = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const day = local.getDay();
+  const daysBack = (day + 1) % 7;
+  local.setDate(local.getDate() - daysBack);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${local.getFullYear()}-${pad(local.getMonth() + 1)}-${pad(local.getDate())}`;
+}
+
+/** start/end both set to {@link mostRecentSaturdayDate} for API range queries. */
+export function mostRecentSaturdayRange(d = new Date()) {
+  const date = mostRecentSaturdayDate(d);
+  return { start: date, end: date };
+}
+
 function parsePct(s: string | undefined) {
   const n = parseFloat(s || "0");
   return Number.isFinite(n) ? n : 0;

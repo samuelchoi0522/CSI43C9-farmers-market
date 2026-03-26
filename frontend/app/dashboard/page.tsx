@@ -12,12 +12,27 @@ import type { VendorTransaction } from "@/lib/api/transactions";
 import {
     allocateReportedByCategory,
     fetchTransactionsInRange,
-    monthRangeStrings,
+    mostRecentSaturdayDate,
+    mostRecentSaturdayRange,
 } from "@/lib/dashboardAggregates";
 import { SmoothCurrencyValue, SmoothIntegerValue } from "@/lib/smoothNumbers";
 
 interface VendorWithDefaults extends Vendor {
     defaults?: VendorDefaults;
+}
+
+function formatMarketSaturdayLabel(isoDate: string) {
+    try {
+        const d = new Date(`${isoDate}T12:00:00`);
+        return d.toLocaleDateString("en-US", {
+            weekday: "long",
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+        });
+    } catch {
+        return isoDate;
+    }
 }
 
 function DashboardContent() {
@@ -35,13 +50,9 @@ function DashboardContent() {
     const { user, logout } = useAuth();
     const userName = user?.username || "Admin User";
 
-    const monthRange = useMemo(() => monthRangeStrings(), []);
-    const metricsResetKey = `${monthRange.start}|${monthRange.end}`;
-    const monthLabel = useMemo(() => {
-        const start = new Date(`${monthRange.start}T12:00:00`);
-        const end = new Date(`${monthRange.end}T12:00:00`);
-        return `${start.toLocaleDateString("en-US", { month: "long", day: "numeric" })} – ${end.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`;
-    }, [monthRange.end, monthRange.start]);
+    const marketSaturday = mostRecentSaturdayDate();
+    const metricsResetKey = marketSaturday;
+    const marketDayLabel = formatMarketSaturdayLabel(marketSaturday);
 
     const vendorTxTotals = useMemo(() => {
         const map = new Map<string, { reported: number; reimbursement: number }>();
@@ -55,7 +66,7 @@ function DashboardContent() {
         return map;
     }, [transactions]);
 
-    const monthTotals = useMemo(() => {
+    const marketDayTotals = useMemo(() => {
         let totalReported = 0;
         let totalReimbursement = 0;
         let tokenVolume = 0;
@@ -95,8 +106,8 @@ function DashboardContent() {
         if (transactions.length === 0 && !txError) {
             alerts.push({
                 tone: "slate",
-                title: "No transactions this month",
-                detail: `No vendor transaction rows for ${monthLabel}. Data will appear here once transactions are recorded for this range.`,
+                title: "No transactions this market day",
+                detail: `No vendor transaction rows for ${marketDayLabel}. Data will appear once transactions are recorded for that Saturday.`,
             });
         }
         const inactiveWithTx = vendors.filter((v) => !v.isActive && (vendorTxTotals.get(v.id)?.reported ?? 0) > 0);
@@ -104,7 +115,7 @@ function DashboardContent() {
             alerts.push({
                 tone: "amber",
                 title: `Inactive vendor with sales: ${v.vendorName}`,
-                detail: "This vendor has reported sales in the selected month but is marked inactive.",
+                detail: "This vendor has reported sales on this market day but is marked inactive.",
             });
         }
         const activeNoSales = vendors.filter(
@@ -114,11 +125,11 @@ function DashboardContent() {
             alerts.push({
                 tone: "slate",
                 title: `No sales recorded: ${v.vendorName}`,
-                detail: "Active vendor with no reported sales in the current month on this page.",
+                detail: "Active vendor with no reported sales on this market day (on this page).",
             });
         }
         return alerts.slice(0, 5);
-    }, [transactions.length, txError, monthLabel, vendors, vendorTxTotals]);
+    }, [transactions.length, txError, marketDayLabel, vendors, vendorTxTotals]);
 
     const filteredVendors = useMemo(() => {
         const q = searchQuery.trim().toLowerCase();
@@ -157,14 +168,14 @@ function DashboardContent() {
             try {
                 setLoading(true);
                 setTxError(null);
-                const range = monthRangeStrings();
+                const range = mostRecentSaturdayRange();
 
                 const [vendorsResponse, defaultsResponse, txList] = await Promise.all([
                     getVendors(currentPage, pageSize),
                     getAllVendorDefaults(0, 1000),
                     fetchTransactionsInRange(range.start, range.end).catch((e) => {
                         console.error(e);
-                        setTxError("Could not load transaction totals for this month.");
+                        setTxError("Could not load transaction totals for the latest market day.");
                         return [] as VendorTransaction[];
                     }),
                 ]);
@@ -217,7 +228,7 @@ function DashboardContent() {
         };
 
         fetchData();
-    }, [currentPage, pageSize]);
+    }, [currentPage, pageSize, marketSaturday]);
 
     const handleLogout = () => {
         logout();
@@ -233,7 +244,7 @@ function DashboardContent() {
                     <div>
                         <h2 className="text-2xl font-bold animate-fade-in">Dashboard</h2>
                         <p className="text-slate-700 dark:text-slate-400 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-                            Transaction totals for {monthLabel}
+                            Transaction totals for the most recent Saturday ({marketDayLabel})
                         </p>
                     </div>
                     <div className="flex items-center gap-3">
@@ -283,7 +294,7 @@ function DashboardContent() {
                     </div>
                 )}
 
-                {/* Stats Cards — same month as header, from vendor transactions API */}
+                {/* Stats Cards — latest Saturday only, from vendor transactions API */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 animate-stagger">
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover-lift transition-all duration-200">
                         <div className="flex items-center justify-between mb-4">
@@ -293,11 +304,11 @@ function DashboardContent() {
                             >
                                 <span className="material-icons leading-none">credit_card</span>
                             </div>
-                            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">This month</span>
+                            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Market day</span>
                         </div>
                         <p className="text-slate-700 dark:text-slate-400 text-sm font-medium">Total reported sales</p>
                         <SmoothCurrencyValue
-                            value={monthTotals.totalReported}
+                            value={marketDayTotals.totalReported}
                             resetKey={metricsResetKey}
                             className="block text-3xl font-bold mt-1 tabular-nums text-slate-900 dark:text-slate-100"
                         />
@@ -308,11 +319,11 @@ function DashboardContent() {
                             <div className="bg-[#10b981]/10 text-[#10b981] p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110">
                                 <span className="material-icons leading-none">attach_money</span>
                             </div>
-                            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">This month</span>
+                            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Market day</span>
                         </div>
                         <p className="text-slate-700 dark:text-slate-400 text-sm font-medium">Total reimbursement due</p>
                         <SmoothCurrencyValue
-                            value={monthTotals.totalReimbursement}
+                            value={marketDayTotals.totalReimbursement}
                             resetKey={metricsResetKey}
                             className="block text-3xl font-bold mt-1 tabular-nums text-slate-900 dark:text-slate-100"
                         />
@@ -326,17 +337,17 @@ function DashboardContent() {
                             >
                                 <span className="material-icons leading-none">account_balance_wallet</span>
                             </div>
-                            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">This month</span>
+                            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Market day</span>
                         </div>
                         <p className="text-slate-700 dark:text-slate-400 text-sm font-medium">Program token volume</p>
                         <SmoothCurrencyValue
-                            value={monthTotals.tokenVolume}
+                            value={marketDayTotals.tokenVolume}
                             resetKey={metricsResetKey}
                             className="block text-3xl font-bold mt-1 tabular-nums text-slate-900 dark:text-slate-100"
                         />
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-1">
                             <SmoothIntegerValue
-                                value={monthTotals.transactionRows}
+                                value={marketDayTotals.transactionRows}
                                 resetKey={metricsResetKey}
                                 className="font-semibold text-slate-600 dark:text-slate-300"
                             />
@@ -540,7 +551,7 @@ function DashboardContent() {
                             Same allocation rules as Reports → Category (vendor defaults %).
                         </p>
                         {categoryChartData.length === 0 ? (
-                            <p className="text-sm text-slate-600 dark:text-slate-400">No category breakdown for this month.</p>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">No category breakdown for this market day.</p>
                         ) : (
                             <div className="space-y-4">
                                 {categoryChartData.map((row, i) => {
@@ -584,7 +595,7 @@ function DashboardContent() {
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
                         <h4 className="font-bold mb-1 text-slate-900 dark:text-slate-100">At a glance</h4>
                         <p className="text-xs text-slate-600 dark:text-slate-400 mb-4">
-                            Derived from this month&apos;s transactions and the vendors on this page.
+                            Derived from this market day&apos;s transactions and the vendors on this page.
                         </p>
                         <div className="space-y-4">
                             {dashboardAlerts.length === 0 ? (

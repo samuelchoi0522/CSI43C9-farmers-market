@@ -43,7 +43,7 @@ export default function CategoryRevenueChart({ data }: CategoryRevenueChartProps
       <h3 className="font-bold text-lg mb-6 text-slate-900 dark:text-slate-100">Revenue by Category</h3>
       {isEmpty ? (
         <p className="text-sm text-slate-600 dark:text-slate-400 py-16 text-center">
-          No transaction data for this month, or no category allocation yet.
+          No transaction data for this market day, or no category allocation yet.
         </p>
       ) : null}
       {!isEmpty ? (
