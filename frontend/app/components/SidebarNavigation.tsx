@@ -14,13 +14,13 @@ export default function SidebarNavigation({
   activeItem = "Dashboard",
   className = ""
 }: SidebarNavigationProps) {
+  const isSaturday = new Date().getDay() === 6;
+
   const navigationItems = [
     { id: "Dashboard", label: "Dashboard", icon: "dashboard", href: "/dashboard" },
     { id: "Vendors", label: "Vendors", icon: "store", href: "/vendors" },
     { id: "Transactions", label: "Transactions", icon: "receipt", href: "/transactions" },
-    { id: "Daily Reports", label: "Daily Reports", icon: "description", href: "#" },
-    { id: "Vendor Analytics", label: "Vendor Analytics", icon: "analytics", href: "#" },
-    { id: "Revenue Audits", label: "Revenue Audits", icon: "assessment", href: "#" },
+    { id: "Reports", label: "Reports", icon: "assessment", href: "/reports" },
   ];
 
   return (
@@ -60,7 +60,15 @@ export default function SidebarNavigation({
           <p className="text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Market Status</p>
           <p className="text-sm font-bold truncate">Downtown Saturday Mar...</p>
           <div className="mt-3 flex items-center justify-between">
-            <span className="text-[10px] bg-[#10b981]/20 text-[#10b981] px-2 py-0.5 rounded-full font-bold uppercase">Open</span>
+            <span
+              className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                isSaturday
+                  ? "bg-[#10b981]/20 text-[#10b981] dark:bg-[#10b981]/30 dark:text-[#34d399]"
+                  : "bg-amber-400/30 text-amber-900 dark:bg-amber-500/20 dark:text-amber-300"
+              }`}
+            >
+              {isSaturday ? "Live" : "Upcoming"}
+            </span>
             <Button variant="ghost" size="sm" className="p-0 text-slate-400 hover:text-[#10b981]">
               <span className="material-icons text-sm leading-none">settings</span>
             </Button>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import SidebarNavigation from "../components/SidebarNavigation";
 import CategoryRevenueChart from "../components/CategoryRevenueChart";
 import Button from "../components/Button";
@@ -8,22 +8,141 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAllVendorDefaults, VendorDefaults } from "@/lib/api/defaults";
 import { getVendors, Vendor } from "@/lib/api/vendor";
+import type { VendorTransaction } from "@/lib/api/transactions";
+import {
+    allocateReportedByCategory,
+    fetchTransactionsInRange,
+    mostRecentSaturdayDate,
+    mostRecentSaturdayRange,
+} from "@/lib/dashboardAggregates";
+import { SmoothCurrencyValue, SmoothIntegerValue } from "@/lib/smoothNumbers";
 
 interface VendorWithDefaults extends Vendor {
     defaults?: VendorDefaults;
 }
 
+function formatMarketSaturdayLabel(isoDate: string) {
+    try {
+        const d = new Date(`${isoDate}T12:00:00`);
+        return d.toLocaleDateString("en-US", {
+            weekday: "long",
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+        });
+    } catch {
+        return isoDate;
+    }
+}
+
 function DashboardContent() {
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [vendors, setVendors] = useState<VendorWithDefaults[]>([]);
-    const [vendorDefaults, setVendorDefaults] = useState<VendorDefaults[]>([]);
+    const [transactions, setTransactions] = useState<VendorTransaction[]>([]);
+    const [defaultsByVendor, setDefaultsByVendor] = useState<Map<string, VendorDefaults>>(new Map());
     const [loading, setLoading] = useState(true);
+    const [txError, setTxError] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState("");
     const [currentPage, setCurrentPage] = useState(0);
     const [pageSize] = useState(5);
     const [totalPages, setTotalPages] = useState(1);
     const [totalElements, setTotalElements] = useState(0);
     const { user, logout } = useAuth();
     const userName = user?.username || "Admin User";
+
+    const marketSaturday = mostRecentSaturdayDate();
+    const metricsResetKey = marketSaturday;
+    const marketDayLabel = formatMarketSaturdayLabel(marketSaturday);
+
+    const vendorTxTotals = useMemo(() => {
+        const map = new Map<string, { reported: number; reimbursement: number }>();
+        for (const t of transactions) {
+            const id = t.vendorId;
+            const prev = map.get(id) ?? { reported: 0, reimbursement: 0 };
+            prev.reported += t.reportedSales ?? 0;
+            prev.reimbursement += t.reimbursementDue ?? 0;
+            map.set(id, prev);
+        }
+        return map;
+    }, [transactions]);
+
+    const marketDayTotals = useMemo(() => {
+        let totalReported = 0;
+        let totalReimbursement = 0;
+        let tokenVolume = 0;
+        for (const t of transactions) {
+            totalReported += t.reportedSales ?? 0;
+            totalReimbursement += t.reimbursementDue ?? 0;
+            tokenVolume +=
+                (t.snap ?? 0) + (t.dufb ?? 0) + (t.wdfmTokens ?? 0) + (t.voucher ?? 0);
+        }
+        return {
+            totalReported,
+            totalReimbursement,
+            tokenVolume,
+            transactionRows: transactions.length,
+        };
+    }, [transactions]);
+
+    const categoryChartData = useMemo(() => {
+        const agg: Record<string, number> = {};
+        for (const t of transactions) {
+            const def = defaultsByVendor.get(t.vendorId);
+            const parts = allocateReportedByCategory(t.reportedSales ?? 0, def);
+            for (const [k, v] of Object.entries(parts)) {
+                agg[k] = (agg[k] ?? 0) + v;
+            }
+        }
+        return Object.entries(agg)
+            .map(([category, revenue]) => ({
+                category,
+                revenue: Math.round(revenue * 100) / 100,
+            }))
+            .sort((a, b) => b.revenue - a.revenue);
+    }, [transactions, defaultsByVendor]);
+
+    const dashboardAlerts = useMemo(() => {
+        const alerts: { tone: "amber" | "slate"; title: string; detail: string }[] = [];
+        if (transactions.length === 0 && !txError) {
+            alerts.push({
+                tone: "slate",
+                title: "No transactions this market day",
+                detail: `No vendor transaction rows for ${marketDayLabel}. Data will appear once transactions are recorded for that Saturday.`,
+            });
+        }
+        const inactiveWithTx = vendors.filter((v) => !v.isActive && (vendorTxTotals.get(v.id)?.reported ?? 0) > 0);
+        for (const v of inactiveWithTx.slice(0, 2)) {
+            alerts.push({
+                tone: "amber",
+                title: `Inactive vendor with sales: ${v.vendorName}`,
+                detail: "This vendor has reported sales on this market day but is marked inactive.",
+            });
+        }
+        const activeNoSales = vendors.filter(
+            (v) => v.isActive && (vendorTxTotals.get(v.id)?.reported ?? 0) === 0,
+        );
+        for (const v of activeNoSales.slice(0, 3)) {
+            alerts.push({
+                tone: "slate",
+                title: `No sales recorded: ${v.vendorName}`,
+                detail: "Active vendor with no reported sales on this market day (on this page).",
+            });
+        }
+        return alerts.slice(0, 5);
+    }, [transactions.length, txError, marketDayLabel, vendors, vendorTxTotals]);
+
+    const filteredVendors = useMemo(() => {
+        const q = searchQuery.trim().toLowerCase();
+        if (!q) return vendors;
+        return vendors.filter((v) => v.vendorName.toLowerCase().includes(q));
+    }, [vendors, searchQuery]);
+
+    const categoryRevenueTotal = useMemo(
+        () => categoryChartData.reduce((s, r) => s + r.revenue, 0),
+        [categoryChartData],
+    );
+
+    const categoryBarColors = ["#10b981", "#3b82f6", "#f59e0b", "#ec4899", "#8b5cf6", "#94a3b8"];
 
     useEffect(() => {
         // Close user menu when clicking outside
@@ -44,34 +163,32 @@ function DashboardContent() {
     }, [showUserMenu]);
 
 
-    // Fetch vendors and vendor defaults
     useEffect(() => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const [vendorsResponse, defaultsResponse] = await Promise.all([
+                setTxError(null);
+                const range = mostRecentSaturdayRange();
+
+                const [vendorsResponse, defaultsResponse, txList] = await Promise.all([
                     getVendors(currentPage, pageSize),
-                    getAllVendorDefaults(0, 100)
+                    getAllVendorDefaults(0, 1000),
+                    fetchTransactionsInRange(range.start, range.end).catch((e) => {
+                        console.error(e);
+                        setTxError("Could not load transaction totals for the latest market day.");
+                        return [] as VendorTransaction[];
+                    }),
                 ]);
 
-                console.log('Vendors response:', vendorsResponse);
-                console.log('Defaults response:', defaultsResponse);
-
-                // Check if responses are valid
                 if (!vendorsResponse) {
-                    console.error('Vendors response is null or undefined');
                     return;
                 }
 
-                // Handle case where response might be an array directly or PagedResponse
                 let vendorsList: Vendor[] = [];
                 if (Array.isArray(vendorsResponse)) {
                     vendorsList = vendorsResponse;
-                    console.log('Response is an array, using directly');
                 } else if (vendorsResponse.data && Array.isArray(vendorsResponse.data)) {
                     vendorsList = vendorsResponse.data;
-                    console.log('Response has data array');
-                    // Update pagination info
                     if (vendorsResponse.totalPages !== undefined) {
                         setTotalPages(vendorsResponse.totalPages);
                     }
@@ -79,11 +196,9 @@ function DashboardContent() {
                         setTotalElements(vendorsResponse.totalElements);
                     }
                 } else {
-                    console.error('Invalid vendors response structure:', vendorsResponse);
                     return;
                 }
 
-                // Handle defaults response
                 let defaultsList: VendorDefaults[] = [];
                 if (defaultsResponse) {
                     if (Array.isArray(defaultsResponse)) {
@@ -93,25 +208,27 @@ function DashboardContent() {
                     }
                 }
 
-                setVendorDefaults(defaultsList);
+                const defMap = new Map<string, VendorDefaults>();
+                for (const d of defaultsList) {
+                    defMap.set(d.vendorId, d);
+                }
+                setDefaultsByVendor(defMap);
+                setTransactions(txList);
 
-                // Map vendor defaults to vendors
-                const vendorsWithDefaults = vendorsList.map(vendor => {
-                    const defaults = defaultsList.find(d => d.vendorId === vendor.id);
+                const vendorsWithDefaults = vendorsList.map((vendor) => {
+                    const defaults = defaultsList.find((d) => d.vendorId === vendor.id);
                     return { ...vendor, defaults };
                 });
-                
-                console.log('Setting vendors:', vendorsWithDefaults);
                 setVendors(vendorsWithDefaults);
             } catch (error) {
-                console.error('Error fetching vendor data:', error);
+                console.error("Error fetching dashboard data:", error);
             } finally {
                 setLoading(false);
             }
         };
 
         fetchData();
-    }, [currentPage, pageSize]);
+    }, [currentPage, pageSize, marketSaturday]);
 
     const handleLogout = () => {
         logout();
@@ -126,7 +243,9 @@ function DashboardContent() {
                 <header className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 animate-slide-up">
                     <div>
                         <h2 className="text-2xl font-bold animate-fade-in">Dashboard</h2>
-                        <p className="text-slate-700 animate-fade-in" style={{ animationDelay: '0.1s' }}>Market Performance for {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                        <p className="text-slate-700 dark:text-slate-400 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+                            Transaction totals for the most recent Saturday ({marketDayLabel})
+                        </p>
                     </div>
                     <div className="flex items-center gap-3">
                         {/* User Menu */}
@@ -169,7 +288,13 @@ function DashboardContent() {
                     </div>
                 </header>
 
-                {/* Stats Cards */}
+                {txError && (
+                    <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
+                        {txError}
+                    </div>
+                )}
+
+                {/* Stats Cards — latest Saturday only, from vendor transactions API */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 animate-stagger">
                     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover-lift transition-all duration-200">
                         <div className="flex items-center justify-between mb-4">
@@ -179,12 +304,14 @@ function DashboardContent() {
                             >
                                 <span className="material-icons leading-none">credit_card</span>
                             </div>
-                            <span className="text-xs font-bold text-[#10b981] flex items-center gap-1">
-                                <span className="material-icons text-sm leading-none">trending_up</span> +12%
-                            </span>
+                            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Market day</span>
                         </div>
-                        <p className="text-slate-700 text-sm font-medium">Gross Market Revenue</p>
-                        <p className="text-3xl font-bold mt-1">$18,432.50</p>
+                        <p className="text-slate-700 dark:text-slate-400 text-sm font-medium">Total reported sales</p>
+                        <SmoothCurrencyValue
+                            value={marketDayTotals.totalReported}
+                            resetKey={metricsResetKey}
+                            className="block text-3xl font-bold mt-1 tabular-nums text-slate-900 dark:text-slate-100"
+                        />
                     </div>
 
                     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover-lift transition-all duration-200">
@@ -192,12 +319,14 @@ function DashboardContent() {
                             <div className="bg-[#10b981]/10 text-[#10b981] p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110">
                                 <span className="material-icons leading-none">attach_money</span>
                             </div>
-                            <span className="text-xs font-bold text-[#10b981] flex items-center gap-1">
-                                <span className="material-icons text-sm leading-none">trending_up</span> +12%
-                            </span>
+                            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Market day</span>
                         </div>
-                        <p className="text-slate-700 text-sm font-medium">Total Fees Collected</p>
-                        <p className="text-3xl font-bold mt-1">$2,840.00</p>
+                        <p className="text-slate-700 dark:text-slate-400 text-sm font-medium">Total reimbursement due</p>
+                        <SmoothCurrencyValue
+                            value={marketDayTotals.totalReimbursement}
+                            resetKey={metricsResetKey}
+                            className="block text-3xl font-bold mt-1 tabular-nums text-slate-900 dark:text-slate-100"
+                        />
                     </div>
 
                     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover-lift transition-all duration-200">
@@ -206,17 +335,28 @@ function DashboardContent() {
                                 className="text-amber-600 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
                                 style={{ backgroundColor: 'rgba(254, 243, 199, 0.5)' }}
                             >
-                                <span className="material-icons leading-none">folder</span>
+                                <span className="material-icons leading-none">account_balance_wallet</span>
                             </div>
-                            <span className="text-xs font-bold text-slate-700 uppercase">4 Outstanding</span>
+                            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Market day</span>
                         </div>
-                        <p className="text-slate-700 text-sm font-medium">Unpaid Vendor Fees</p>
-                        <p className="text-3xl font-bold mt-1">$420.00</p>
+                        <p className="text-slate-700 dark:text-slate-400 text-sm font-medium">Program token volume</p>
+                        <SmoothCurrencyValue
+                            value={marketDayTotals.tokenVolume}
+                            resetKey={metricsResetKey}
+                            className="block text-3xl font-bold mt-1 tabular-nums text-slate-900 dark:text-slate-100"
+                        />
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-1">
+                            <SmoothIntegerValue
+                                value={marketDayTotals.transactionRows}
+                                resetKey={metricsResetKey}
+                                className="font-semibold text-slate-600 dark:text-slate-300"
+                            />
+                            <span>transaction rows</span>
+                        </p>
                     </div>
                 </div>
 
-                {/* Category Revenue Chart */}
-                <CategoryRevenueChart />
+                <CategoryRevenueChart data={categoryChartData} />
 
                 {/* Vendor Tracking Table */}
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-slide-up" style={{ animationDelay: '0.2s' }}>
@@ -229,6 +369,8 @@ function DashboardContent() {
                                     className="pl-9 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:ring-[#10b981] focus:border-[#10b981] w-full md:w-64 outline-none"
                                     placeholder="Search vendors..."
                                     type="text"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
                                 />
                             </div>
                             <Button variant="outline" size="sm" className="p-2 h-[42px] flex items-center justify-center">
@@ -263,8 +405,14 @@ function DashboardContent() {
                                             No vendors found
                                         </td>
                                     </tr>
+                                ) : filteredVendors.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
+                                            No vendors match your search.
+                                        </td>
+                                    </tr>
                                 ) : (
-                                    vendors.map((vendor) => (
+                                    filteredVendors.map((vendor) => (
                                         <tr
                                             key={vendor.id}
                                             className="hover:bg-green-50 transition-colors"
@@ -308,8 +456,20 @@ function DashboardContent() {
                                                     <span className="text-slate-400 text-xs">No defaults</span>
                                                 )}
                                             </td>
-                                            <td className="px-6 py-4 font-mono text-sm">-</td>
-                                            <td className="px-6 py-4 font-mono text-sm">-</td>
+                                            <td className="px-6 py-4 font-mono text-sm">
+                                                <SmoothCurrencyValue
+                                                    value={vendorTxTotals.get(vendor.id)?.reimbursement ?? 0}
+                                                    resetKey={`${metricsResetKey}|${vendor.id}`}
+                                                    className="font-mono text-sm"
+                                                />
+                                            </td>
+                                            <td className="px-6 py-4 font-mono text-sm">
+                                                <SmoothCurrencyValue
+                                                    value={vendorTxTotals.get(vendor.id)?.reported ?? 0}
+                                                    resetKey={`${metricsResetKey}|${vendor.id}`}
+                                                    className="font-mono text-sm"
+                                                />
+                                            </td>
                                             <td className="px-6 py-4 text-right">
                                                 <Button variant="ghost" size="sm" className="p-1.5 hover:bg-[#10b981]/10 hover:text-[#10b981] text-slate-400">
                                                     <span className="material-icons text-lg leading-none">description</span>
@@ -322,9 +482,19 @@ function DashboardContent() {
                         </table>
                     </div>
 
-                    <div className="p-4 border-t border-slate-200 flex items-center justify-between">
-                        <span className="text-sm text-slate-700">
-                            Showing {vendors.length > 0 ? currentPage * pageSize + 1 : 0} to {Math.min((currentPage + 1) * pageSize, totalElements)} of {totalElements} vendors
+                    <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                        <span className="text-sm text-slate-700 dark:text-slate-500">
+                            {searchQuery.trim() ? (
+                                <>
+                                    {filteredVendors.length} match{filteredVendors.length !== 1 ? "es" : ""} on this page
+                                    {filteredVendors.length < vendors.length ? ` (of ${vendors.length} shown)` : null}
+                                </>
+                            ) : (
+                                <>
+                                    Showing {vendors.length > 0 ? currentPage * pageSize + 1 : 0} to{" "}
+                                    {Math.min((currentPage + 1) * pageSize, totalElements)} of {totalElements} vendors
+                                </>
+                            )}
                         </span>
                         <div className="flex items-center gap-1">
                             <Button 
@@ -374,68 +544,79 @@ function DashboardContent() {
                 </div>
 
 
-                {/* Bottom Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
-                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                        <h4 className="font-bold mb-4">Revenue by Category</h4>
-                        <div className="space-y-4">
-                            <div>
-                                <div className="flex justify-between text-sm mb-1">
-                                    <span>Fresh Produce</span>
-                                    <span className="font-bold">$8,240 (45%)</span>
-                                </div>
-                                <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                                    <div className="bg-[#10b981] h-full" style={{ width: '45%' }}></div>
-                                </div>
+                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                        <h4 className="font-bold mb-1 text-slate-900 dark:text-slate-100">Allocated revenue by category</h4>
+                        <p className="text-xs text-slate-600 dark:text-slate-400 mb-4">
+                            Same allocation rules as Reports → Category (vendor defaults %).
+                        </p>
+                        {categoryChartData.length === 0 ? (
+                            <p className="text-sm text-slate-600 dark:text-slate-400">No category breakdown for this market day.</p>
+                        ) : (
+                            <div className="space-y-4">
+                                {categoryChartData.map((row, i) => {
+                                    const pct =
+                                        categoryRevenueTotal > 0
+                                            ? Math.round((row.revenue / categoryRevenueTotal) * 1000) / 10
+                                            : 0;
+                                    const barPct =
+                                        categoryRevenueTotal > 0
+                                            ? Math.min(100, (row.revenue / categoryRevenueTotal) * 100)
+                                            : 0;
+                                    return (
+                                        <div key={row.category}>
+                                            <div className="flex justify-between text-sm mb-1">
+                                                <span>{row.category}</span>
+                                                <span className="font-bold tabular-nums inline-flex items-baseline gap-1 flex-wrap justify-end">
+                                                    <SmoothCurrencyValue
+                                                        value={row.revenue}
+                                                        resetKey={`${metricsResetKey}|${row.category}`}
+                                                        className="font-bold tabular-nums text-slate-900 dark:text-slate-100"
+                                                    />
+                                                    <span className="text-slate-500 font-medium">({pct}%)</span>
+                                                </span>
+                                            </div>
+                                            <div className="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full rounded-full transition-all"
+                                                    style={{
+                                                        width: `${barPct}%`,
+                                                        backgroundColor: categoryBarColors[i % categoryBarColors.length],
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
-                            <div>
-                                <div className="flex justify-between text-sm mb-1">
-                                    <span>Ready-to-Eat</span>
-                                    <span className="font-bold">$5,120 (28%)</span>
-                                </div>
-                                <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                                    <div className="bg-blue-500 h-full" style={{ width: '28%' }}></div>
-                                </div>
-                            </div>
-                            <div>
-                                <div className="flex justify-between text-sm mb-1">
-                                    <span>Artisan Crafts</span>
-                                    <span className="font-bold">$3,072 (17%)</span>
-                                </div>
-                                <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                                    <div className="bg-amber-500 h-full" style={{ width: '17%' }}></div>
-                                </div>
-                            </div>
-                        </div>
+                        )}
                     </div>
 
-                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                        <div className="flex items-center justify-between mb-4">
-                            <h4 className="font-bold">Financial Alerts</h4>
-                            <span className="text-xs text-[#10b981] font-bold cursor-pointer hover:underline">Auditor View</span>
-                        </div>
+                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                        <h4 className="font-bold mb-1 text-slate-900 dark:text-slate-100">At a glance</h4>
+                        <p className="text-xs text-slate-600 dark:text-slate-400 mb-4">
+                            Derived from this market day&apos;s transactions and the vendors on this page.
+                        </p>
                         <div className="space-y-4">
-                            <div className="flex gap-4 items-start">
-                                <div className="w-2 h-2 rounded-full bg-red-500 mt-2 shrink-0"></div>
-                                <div>
-                                    <p className="text-sm font-semibold">Unreported Sales: Ary Land &amp; Cattle</p>
-                                    <p className="text-xs text-slate-600">Market day 06/23 sales data not yet submitted for commission.</p>
-                                </div>
-                            </div>
-                            <div className="flex gap-4 items-start">
-                                <div className="w-2 h-2 rounded-full bg-amber-500 mt-2 shrink-0"></div>
-                                <div>
-                                    <p className="text-sm font-semibold">Partial Payment: Alba&apos;s Pupusas</p>
-                                    <p className="text-xs text-slate-600">Booth fee balance of $45.00 overdue from morning check-in.</p>
-                                </div>
-                            </div>
-                            <div className="flex gap-4 items-start">
-                                <div className="w-2 h-2 rounded-full bg-[#10b981] mt-2 shrink-0"></div>
-                                <div>
-                                    <p className="text-sm font-semibold">Deposit Successful</p>
-                                    <p className="text-xs text-slate-600">Electronic deposit for 06/21 batch confirmed by bank ($12,403.00).</p>
-                                </div>
-                            </div>
+                            {dashboardAlerts.length === 0 ? (
+                                <p className="text-sm text-slate-600 dark:text-slate-400">
+                                    Nothing flagged for vendors on this page.
+                                </p>
+                            ) : (
+                                dashboardAlerts.map((a, idx) => (
+                                    <div key={idx} className="flex gap-4 items-start">
+                                        <div
+                                            className={`w-2 h-2 rounded-full mt-2 shrink-0 ${
+                                                a.tone === "amber" ? "bg-amber-500" : "bg-slate-400 dark:bg-slate-500"
+                                            }`}
+                                        />
+                                        <div>
+                                            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{a.title}</p>
+                                            <p className="text-xs text-slate-600 dark:text-slate-500">{a.detail}</p>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
                 </div>
