@@ -21,6 +21,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -241,12 +244,18 @@ public class Seeder {
         List<Vendor> allVendors = vendorRepository.findAll();
         List<CustomColumnMetadata> activeColumns = customColumnRepository.findAllActiveColumns();
 
+        // Find the most recent Saturday (or today, if today happens to be Saturday)
+        LocalDate mostRecentSaturday = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.SATURDAY));
+
         List<java.time.LocalDate> marketDates = List.of(
-                java.time.LocalDate.now().minusWeeks(1),
-                java.time.LocalDate.now().minusWeeks(2),
-                java.time.LocalDate.now().minusWeeks(3),
-                java.time.LocalDate.now().minusWeeks(4),
-                java.time.LocalDate.now().minusWeeks(5)
+                mostRecentSaturday.minusWeeks(1),
+                mostRecentSaturday.minusWeeks(2),
+                mostRecentSaturday.minusWeeks(3),
+                mostRecentSaturday.minusWeeks(4),
+                mostRecentSaturday.minusWeeks(5),
+                mostRecentSaturday.minusWeeks(10),
+                mostRecentSaturday.minusWeeks(12),
+                mostRecentSaturday.minusWeeks(15)
         );
 
         System.out.println("Seeding transactions for " + allVendors.size() + " vendors...");
