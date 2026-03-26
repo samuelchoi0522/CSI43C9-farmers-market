@@ -11,15 +11,19 @@ interface CategoryRevenueChartProps {
   data?: CategoryData[];
 }
 
-export default function CategoryRevenueChart({ 
-  data = [
-    { category: "Agriculture", revenue: 8240 },
-    { category: "Handcrafted Goods", revenue: 5120 },
-    { category: "Bakery", revenue: 3072 },
-    { category: "Ready-to-Eat", revenue: 2450 },
-    { category: "Artisan Crafts", revenue: 1800 },
-  ]
-}: CategoryRevenueChartProps) {
+const FALLBACK_DEMO: CategoryData[] = [
+  { category: "Agriculture", revenue: 8240 },
+  { category: "Handcrafted Goods", revenue: 5120 },
+  { category: "Bakery", revenue: 3072 },
+  { category: "Ready-to-Eat", revenue: 2450 },
+  { category: "Artisan Crafts", revenue: 1800 },
+];
+
+export default function CategoryRevenueChart({ data }: CategoryRevenueChartProps) {
+  const source = data !== undefined ? data : FALLBACK_DEMO;
+  const hasApiData = data !== undefined;
+  const isEmpty = hasApiData && source.length === 0;
+
   const colors = [
     "#10b981", // emerald-500 (green)
     "#3b82f6", // blue-500
@@ -28,8 +32,7 @@ export default function CategoryRevenueChart({
     "#8b5cf6", // violet-500 (purple)
   ];
 
-  // Format data for Recharts
-  const chartData = data.map((item, index) => ({
+  const chartData = source.map((item, index) => ({
     name: item.category,
     revenue: item.revenue,
     color: colors[index % colors.length],
@@ -77,6 +80,7 @@ export default function CategoryRevenueChart({
           </Bar>
         </BarChart>
       </ResponsiveContainer>
+      ) : null}
     </div>
   );
 }
