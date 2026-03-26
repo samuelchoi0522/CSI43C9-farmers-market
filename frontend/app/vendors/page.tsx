@@ -88,7 +88,7 @@ function VendorsContent() {
         try {
             const [allVendorsResponse, defaultsResponse] = await Promise.all([
                 getVendors(0, 1000, showInactive), // Fetch a large number to get all vendors for stats
-                getAllVendorDefaults(0, 100)
+                getAllVendorDefaults(0, 1000)
             ]);
 
             // Handle defaults response
@@ -246,6 +246,65 @@ function VendorsContent() {
         return badges;
     };
 
+    const handleExportCSV = () => {
+        if (allVendors.length === 0) return;
+
+        const headers = [
+            "ID",
+            "Vendor Name",
+            "Is Active",
+            "Point Person",
+            "Email",
+            "Location",
+            "Miles",
+            "Products",
+            "Is Farmer",
+            "Is Produce",
+            "Woman Owned",
+            "BIPOC Owned",
+            "Veteran Owned",
+            "% Handmade",
+            "% Agricultural",
+            "% Prepared Food",
+            "% Cottage Goods",
+            "% Manufactured"
+        ];
+
+        const csvContent = [
+            headers.join(","),
+            ...allVendors.map(vendor => [
+                vendor.id,
+                `"${(vendor.vendorName || "").replace(/"/g, '""')}"`,
+                vendor.isActive ? "Yes" : "No",
+                `"${(vendor.pointPerson || "").replace(/"/g, '""')}"`,
+                `"${(vendor.email || "").replace(/"/g, '""')}"`,
+                `"${(vendor.location || "").replace(/"/g, '""')}"`,
+                vendor.miles ?? "",
+                `"${(vendor.products || "").replace(/"/g, '""')}"`,
+                vendor.isFarmer ? "Yes" : "No",
+                vendor.isProduce ? "Yes" : "No",
+                vendor.womanOwned ? "Yes" : "No",
+                vendor.bipocOwned ? "Yes" : "No",
+                vendor.veteranOwned ? "Yes" : "No",
+                vendor.defaults?.pctHandmade ? `${vendor.defaults.pctHandmade}%` : "",
+                vendor.defaults?.pctAgricultural ? `${vendor.defaults.pctAgricultural}%` : "",
+                vendor.defaults?.pctPreparedFood ? `${vendor.defaults.pctPreparedFood}%` : "",
+                vendor.defaults?.pctCottageGoods ? `${vendor.defaults.pctCottageGoods}%` : "",
+                vendor.defaults?.pctManufactured ? `${vendor.defaults.pctManufactured}%` : ""
+            ].join(","))
+        ].join("\n");
+
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `vendors_export_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = "hidden";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     return (
         <div className="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-screen flex transition-colors duration-300">
             <SidebarNavigation activeItem="Vendors" />
@@ -266,7 +325,11 @@ function VendorsContent() {
                         </p>
                     </div>
                     <div className="flex items-center gap-3">
-                        <Button variant="outline" className="flex items-center gap-2">
+                        <Button 
+                            variant="outline" 
+                            className="flex items-center gap-2"
+                            onClick={handleExportCSV}
+                        >
                             <span className="material-icons text-lg leading-none">download</span>
                             Export List
                         </Button>
