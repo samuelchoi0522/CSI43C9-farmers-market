@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Download, Loader2 } from 'lucide-react';
+import { Download, FileSpreadsheet, Loader2 } from 'lucide-react';
 import SidebarNavigation from '../components/SidebarNavigation';
 import Button from '../components/Button';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -18,6 +18,7 @@ import {
   type VendorTransaction,
 } from '@/lib/api/transactions';
 import { getVendors, type Vendor as ApiVendor } from '@/lib/api/vendor';
+import { downloadVendorTransactionsTemplate } from '@/lib/transactionsTemplate';
 
 interface Vendor {
   id: string;
@@ -63,6 +64,7 @@ function TransactionsContent() {
   const [records, setRecords] = useState<VendorTransactionsSheetRow[]>([]);
   const [allVendors, setAllVendors] = useState<Vendor[]>([]);
   const [isImporting, setIsImporting] = useState(false);
+  const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -173,6 +175,19 @@ function TransactionsContent() {
 
   const handleImportClick = () => {
     fileInputRef.current?.click();
+  };
+
+  const handleDownloadTemplate = async () => {
+    setIsDownloadingTemplate(true);
+    try {
+      await downloadVendorTransactionsTemplate(currentMarketDate);
+      toast.success('Downloaded transaction template with active custom columns.');
+    } catch (error) {
+      console.error('Failed to download transaction template:', error);
+      toast.error('Unable to download template. Please try again.');
+    } finally {
+      setIsDownloadingTemplate(false);
+    }
   };
 
   const handleAddVendor = (vendor: Vendor) => {
@@ -346,6 +361,18 @@ function TransactionsContent() {
             >
               {isImporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
               Import Excel
+            </button>
+            <button
+              onClick={handleDownloadTemplate}
+              disabled={isDownloadingTemplate}
+              className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium shadow-sm transition-all ${
+                isDownloadingTemplate
+                  ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'
+                  : 'border-[#10b981]/30 bg-white text-[#10b981] hover:bg-[#10b981]/10'
+              }`}
+            >
+              {isDownloadingTemplate ? <Loader2 size={16} className="animate-spin" /> : <FileSpreadsheet size={16} />}
+              Download Template
             </button>
             <AddVendorDialog vendors={allVendors} onAdd={handleAddVendor} />
             <div className="relative user-menu-container">
