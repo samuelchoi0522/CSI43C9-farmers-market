@@ -445,9 +445,7 @@ function ReportsContent() {
       .sort((a, b) => b.value - a.value);
   }, [transactions, defaultsByVendor]);
 
-  const categoryChartColors = ["#10b981", "#3b82f6", "#f59e0b", "#ec4899", "#8b5cf6", "#94a3b8"];
-
-  const categoryTrendColors = useMemo<Record<string, string>>(
+  const categoryTrendColors = useMemo(
     () => ({
       Agricultural: "#10b981",
       "Prepared food": "#3b82f6",
@@ -457,6 +455,13 @@ function ReportsContent() {
     }),
     [],
   );
+
+  // Keep the category colors consistent across both charts.
+  // Bar chart uses the dynamic `categoryRows` order, so we must color by category name (not array index).
+  const getCategoryColor = (name: string) => {
+    const color = (categoryTrendColors as Record<string, string>)[name];
+    return color ?? "#94a3b8"; // fallback for unexpected/uncategorized values
+  };
 
   const categoryTrend = useMemo(() => {
     const byDate = new Map<string, Record<string, number>>();
@@ -1167,8 +1172,8 @@ function ReportsContent() {
                           />
                           <Tooltip formatter={(v: number) => [formatCurrency(v), "Allocated"]} />
                           <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                            {categoryRows.map((_, i) => (
-                              <Cell key={i} fill={categoryChartColors[i % categoryChartColors.length]} />
+                            {categoryRows.map((r) => (
+                              <Cell key={r.name} fill={getCategoryColor(r.name)} />
                             ))}
                           </Bar>
                         </BarChart>
