@@ -41,7 +41,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="bg-[#F9FAF2] dark:bg-[#121412] font-sans transition-colors duration-300 animate-fade-in">
+    <div className="bg-[#F9FAF2] font-sans transition-colors duration-300 animate-fade-in">
       
       <div className="min-h-screen flex items-center justify-center market-bg p-4">
         <div className="w-full max-w-md">
@@ -55,12 +55,12 @@ export default function LoginPage() {
             <p className="text-white/80 mt-2 font-medium animate-fade-in" style={{ animationDelay: '0.2s' }}>Market Manager Portal</p>
           </div>
 
-          <div className="glass-panel dark:border dark:border-white/10 p-8 rounded-2xl shadow-2xl animate-slide-up backdrop-blur-transition" style={{ animationDelay: '0.3s' }}>
+          <div className="glass-panel p-8 rounded-2xl shadow-2xl animate-slide-up backdrop-blur-transition" style={{ animationDelay: '0.3s' }}>
             <div className="mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              <h2 className="text-2xl font-bold text-gray-900">
                 Welcome back
               </h2>
-              <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
+              <p className="text-gray-600 text-sm mt-1">
                 Please enter your credentials to manage your market.
               </p>
             </div>
@@ -68,7 +68,7 @@ export default function LoginPage() {
             <form action="#" className="space-y-5" method="POST" onSubmit={handleSubmit}>
               <div className="space-y-1">
                 <label
-                  className="block text-sm font-semibold text-gray-700 dark:text-gray-300"
+                  className="block text-sm font-semibold text-gray-700"
                   htmlFor="email"
                 >
                   Market Email
@@ -78,7 +78,7 @@ export default function LoginPage() {
                     <span className="material-icons text-[20px]">email</span>
                   </div>
                   <input
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 text-sm hover:border-gray-400 dark:hover:border-zinc-600"
+                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 text-sm hover:border-gray-400"
                     id="email"
                     name="email"
                     placeholder="manager@yourmarket.org"
@@ -94,13 +94,13 @@ export default function LoginPage() {
               <div className="space-y-1">
                 <div className="flex justify-between items-center">
                   <label
-                    className="block text-sm font-semibold text-gray-700 dark:text-gray-300"
+                    className="block text-sm font-semibold text-gray-700"
                     htmlFor="password"
                   >
                     Password
                   </label>
                   <a
-                    className="text-xs font-semibold text-gray-700 dark:text-primary hover:text-green-700 dark:hover:text-green-400 transition-colors"
+                    className="text-xs font-semibold text-gray-700 hover:text-green-700 transition-colors"
                     href="#"
                   >
                     Forgot Password?
@@ -111,7 +111,7 @@ export default function LoginPage() {
                     <span className="material-icons text-[20px]">lock</span>
                   </div>
                   <input
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 text-sm hover:border-gray-400 dark:hover:border-zinc-600"
+                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 text-sm hover:border-gray-400"
                     id="password"
                     name="password"
                     placeholder="••••••••"
@@ -126,14 +126,14 @@ export default function LoginPage() {
 
               <div className="flex items-center">
                 <input
-                  className="h-4 w-4 text-primary focus:ring-primary border-gray-300 dark:border-zinc-700 rounded bg-white dark:bg-zinc-900 accent-primary"
+                  className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded bg-white accent-primary"
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
                   style={{ accentColor: '#2D5A27' }}
                 />
                 <label
-                  className="ml-2 block text-sm text-gray-700 dark:text-gray-300"
+                  className="ml-2 block text-sm text-gray-700"
                   htmlFor="remember-me"
                 >
                   Remember this device
@@ -141,8 +141,8 @@ export default function LoginPage() {
               </div>
 
               {error && (
-                <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 animate-slide-up animate-scale-in">
-                  <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                <div className="p-3 rounded-lg bg-red-50 border border-red-200 animate-slide-up animate-scale-in">
+                  <p className="text-sm text-red-600">{error}</p>
                 </div>
               )}
 
@@ -159,7 +159,7 @@ export default function LoginPage() {
           </div>
 
           <div className="mt-8 text-center">
-            <p className="text-[#2a2a2a] dark:text-white/60 text-xs uppercase tracking-widest font-medium">
+            <p className="text-[#2a2a2a] text-xs uppercase tracking-widest font-medium">
               © {new Date().getFullYear()} MarketOS Platform. All rights reserved.
             </p>
           </div>
@@ -167,7 +167,7 @@ export default function LoginPage() {
       </div>
 
       <div className="fixed bottom-0 left-0 p-8 hidden lg:block">
-        <div className="flex items-center gap-4 text-gray-800 dark:text-white/50 bg-white/80 dark:bg-black/20 backdrop-blur-md rounded-full px-6 py-2">
+        <div className="flex items-center gap-4 text-gray-800 bg-white/80 backdrop-blur-md rounded-full px-6 py-2">
           <span className="material-icons text-sm">trending_up</span>
           <span className="text-xs font-semibold tracking-wide">
             SUPPORTING 100+ LOCAL VENDORS
