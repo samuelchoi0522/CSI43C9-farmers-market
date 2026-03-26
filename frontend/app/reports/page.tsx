@@ -993,7 +993,7 @@ function ReportsContent() {
                           {trendFocus != null ? (
                             <TrendReportedSalesValue
                               targetReported={trendFocus.current.reported}
-                              resetKey={comprehensive.trend}
+                              resetKey={dateRangeKey}
                             />
                           ) : (
                             <p
