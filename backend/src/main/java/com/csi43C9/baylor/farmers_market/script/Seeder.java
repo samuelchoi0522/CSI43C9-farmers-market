@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
 
 /**
  * Seeds the database with test data.
@@ -244,19 +245,10 @@ public class Seeder {
         List<Vendor> allVendors = vendorRepository.findAll();
         List<CustomColumnMetadata> activeColumns = customColumnRepository.findAllActiveColumns();
 
-        // Find the most recent Saturday (or today, if today happens to be Saturday)
         LocalDate mostRecentSaturday = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.SATURDAY));
-
-        List<java.time.LocalDate> marketDates = List.of(
-                mostRecentSaturday.minusWeeks(1),
-                mostRecentSaturday.minusWeeks(2),
-                mostRecentSaturday.minusWeeks(3),
-                mostRecentSaturday.minusWeeks(4),
-                mostRecentSaturday.minusWeeks(5),
-                mostRecentSaturday.minusWeeks(10),
-                mostRecentSaturday.minusWeeks(12),
-                mostRecentSaturday.minusWeeks(15)
-        );
+        List<LocalDate> marketDates = IntStream.range(0, 52)
+                .mapToObj(mostRecentSaturday::minusWeeks)
+                .toList();
 
         System.out.println("Seeding transactions for " + allVendors.size() + " vendors...");
         java.util.ArrayList<VendorTransaction> allTransactions = new java.util.ArrayList<>();
