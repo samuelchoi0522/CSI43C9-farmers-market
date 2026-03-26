@@ -24,6 +24,12 @@ repositories {
     mavenCentral()
 }
 
+tasks.register('runSeeder', JavaExec) {
+    group = 'application'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.csi43C9.baylor.farmers_market.script.Seeder'
+}
+
 dependencies {
     implementation 'org.springframework.boot:spring-boot-h2console'
     implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'

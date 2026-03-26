@@ -32,6 +32,7 @@ create table if not exists vendor_transactions
     reported_sales       double                    null,
     est_produce_sales    double                    null,
     est_num_transactions bigint                    null,
+    custom_data          json                      null,
     created_at           timestamp  default now(),
     updated_at           timestamp on update now() null,
     foreign key (vendor_id) references vendors (id),
@@ -39,6 +40,21 @@ create table if not exists vendor_transactions
 );
 create index if not exists vt_vendor_id_date_index on vendor_transactions (vendor_id, market_date);;
 create index if not exists vt_vendor_name_date_index on vendor_transactions (vendor_name, market_date);
+
+create table if not exists custom_columns
+(
+    id             int primary key auto_increment,
+    name           varchar(255),
+    is_required    boolean  default false,
+    type           varchar(255),
+    check ( type in ('text', 'number') ),
+    created_at     datetime default current_timestamp,
+    updated_at     datetime default current_timestamp on update current_timestamp,
+    deactivated_at datetime,
+    unique (name)
+);
+create index if not exists cc_name_idx on custom_columns (name);
+
 create table if not exists users
 (
     id            binary(16)                not null primary key,
@@ -48,6 +64,7 @@ create table if not exists users
     updated_at    timestamp on update now() null
 );
 create index if not exists users_email_index on users (email);
+
 create table if not exists refresh_tokens
 (
     id          binary(16) primary key,
@@ -56,6 +73,7 @@ create table if not exists refresh_tokens
     expiry_date TIMESTAMP    not null,
     constraint fk_user foreign key (user_id) references users (id) on delete cascade
 );
+
 create table if not exists vendor_defaults
 (
     id                binary(16) primary key,
@@ -73,48 +91,18 @@ create table if not exists vendor_defaults
         )
 );
 
-create table if not exists category_labels (
-   id bigint auto_increment primary key,
-   name varchar(255) not null,
-   color varchar(20) null
+create table if not exists category_labels
+(
+    id    bigint auto_increment primary key,
+    name  varchar(255) not null,
+    color varchar(20)  null
 );
 
-create table if not exists vendor_category_labels (
+create table if not exists vendor_category_labels
+(
     vendor_id binary(16) not null,
-    label_id bigint not null,
+    label_id  bigint     not null,
     primary key (vendor_id, label_id),
     foreign key (vendor_id) references vendors (id),
-    foreign key (label_id) references category_labels (id)
-);
-
-create table if not exists vendor_daily_market_records (
-    vendor_id binary(16) not null,
-    record_date date not null,
-    pct_handmade decimal(5, 2) not null default 0.00,
-    pct_agricultural decimal(5, 2) not null default 0.00,
-    pct_prepared_food decimal(5, 2) not null default 0.00,
-    pct_cottage_goods decimal(5, 2) not null default 0.00,
-    pct_manufactured decimal(5, 2) not null default 0.00,
-    primary key (vendor_id, record_date),
-    foreign key (vendor_id) references vendors (id),
-    constraint check_core_total check (
-    (pct_handmade + pct_agricultural +
-    pct_prepared_food + pct_cottage_goods + pct_manufactured) = 100.00
-    )
-);
-
-create index idx_record_date on vendor_daily_market_records (vendor_id, record_date);
-
-/*
-* Table representing all other labels (and percentages of those labels?) for a vendor
-* Percentage Rules still need to be defined.
-*/
-create table if not exists vendor_daily_custom_labels (
-    vendor_id binary(16) not null,
-    record_date date not null,
-    label_id bigint not null,
-    percentage decimal(5, 2) not null check (percentage >= 0 and percentage <= 100),
-    primary key (vendor_id, record_date, label_id),
-    foreign key (vendor_id, record_date) references vendor_daily_market_records (vendor_id, record_date) on delete cascade,
     foreign key (label_id) references category_labels (id)
 );

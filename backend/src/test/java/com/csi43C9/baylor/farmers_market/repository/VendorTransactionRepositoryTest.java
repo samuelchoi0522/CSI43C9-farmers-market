@@ -6,8 +6,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.jdbc.test.autoconfigure.JdbcTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -16,8 +19,19 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @JdbcTest
-@Import(VendorTransactionRepository.class)
+@Import({VendorTransactionRepository.class, VendorTransactionRepositoryTest.JacksonConfig.class})
 class VendorTransactionRepositoryTest {
+
+    /**
+     * Supplies the ObjectMapper bean specifically for this sliced test context.
+     */
+    @TestConfiguration
+    static class JacksonConfig {
+        @Bean
+        public ObjectMapper objectMapper() {
+            return new ObjectMapper();
+        }
+    }
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
