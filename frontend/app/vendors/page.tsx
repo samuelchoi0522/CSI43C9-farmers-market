@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import DarkModeToggle from "../components/DarkModeToggle";
 import SidebarNavigation from "../components/SidebarNavigation";
 import Button from "../components/Button";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -11,6 +10,7 @@ import { getAllVendorDefaults, VendorDefaults } from "@/lib/api/defaults";
 import { getVendors, Vendor } from "@/lib/api/vendor";
 import { EditVendorDialog } from "../components/EditVendorDialog";
 import { cn } from "@/lib/utils";
+import { SmoothIntegerValue } from "@/lib/smoothNumbers";
 
 interface VendorWithDefaults extends Vendor {
     defaults?: VendorDefaults;
@@ -19,10 +19,6 @@ interface VendorWithDefaults extends Vendor {
 function VendorsContent() {
     const router = useRouter();
     const [showUserMenu, setShowUserMenu] = useState(false);
-    const [isDarkMode, setIsDarkMode] = useState(() => {
-        if (typeof window === "undefined") return false;
-        return document.documentElement.classList.contains("dark");
-    });
     const [searchQuery, setSearchQuery] = useState("");
     const [showInactive, setShowInactive] = useState(false);
     const [vendors, setVendors] = useState<VendorWithDefaults[]>([]);
@@ -92,7 +88,7 @@ function VendorsContent() {
         try {
             const [allVendorsResponse, defaultsResponse] = await Promise.all([
                 getVendors(0, 1000, showInactive), // Fetch a large number to get all vendors for stats
-                getAllVendorDefaults(0, 100)
+                getAllVendorDefaults(0, 1000)
             ]);
 
             // Handle defaults response
@@ -169,28 +165,24 @@ function VendorsContent() {
         );
     }, [searchQuery, vendors]);
 
-    useEffect(() => {
-        const checkDarkMode = () => {
-            const isDark = document.documentElement.classList.contains("dark");
-            setIsDarkMode(isDark);
-        };
+    const statsResetKey = `${showInactive}`;
 
-        // Initial state is already set via useState initializer, so we don't need to set it here
-        // Just set up the observer and event listener
+    const vendorStats = useMemo(() => {
+        const farmers = allVendors.filter((v) => v.isFarmer).length;
+        const produce = allVendors.filter((v) => v.isProduce).length;
+        const active = allVendors.filter((v) => v.isActive).length;
+        return { farmers, produce, active };
+    }, [allVendors]);
 
-        const observer = new MutationObserver(checkDarkMode);
-        observer.observe(document.documentElement, {
-            attributes: true,
-            attributeFilter: ["class"],
-        });
+    const totalVendorCount = totalElements > 0 ? totalElements : allVendors.length;
 
-        window.addEventListener("darkModeChange", checkDarkMode);
+    const subtitleCountValue = searchQuery.trim() === "" ? totalVendorCount : filteredVendors.length;
+    const subtitleResetKey =
+        searchQuery.trim() === ""
+            ? statsResetKey
+            : `${statsResetKey}|search|${searchQuery.trim().toLowerCase()}`;
 
-        return () => {
-            observer.disconnect();
-            window.removeEventListener("darkModeChange", checkDarkMode);
-        };
-    }, []);
+    const footerResetKey = `${statsResetKey}|p${currentPage}|s${pageSize}|te${totalElements}|sq${searchQuery}|vl${vendors.length}|fv${filteredVendors.length}`;
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -254,10 +246,67 @@ function VendorsContent() {
         return badges;
     };
 
+    const handleExportCSV = () => {
+        if (allVendors.length === 0) return;
+
+        const headers = [
+            "ID",
+            "Vendor Name",
+            "Is Active",
+            "Point Person",
+            "Email",
+            "Location",
+            "Miles",
+            "Products",
+            "Is Farmer",
+            "Is Produce",
+            "Woman Owned",
+            "BIPOC Owned",
+            "Veteran Owned",
+            "% Handmade",
+            "% Agricultural",
+            "% Prepared Food",
+            "% Cottage Goods",
+            "% Manufactured"
+        ];
+
+        const csvContent = [
+            headers.join(","),
+            ...allVendors.map(vendor => [
+                vendor.id,
+                `"${(vendor.vendorName || "").replace(/"/g, '""')}"`,
+                vendor.isActive ? "Yes" : "No",
+                `"${(vendor.pointPerson || "").replace(/"/g, '""')}"`,
+                `"${(vendor.email || "").replace(/"/g, '""')}"`,
+                `"${(vendor.location || "").replace(/"/g, '""')}"`,
+                vendor.miles ?? "",
+                `"${(vendor.products || "").replace(/"/g, '""')}"`,
+                vendor.isFarmer ? "Yes" : "No",
+                vendor.isProduce ? "Yes" : "No",
+                vendor.womanOwned ? "Yes" : "No",
+                vendor.bipocOwned ? "Yes" : "No",
+                vendor.veteranOwned ? "Yes" : "No",
+                vendor.defaults?.pctHandmade ? `${vendor.defaults.pctHandmade}%` : "",
+                vendor.defaults?.pctAgricultural ? `${vendor.defaults.pctAgricultural}%` : "",
+                vendor.defaults?.pctPreparedFood ? `${vendor.defaults.pctPreparedFood}%` : "",
+                vendor.defaults?.pctCottageGoods ? `${vendor.defaults.pctCottageGoods}%` : "",
+                vendor.defaults?.pctManufactured ? `${vendor.defaults.pctManufactured}%` : ""
+            ].join(","))
+        ].join("\n");
+
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `vendors_export_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = "hidden";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     return (
         <div className="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-screen flex transition-colors duration-300">
-            <DarkModeToggle position="fixed" className="bottom-6 right-6 top-auto" />
-
             <SidebarNavigation activeItem="Vendors" />
 
             {/* Main Content */}
@@ -266,11 +315,21 @@ function VendorsContent() {
                     <div>
                         <h2 className="text-2xl font-bold animate-fade-in">Vendors</h2>
                         <p className="text-slate-700 dark:text-slate-400 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-                            Comprehensive list of all registered vendors {searchQuery.trim() === "" ? `(${totalElements > 0 ? totalElements : allVendors.length} total)` : `(${filteredVendors.length} filtered)`}
+                            Comprehensive list of all registered vendors (
+                            <SmoothIntegerValue
+                                value={subtitleCountValue}
+                                resetKey={subtitleResetKey}
+                                className="font-medium text-slate-800 dark:text-slate-200"
+                            />
+                            {searchQuery.trim() === "" ? " total)" : " filtered)"}
                         </p>
                     </div>
                     <div className="flex items-center gap-3">
-                        <Button variant="outline" className="flex items-center gap-2">
+                        <Button 
+                            variant="outline" 
+                            className="flex items-center gap-2"
+                            onClick={handleExportCSV}
+                        >
                             <span className="material-icons text-lg leading-none">download</span>
                             Export List
                         </Button>
@@ -294,9 +353,7 @@ function VendorsContent() {
                                 </div>
                                 <span
                                     className="text-sm font-medium hidden md:block"
-                                    style={{
-                                        color: isDarkMode ? 'rgb(203, 213, 225)' : 'rgb(0, 0, 0)'
-                                    }}
+                                    style={{ color: 'rgb(0, 0, 0)' }}
                                 >
                                     {userName}
                                 </span>
@@ -333,46 +390,62 @@ function VendorsContent() {
                             </div>
                         </div>
                         <p className="text-slate-700 dark:text-slate-400 text-sm font-medium">Total Vendors</p>
-                        <p className="text-3xl font-bold mt-1">{totalElements > 0 ? totalElements : allVendors.length}</p>
+                        <SmoothIntegerValue
+                            value={totalVendorCount}
+                            resetKey={statsResetKey}
+                            className="block text-3xl font-bold mt-1 tabular-nums text-slate-900 dark:text-slate-100"
+                        />
                     </div>
 
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover-lift transition-all duration-200">
                         <div className="flex items-center justify-between mb-4">
                             <div
                                 className="dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
-                                style={{ backgroundColor: isDarkMode ? undefined : 'rgba(219, 234, 254, 0.5)' }}
+                                style={{ backgroundColor: 'rgba(219, 234, 254, 0.5)' }}
                             >
                                 <span className="material-icons leading-none">agriculture</span>
                             </div>
                         </div>
                         <p className="text-slate-700 dark:text-slate-400 text-sm font-medium">Farmers</p>
-                        <p className="text-3xl font-bold mt-1">{allVendors.filter(v => v.isFarmer).length}</p>
+                        <SmoothIntegerValue
+                            value={vendorStats.farmers}
+                            resetKey={statsResetKey}
+                            className="block text-3xl font-bold mt-1 tabular-nums text-slate-900 dark:text-slate-100"
+                        />
                     </div>
 
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover-lift transition-all duration-200">
                         <div className="flex items-center justify-between mb-4">
                             <div
                                 className="dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
-                                style={{ backgroundColor: isDarkMode ? undefined : 'rgba(243, 232, 255, 0.5)' }}
+                                style={{ backgroundColor: 'rgba(243, 232, 255, 0.5)' }}
                             >
                                 <span className="material-icons leading-none">eco</span>
                             </div>
                         </div>
                         <p className="text-slate-700 dark:text-slate-400 text-sm font-medium">Produce Vendors</p>
-                        <p className="text-3xl font-bold mt-1">{allVendors.filter(v => v.isProduce).length}</p>
+                        <SmoothIntegerValue
+                            value={vendorStats.produce}
+                            resetKey={statsResetKey}
+                            className="block text-3xl font-bold mt-1 tabular-nums text-slate-900 dark:text-slate-100"
+                        />
                     </div>
 
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover-lift transition-all duration-200">
                         <div className="flex items-center justify-between mb-4">
                             <div
                                 className="dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
-                                style={{ backgroundColor: isDarkMode ? undefined : 'rgba(252, 231, 243, 0.5)' }}
+                                style={{ backgroundColor: 'rgba(252, 231, 243, 0.5)' }}
                             >
                                 <span className="material-icons leading-none">business</span>
                             </div>
                         </div>
                         <p className="text-slate-700 dark:text-slate-400 text-sm font-medium">Active Vendors</p>
-                        <p className="text-3xl font-bold mt-1">{allVendors.filter(v => v.isActive).length}</p>
+                        <SmoothIntegerValue
+                            value={vendorStats.active}
+                            resetKey={statsResetKey}
+                            className="block text-3xl font-bold mt-1 tabular-nums text-slate-900 dark:text-slate-100"
+                        />
                     </div>
                 </div>
 
@@ -457,25 +530,72 @@ function VendorsContent() {
                                         <td className="px-6 py-4 text-sm">{vendor.pointPerson || '-'}</td>
                                         <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">{vendor.email || '-'}</td>
                                         <td className="px-6 py-4 text-sm">{vendor.location || '-'}</td>
-                                        <td className="px-6 py-4 text-sm">{vendor.miles ? `${vendor.miles} mi` : '-'}</td>
+                                        <td className="px-6 py-4 text-sm">
+                                            {vendor.miles != null ? (
+                                                <span className="tabular-nums">
+                                                    <SmoothIntegerValue
+                                                        value={Math.round(Number(vendor.miles))}
+                                                        resetKey={`${statsResetKey}|${vendor.id}|miles`}
+                                                    />{" "}
+                                                    mi
+                                                </span>
+                                            ) : (
+                                                "-"
+                                            )}
+                                        </td>
                                         <td className="px-6 py-4 text-sm">{vendor.products || '-'}</td>
                                         <td className="px-6 py-4 text-sm">
                                             {vendor.defaults ? (
                                                 <div className="flex flex-col gap-1 text-xs">
-                                                    {parseFloat(vendor.defaults.pctAgricultural || '0') > 0 && (
-                                                        <span>Agri: {parseFloat(vendor.defaults.pctAgricultural).toFixed(0)}%</span>
+                                                    {parseFloat(vendor.defaults.pctAgricultural || "0") > 0 && (
+                                                        <span>
+                                                            Agri:{" "}
+                                                            <SmoothIntegerValue
+                                                                value={Math.round(parseFloat(vendor.defaults.pctAgricultural || "0"))}
+                                                                resetKey={`${statsResetKey}|${vendor.id}|pctAg`}
+                                                            />
+                                                            %
+                                                        </span>
                                                     )}
-                                                    {parseFloat(vendor.defaults.pctPreparedFood || '0') > 0 && (
-                                                        <span>Food: {parseFloat(vendor.defaults.pctPreparedFood).toFixed(0)}%</span>
+                                                    {parseFloat(vendor.defaults.pctPreparedFood || "0") > 0 && (
+                                                        <span>
+                                                            Food:{" "}
+                                                            <SmoothIntegerValue
+                                                                value={Math.round(parseFloat(vendor.defaults.pctPreparedFood || "0"))}
+                                                                resetKey={`${statsResetKey}|${vendor.id}|pctPf`}
+                                                            />
+                                                            %
+                                                        </span>
                                                     )}
-                                                    {parseFloat(vendor.defaults.pctHandmade || '0') > 0 && (
-                                                        <span>Handmade: {parseFloat(vendor.defaults.pctHandmade).toFixed(0)}%</span>
+                                                    {parseFloat(vendor.defaults.pctHandmade || "0") > 0 && (
+                                                        <span>
+                                                            Handmade:{" "}
+                                                            <SmoothIntegerValue
+                                                                value={Math.round(parseFloat(vendor.defaults.pctHandmade || "0"))}
+                                                                resetKey={`${statsResetKey}|${vendor.id}|pctHm`}
+                                                            />
+                                                            %
+                                                        </span>
                                                     )}
-                                                    {parseFloat(vendor.defaults.pctCottageGoods || '0') > 0 && (
-                                                        <span>Cottage: {parseFloat(vendor.defaults.pctCottageGoods).toFixed(0)}%</span>
+                                                    {parseFloat(vendor.defaults.pctCottageGoods || "0") > 0 && (
+                                                        <span>
+                                                            Cottage:{" "}
+                                                            <SmoothIntegerValue
+                                                                value={Math.round(parseFloat(vendor.defaults.pctCottageGoods || "0"))}
+                                                                resetKey={`${statsResetKey}|${vendor.id}|pctCg`}
+                                                            />
+                                                            %
+                                                        </span>
                                                     )}
-                                                    {parseFloat(vendor.defaults.pctManufactured || '0') > 0 && (
-                                                        <span>Mfg: {parseFloat(vendor.defaults.pctManufactured).toFixed(0)}%</span>
+                                                    {parseFloat(vendor.defaults.pctManufactured || "0") > 0 && (
+                                                        <span>
+                                                            Mfg:{" "}
+                                                            <SmoothIntegerValue
+                                                                value={Math.round(parseFloat(vendor.defaults.pctManufactured || "0"))}
+                                                                resetKey={`${statsResetKey}|${vendor.id}|pctMf`}
+                                                            />
+                                                            %
+                                                        </span>
                                                     )}
                                                     {!vendor.defaults.pctAgricultural && !vendor.defaults.pctPreparedFood && 
                                                      !vendor.defaults.pctHandmade && !vendor.defaults.pctCottageGoods && 
@@ -530,11 +650,45 @@ function VendorsContent() {
                     </div>
 
                     <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                        <span className="text-sm text-slate-700 dark:text-slate-500">
+                        <span className="text-sm text-slate-700 dark:text-slate-500 inline-flex flex-wrap items-baseline gap-x-1 gap-y-0.5">
                             {searchQuery.trim() === "" ? (
-                                <>Showing {vendors.length > 0 ? currentPage * pageSize + 1 : 0} to {Math.min((currentPage + 1) * pageSize, totalElements)} of {totalElements} vendors</>
+                                <>
+                                    <span>Showing</span>
+                                    <SmoothIntegerValue
+                                        value={vendors.length > 0 ? currentPage * pageSize + 1 : 0}
+                                        resetKey={footerResetKey}
+                                        className="font-medium tabular-nums"
+                                    />
+                                    <span>to</span>
+                                    <SmoothIntegerValue
+                                        value={Math.min((currentPage + 1) * pageSize, totalElements)}
+                                        resetKey={footerResetKey}
+                                        className="font-medium tabular-nums"
+                                    />
+                                    <span>of</span>
+                                    <SmoothIntegerValue
+                                        value={totalElements}
+                                        resetKey={footerResetKey}
+                                        className="font-medium tabular-nums"
+                                    />
+                                    <span>vendors</span>
+                                </>
                             ) : (
-                                <>Showing {filteredVendors.length} of {vendors.length} vendors (filtered)</>
+                                <>
+                                    <span>Showing</span>
+                                    <SmoothIntegerValue
+                                        value={filteredVendors.length}
+                                        resetKey={footerResetKey}
+                                        className="font-medium tabular-nums"
+                                    />
+                                    <span>of</span>
+                                    <SmoothIntegerValue
+                                        value={vendors.length}
+                                        resetKey={footerResetKey}
+                                        className="font-medium tabular-nums"
+                                    />
+                                    <span>vendors (filtered)</span>
+                                </>
                             )}
                         </span>
                         <div className="flex items-center gap-1">
@@ -608,4 +762,3 @@ export default function VendorsPage() {
         </ProtectedRoute>
     );
 }
-

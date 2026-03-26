@@ -1,11 +1,8 @@
 "use client";
 
-import DarkModeToggle from "./components/DarkModeToggle";
-
 export default function NotFound() {
   return (
     <div className="bg-[#F9FAF2] dark:bg-[#121412] font-sans transition-colors duration-300">
-      <DarkModeToggle />
       
       <div className="min-h-screen flex items-center justify-center market-bg p-4">
         <div className="w-full max-w-md">
@@ -19,4 +16,3 @@ export default function NotFound() {
     </div>
   );
 }
-
