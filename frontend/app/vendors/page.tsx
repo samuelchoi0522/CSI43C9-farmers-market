@@ -10,6 +10,7 @@ import { getAllVendorDefaults, VendorDefaults } from "@/lib/api/defaults";
 import { getVendors, Vendor } from "@/lib/api/vendor";
 import { EditVendorDialog } from "../components/EditVendorDialog";
 import { cn } from "@/lib/utils";
+import { SmoothIntegerValue } from "@/lib/smoothNumbers";
 
 interface VendorWithDefaults extends Vendor {
     defaults?: VendorDefaults;
@@ -164,6 +165,25 @@ function VendorsContent() {
         );
     }, [searchQuery, vendors]);
 
+    const statsResetKey = `${showInactive}`;
+
+    const vendorStats = useMemo(() => {
+        const farmers = allVendors.filter((v) => v.isFarmer).length;
+        const produce = allVendors.filter((v) => v.isProduce).length;
+        const active = allVendors.filter((v) => v.isActive).length;
+        return { farmers, produce, active };
+    }, [allVendors]);
+
+    const totalVendorCount = totalElements > 0 ? totalElements : allVendors.length;
+
+    const subtitleCountValue = searchQuery.trim() === "" ? totalVendorCount : filteredVendors.length;
+    const subtitleResetKey =
+        searchQuery.trim() === ""
+            ? statsResetKey
+            : `${statsResetKey}|search|${searchQuery.trim().toLowerCase()}`;
+
+    const footerResetKey = `${statsResetKey}|p${currentPage}|s${pageSize}|te${totalElements}|sq${searchQuery}|vl${vendors.length}|fv${filteredVendors.length}`;
+
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             const target = event.target as HTMLElement;
@@ -236,7 +256,13 @@ function VendorsContent() {
                     <div>
                         <h2 className="text-2xl font-bold animate-fade-in">Vendors</h2>
                         <p className="text-slate-700 dark:text-slate-400 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-                            Comprehensive list of all registered vendors {searchQuery.trim() === "" ? `(${totalElements > 0 ? totalElements : allVendors.length} total)` : `(${filteredVendors.length} filtered)`}
+                            Comprehensive list of all registered vendors (
+                            <SmoothIntegerValue
+                                value={subtitleCountValue}
+                                resetKey={subtitleResetKey}
+                                className="font-medium text-slate-800 dark:text-slate-200"
+                            />
+                            {searchQuery.trim() === "" ? " total)" : " filtered)"}
                         </p>
                     </div>
                     <div className="flex items-center gap-3">
@@ -301,7 +327,11 @@ function VendorsContent() {
                             </div>
                         </div>
                         <p className="text-slate-700 dark:text-slate-400 text-sm font-medium">Total Vendors</p>
-                        <p className="text-3xl font-bold mt-1">{totalElements > 0 ? totalElements : allVendors.length}</p>
+                        <SmoothIntegerValue
+                            value={totalVendorCount}
+                            resetKey={statsResetKey}
+                            className="block text-3xl font-bold mt-1 tabular-nums text-slate-900 dark:text-slate-100"
+                        />
                     </div>
 
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover-lift transition-all duration-200">
@@ -314,7 +344,11 @@ function VendorsContent() {
                             </div>
                         </div>
                         <p className="text-slate-700 dark:text-slate-400 text-sm font-medium">Farmers</p>
-                        <p className="text-3xl font-bold mt-1">{allVendors.filter(v => v.isFarmer).length}</p>
+                        <SmoothIntegerValue
+                            value={vendorStats.farmers}
+                            resetKey={statsResetKey}
+                            className="block text-3xl font-bold mt-1 tabular-nums text-slate-900 dark:text-slate-100"
+                        />
                     </div>
 
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover-lift transition-all duration-200">
@@ -327,7 +361,11 @@ function VendorsContent() {
                             </div>
                         </div>
                         <p className="text-slate-700 dark:text-slate-400 text-sm font-medium">Produce Vendors</p>
-                        <p className="text-3xl font-bold mt-1">{allVendors.filter(v => v.isProduce).length}</p>
+                        <SmoothIntegerValue
+                            value={vendorStats.produce}
+                            resetKey={statsResetKey}
+                            className="block text-3xl font-bold mt-1 tabular-nums text-slate-900 dark:text-slate-100"
+                        />
                     </div>
 
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover-lift transition-all duration-200">
@@ -340,7 +378,11 @@ function VendorsContent() {
                             </div>
                         </div>
                         <p className="text-slate-700 dark:text-slate-400 text-sm font-medium">Active Vendors</p>
-                        <p className="text-3xl font-bold mt-1">{allVendors.filter(v => v.isActive).length}</p>
+                        <SmoothIntegerValue
+                            value={vendorStats.active}
+                            resetKey={statsResetKey}
+                            className="block text-3xl font-bold mt-1 tabular-nums text-slate-900 dark:text-slate-100"
+                        />
                     </div>
                 </div>
 
@@ -425,25 +467,72 @@ function VendorsContent() {
                                         <td className="px-6 py-4 text-sm">{vendor.pointPerson || '-'}</td>
                                         <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">{vendor.email || '-'}</td>
                                         <td className="px-6 py-4 text-sm">{vendor.location || '-'}</td>
-                                        <td className="px-6 py-4 text-sm">{vendor.miles ? `${vendor.miles} mi` : '-'}</td>
+                                        <td className="px-6 py-4 text-sm">
+                                            {vendor.miles != null ? (
+                                                <span className="tabular-nums">
+                                                    <SmoothIntegerValue
+                                                        value={Math.round(Number(vendor.miles))}
+                                                        resetKey={`${statsResetKey}|${vendor.id}|miles`}
+                                                    />{" "}
+                                                    mi
+                                                </span>
+                                            ) : (
+                                                "-"
+                                            )}
+                                        </td>
                                         <td className="px-6 py-4 text-sm">{vendor.products || '-'}</td>
                                         <td className="px-6 py-4 text-sm">
                                             {vendor.defaults ? (
                                                 <div className="flex flex-col gap-1 text-xs">
-                                                    {parseFloat(vendor.defaults.pctAgricultural || '0') > 0 && (
-                                                        <span>Agri: {parseFloat(vendor.defaults.pctAgricultural).toFixed(0)}%</span>
+                                                    {parseFloat(vendor.defaults.pctAgricultural || "0") > 0 && (
+                                                        <span>
+                                                            Agri:{" "}
+                                                            <SmoothIntegerValue
+                                                                value={Math.round(parseFloat(vendor.defaults.pctAgricultural || "0"))}
+                                                                resetKey={`${statsResetKey}|${vendor.id}|pctAg`}
+                                                            />
+                                                            %
+                                                        </span>
                                                     )}
-                                                    {parseFloat(vendor.defaults.pctPreparedFood || '0') > 0 && (
-                                                        <span>Food: {parseFloat(vendor.defaults.pctPreparedFood).toFixed(0)}%</span>
+                                                    {parseFloat(vendor.defaults.pctPreparedFood || "0") > 0 && (
+                                                        <span>
+                                                            Food:{" "}
+                                                            <SmoothIntegerValue
+                                                                value={Math.round(parseFloat(vendor.defaults.pctPreparedFood || "0"))}
+                                                                resetKey={`${statsResetKey}|${vendor.id}|pctPf`}
+                                                            />
+                                                            %
+                                                        </span>
                                                     )}
-                                                    {parseFloat(vendor.defaults.pctHandmade || '0') > 0 && (
-                                                        <span>Handmade: {parseFloat(vendor.defaults.pctHandmade).toFixed(0)}%</span>
+                                                    {parseFloat(vendor.defaults.pctHandmade || "0") > 0 && (
+                                                        <span>
+                                                            Handmade:{" "}
+                                                            <SmoothIntegerValue
+                                                                value={Math.round(parseFloat(vendor.defaults.pctHandmade || "0"))}
+                                                                resetKey={`${statsResetKey}|${vendor.id}|pctHm`}
+                                                            />
+                                                            %
+                                                        </span>
                                                     )}
-                                                    {parseFloat(vendor.defaults.pctCottageGoods || '0') > 0 && (
-                                                        <span>Cottage: {parseFloat(vendor.defaults.pctCottageGoods).toFixed(0)}%</span>
+                                                    {parseFloat(vendor.defaults.pctCottageGoods || "0") > 0 && (
+                                                        <span>
+                                                            Cottage:{" "}
+                                                            <SmoothIntegerValue
+                                                                value={Math.round(parseFloat(vendor.defaults.pctCottageGoods || "0"))}
+                                                                resetKey={`${statsResetKey}|${vendor.id}|pctCg`}
+                                                            />
+                                                            %
+                                                        </span>
                                                     )}
-                                                    {parseFloat(vendor.defaults.pctManufactured || '0') > 0 && (
-                                                        <span>Mfg: {parseFloat(vendor.defaults.pctManufactured).toFixed(0)}%</span>
+                                                    {parseFloat(vendor.defaults.pctManufactured || "0") > 0 && (
+                                                        <span>
+                                                            Mfg:{" "}
+                                                            <SmoothIntegerValue
+                                                                value={Math.round(parseFloat(vendor.defaults.pctManufactured || "0"))}
+                                                                resetKey={`${statsResetKey}|${vendor.id}|pctMf`}
+                                                            />
+                                                            %
+                                                        </span>
                                                     )}
                                                     {!vendor.defaults.pctAgricultural && !vendor.defaults.pctPreparedFood && 
                                                      !vendor.defaults.pctHandmade && !vendor.defaults.pctCottageGoods && 
@@ -498,11 +587,45 @@ function VendorsContent() {
                     </div>
 
                     <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                        <span className="text-sm text-slate-700 dark:text-slate-500">
+                        <span className="text-sm text-slate-700 dark:text-slate-500 inline-flex flex-wrap items-baseline gap-x-1 gap-y-0.5">
                             {searchQuery.trim() === "" ? (
-                                <>Showing {vendors.length > 0 ? currentPage * pageSize + 1 : 0} to {Math.min((currentPage + 1) * pageSize, totalElements)} of {totalElements} vendors</>
+                                <>
+                                    <span>Showing</span>
+                                    <SmoothIntegerValue
+                                        value={vendors.length > 0 ? currentPage * pageSize + 1 : 0}
+                                        resetKey={footerResetKey}
+                                        className="font-medium tabular-nums"
+                                    />
+                                    <span>to</span>
+                                    <SmoothIntegerValue
+                                        value={Math.min((currentPage + 1) * pageSize, totalElements)}
+                                        resetKey={footerResetKey}
+                                        className="font-medium tabular-nums"
+                                    />
+                                    <span>of</span>
+                                    <SmoothIntegerValue
+                                        value={totalElements}
+                                        resetKey={footerResetKey}
+                                        className="font-medium tabular-nums"
+                                    />
+                                    <span>vendors</span>
+                                </>
                             ) : (
-                                <>Showing {filteredVendors.length} of {vendors.length} vendors (filtered)</>
+                                <>
+                                    <span>Showing</span>
+                                    <SmoothIntegerValue
+                                        value={filteredVendors.length}
+                                        resetKey={footerResetKey}
+                                        className="font-medium tabular-nums"
+                                    />
+                                    <span>of</span>
+                                    <SmoothIntegerValue
+                                        value={vendors.length}
+                                        resetKey={footerResetKey}
+                                        className="font-medium tabular-nums"
+                                    />
+                                    <span>vendors (filtered)</span>
+                                </>
                             )}
                         </span>
                         <div className="flex items-center gap-1">
