@@ -54,20 +54,17 @@ export default function CategoryRevenueChart({ data }: CategoryRevenueChartProps
         >
           <CartesianGrid 
             strokeDasharray="4 4" 
-            stroke="#e2e8f0" 
-            className="dark:stroke-slate-700"
+            stroke="#e2e8f0"
           />
           <XAxis 
             dataKey="name" 
             tick={{ fill: '#64748b', fontSize: 12 }}
-            className="dark:fill-slate-400"
             angle={0}
             textAnchor="middle"
             height={40}
           />
           <YAxis 
             tick={{ fill: '#64748b', fontSize: 12 }}
-            className="dark:fill-slate-400"
             tickFormatter={(value) => `$${value.toLocaleString()}`}
           />
           <Tooltip
@@ -93,4 +90,3 @@ export default function CategoryRevenueChart({ data }: CategoryRevenueChartProps
     </div>
   );
 }
-
