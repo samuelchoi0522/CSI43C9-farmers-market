@@ -36,8 +36,8 @@ export default function CategoryRevenueChart({
   }));
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 mb-8 w-full">
-      <h3 className="font-bold text-lg mb-6 text-slate-900 dark:text-slate-100">Revenue by Category</h3>
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-8 w-full">
+      <h3 className="font-bold text-lg mb-6 text-slate-900">Revenue by Category</h3>
       <ResponsiveContainer width="100%" height={280}>
         <BarChart
           data={chartData}
@@ -45,20 +45,17 @@ export default function CategoryRevenueChart({
         >
           <CartesianGrid 
             strokeDasharray="4 4" 
-            stroke="#e2e8f0" 
-            className="dark:stroke-slate-700"
+            stroke="#e2e8f0"
           />
           <XAxis 
             dataKey="name" 
             tick={{ fill: '#64748b', fontSize: 12 }}
-            className="dark:fill-slate-400"
             angle={0}
             textAnchor="middle"
             height={40}
           />
           <YAxis 
             tick={{ fill: '#64748b', fontSize: 12 }}
-            className="dark:fill-slate-400"
             tickFormatter={(value) => `$${value.toLocaleString()}`}
           />
           <Tooltip
@@ -83,4 +80,3 @@ export default function CategoryRevenueChart({
     </div>
   );
 }
-

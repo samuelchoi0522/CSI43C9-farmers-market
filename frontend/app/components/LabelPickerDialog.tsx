@@ -95,8 +95,8 @@ export default function LabelPickerDialog({
     <DialogPrimitive.Root open={isOpen} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-        <DialogPrimitive.Content className="fixed left-[50%] top-[50%] z-50 w-full max-w-xl translate-x-[-50%] translate-y-[-50%] rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95">
-          <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+        <DialogPrimitive.Content className="fixed left-[50%] top-[50%] z-50 w-full max-w-xl translate-x-[-50%] translate-y-[-50%] rounded-xl border border-slate-200 bg-white text-slate-900 shadow-xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95">
+          <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
             <div>
               <DialogPrimitive.Title className="text-sm font-semibold">
                 {title}
@@ -107,7 +107,7 @@ export default function LabelPickerDialog({
                 </DialogPrimitive.Description>
               ) : null}
             </div>
-            <DialogPrimitive.Close className="rounded-sm opacity-70 text-slate-500 dark:text-slate-300 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-slate-100 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-900">
+            <DialogPrimitive.Close className="rounded-sm opacity-70 text-slate-500 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 focus:ring-offset-white">
               <X className="h-4 w-4" />
               <span className="sr-only">Close</span>
             </DialogPrimitive.Close>
@@ -115,7 +115,7 @@ export default function LabelPickerDialog({
 
           <div className="p-4 space-y-3">
             <input
-              className="w-full rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 py-2 text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#10b981]"
+              className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#10b981]"
               placeholder="Search labels..."
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
@@ -146,7 +146,7 @@ export default function LabelPickerDialog({
                         <div className="flex-1 space-y-2">
                           <div className="flex items-center gap-2">
                             <input
-                              className="flex-1 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-2 py-1 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#10b981]"
+                              className="flex-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#10b981]"
                               value={editingName}
                               onChange={(event) => setEditingName(event.target.value)}
                             />
@@ -156,7 +156,7 @@ export default function LabelPickerDialog({
                               <button
                                 key={swatch}
                                 type="button"
-                                className="relative h-6 w-6 rounded border border-slate-200 dark:border-slate-700 flex items-center justify-center"
+                                className="relative h-6 w-6 rounded border border-slate-200 flex items-center justify-center"
                                 style={{ backgroundColor: swatch }}
                                 onClick={() => {
                                   setEditingColorInput(swatch);
@@ -225,7 +225,7 @@ export default function LabelPickerDialog({
                       ) : (
                         <button
                           type="button"
-                          className="text-xs text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+                          className="text-xs text-slate-500 hover:text-slate-900"
                           onClick={() => {
                             setEditingId(label.id);
                             setEditingName(label.name);
@@ -253,7 +253,7 @@ export default function LabelPickerDialog({
           <div className="px-4 pb-4 space-y-3">
             <div className="flex items-center gap-2">
               <input
-                className="flex-1 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 py-2 text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#10b981]"
+                className="flex-1 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#10b981]"
                 placeholder="Create a new label"
                 value={newLabelName}
                 onChange={(event) => setNewLabelName(event.target.value)}
@@ -264,7 +264,7 @@ export default function LabelPickerDialog({
                 <button
                   key={swatch}
                   type="button"
-                  className="relative h-6 w-6 rounded border border-slate-200 dark:border-slate-700 flex items-center justify-center"
+                  className="relative h-6 w-6 rounded border border-slate-200 flex items-center justify-center"
                   style={{ backgroundColor: swatch }}
                   onClick={() => {
                     setNewLabelColorInput(swatch);
@@ -282,7 +282,7 @@ export default function LabelPickerDialog({
             <Button
               variant="outline"
               size="sm"
-              className="w-full justify-center border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700"
+              className="w-full justify-center border border-slate-200 text-slate-700 hover:bg-slate-100"
               onClick={handleCreate}
               disabled={isSubmitting || newLabelName.trim().length === 0}
             >

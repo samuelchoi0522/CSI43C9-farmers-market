@@ -118,7 +118,7 @@ function DashboardContent() {
     };
 
     return (
-        <div className="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-screen flex transition-colors duration-300">
+        <div className="bg-slate-50 text-slate-900 min-h-screen flex transition-colors duration-300">
             <SidebarNavigation activeItem="Dashboard" />
 
             {/* Main Content */}
@@ -126,7 +126,7 @@ function DashboardContent() {
                 <header className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 animate-slide-up">
                     <div>
                         <h2 className="text-2xl font-bold animate-fade-in">Dashboard</h2>
-                        <p className="text-slate-700 dark:text-slate-400 animate-fade-in" style={{ animationDelay: '0.1s' }}>Market Performance for {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                        <p className="text-slate-700 animate-fade-in" style={{ animationDelay: '0.1s' }}>Market Performance for {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
                     </div>
                     <div className="flex items-center gap-3">
                         {/* User Menu */}
@@ -145,20 +145,20 @@ function DashboardContent() {
                                 >
                                     {userName}
                                 </span>
-                                <span className="material-icons text-lg leading-none text-slate-600 dark:text-slate-400">
+                                <span className="material-icons text-lg leading-none text-slate-600">
                                     {showUserMenu ? "expand_less" : "expand_more"}
                                 </span>
                             </Button>
                             {showUserMenu && (
-                                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-2 z-50">
-                                    <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-700">
-                                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{userName}</p>
+                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-2 z-50">
+                                    <div className="px-4 py-2 border-b border-slate-200">
+                                        <p className="text-sm font-semibold text-slate-900">{userName}</p>
                                     </div>
                                     <Button
                                         onClick={handleLogout}
                                         variant="ghost"
                                         size="sm"
-                                        className="w-full flex items-center gap-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                        className="w-full flex items-center gap-2 text-red-600 hover:bg-red-50"
                                     >
                                         <span className="material-icons text-lg leading-none">logout</span>
                                         Log Out
@@ -171,10 +171,10 @@ function DashboardContent() {
 
                 {/* Stats Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 animate-stagger">
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover-lift transition-all duration-200">
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover-lift transition-all duration-200">
                         <div className="flex items-center justify-between mb-4">
                             <div
-                                className="dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
+                                className="text-blue-600 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
                                 style={{ backgroundColor: 'rgba(219, 234, 254, 0.5)' }}
                             >
                                 <span className="material-icons leading-none">credit_card</span>
@@ -183,11 +183,11 @@ function DashboardContent() {
                                 <span className="material-icons text-sm leading-none">trending_up</span> +12%
                             </span>
                         </div>
-                        <p className="text-slate-700 dark:text-slate-400 text-sm font-medium">Gross Market Revenue</p>
+                        <p className="text-slate-700 text-sm font-medium">Gross Market Revenue</p>
                         <p className="text-3xl font-bold mt-1">$18,432.50</p>
                     </div>
 
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover-lift transition-all duration-200">
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover-lift transition-all duration-200">
                         <div className="flex items-center justify-between mb-4">
                             <div className="bg-[#10b981]/10 text-[#10b981] p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110">
                                 <span className="material-icons leading-none">attach_money</span>
@@ -196,21 +196,21 @@ function DashboardContent() {
                                 <span className="material-icons text-sm leading-none">trending_up</span> +12%
                             </span>
                         </div>
-                        <p className="text-slate-700 dark:text-slate-400 text-sm font-medium">Total Fees Collected</p>
+                        <p className="text-slate-700 text-sm font-medium">Total Fees Collected</p>
                         <p className="text-3xl font-bold mt-1">$2,840.00</p>
                     </div>
 
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover-lift transition-all duration-200">
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover-lift transition-all duration-200">
                         <div className="flex items-center justify-between mb-4">
                             <div
-                                className="dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
+                                className="text-amber-600 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
                                 style={{ backgroundColor: 'rgba(254, 243, 199, 0.5)' }}
                             >
                                 <span className="material-icons leading-none">folder</span>
                             </div>
-                            <span className="text-xs font-bold text-slate-700 dark:text-slate-500 uppercase">4 Outstanding</span>
+                            <span className="text-xs font-bold text-slate-700 uppercase">4 Outstanding</span>
                         </div>
-                        <p className="text-slate-700 dark:text-slate-400 text-sm font-medium">Unpaid Vendor Fees</p>
+                        <p className="text-slate-700 text-sm font-medium">Unpaid Vendor Fees</p>
                         <p className="text-3xl font-bold mt-1">$420.00</p>
                     </div>
                 </div>
@@ -219,14 +219,14 @@ function DashboardContent() {
                 <CategoryRevenueChart />
 
                 {/* Vendor Tracking Table */}
-                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden animate-slide-up" style={{ animationDelay: '0.2s' }}>
-                    <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-slide-up" style={{ animationDelay: '0.2s' }}>
+                    <div className="p-6 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <h3 className="font-bold text-lg">Vendor Tracking</h3>
                         <div className="flex items-center gap-2">
                             <div className="relative">
                                 <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm leading-none">search</span>
                                 <input
-                                    className="pl-9 pr-4 py-2 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-[#10b981] focus:border-[#10b981] w-full md:w-64 outline-none"
+                                    className="pl-9 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:ring-[#10b981] focus:border-[#10b981] w-full md:w-64 outline-none"
                                     placeholder="Search vendors..."
                                     type="text"
                                 />
@@ -240,7 +240,7 @@ function DashboardContent() {
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
-                                <tr className="bg-slate-50 dark:bg-slate-900/50 text-slate-700 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">
+                                <tr className="bg-slate-50 text-slate-700 text-xs font-bold uppercase tracking-wider">
                                     <th className="px-6 py-4">Vendor Name</th>
                                     <th className="px-6 py-4">Status</th>
                                     <th className="px-6 py-4">Category</th>
@@ -250,7 +250,7 @@ function DashboardContent() {
                                     <th className="px-6 py-4 text-right">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                            <tbody className="divide-y divide-slate-100">
                                 {loading ? (
                                     <tr>
                                         <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
@@ -267,7 +267,7 @@ function DashboardContent() {
                                     vendors.map((vendor) => (
                                         <tr
                                             key={vendor.id}
-                                            className="hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+                                            className="hover:bg-green-50 transition-colors"
                                         >
                                             <td className="px-6 py-4">
                                                 <span className="font-semibold">{vendor.vendorName}</span>
@@ -276,7 +276,7 @@ function DashboardContent() {
                                                 {vendor.isActive ? (
                                                     <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-[#10b981]/20 text-[#10b981]">Active</span>
                                                 ) : (
-                                                    <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-[#8f8f8f] text-[#454545] dark:bg-slate-700 dark:text-slate-200">Inactive</span>
+                                                    <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-[#8f8f8f] text-[#454545]">Inactive</span>
                                                 )}
                                             </td>
                                             <td className="px-6 py-4 text-sm">{vendor.products || '-'}</td>
@@ -322,8 +322,8 @@ function DashboardContent() {
                         </table>
                     </div>
 
-                    <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                        <span className="text-sm text-slate-700 dark:text-slate-500">
+                    <div className="p-4 border-t border-slate-200 flex items-center justify-between">
+                        <span className="text-sm text-slate-700">
                             Showing {vendors.length > 0 ? currentPage * pageSize + 1 : 0} to {Math.min((currentPage + 1) * pageSize, totalElements)} of {totalElements} vendors
                         </span>
                         <div className="flex items-center gap-1">
@@ -376,7 +376,7 @@ function DashboardContent() {
 
                 {/* Bottom Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                         <h4 className="font-bold mb-4">Revenue by Category</h4>
                         <div className="space-y-4">
                             <div>
@@ -384,7 +384,7 @@ function DashboardContent() {
                                     <span>Fresh Produce</span>
                                     <span className="font-bold">$8,240 (45%)</span>
                                 </div>
-                                <div className="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                                <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
                                     <div className="bg-[#10b981] h-full" style={{ width: '45%' }}></div>
                                 </div>
                             </div>
@@ -393,7 +393,7 @@ function DashboardContent() {
                                     <span>Ready-to-Eat</span>
                                     <span className="font-bold">$5,120 (28%)</span>
                                 </div>
-                                <div className="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                                <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
                                     <div className="bg-blue-500 h-full" style={{ width: '28%' }}></div>
                                 </div>
                             </div>
@@ -402,14 +402,14 @@ function DashboardContent() {
                                     <span>Artisan Crafts</span>
                                     <span className="font-bold">$3,072 (17%)</span>
                                 </div>
-                                <div className="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                                <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
                                     <div className="bg-amber-500 h-full" style={{ width: '17%' }}></div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                         <div className="flex items-center justify-between mb-4">
                             <h4 className="font-bold">Financial Alerts</h4>
                             <span className="text-xs text-[#10b981] font-bold cursor-pointer hover:underline">Auditor View</span>
@@ -419,21 +419,21 @@ function DashboardContent() {
                                 <div className="w-2 h-2 rounded-full bg-red-500 mt-2 shrink-0"></div>
                                 <div>
                                     <p className="text-sm font-semibold">Unreported Sales: Ary Land &amp; Cattle</p>
-                                    <p className="text-xs text-slate-600 dark:text-slate-500">Market day 06/23 sales data not yet submitted for commission.</p>
+                                    <p className="text-xs text-slate-600">Market day 06/23 sales data not yet submitted for commission.</p>
                                 </div>
                             </div>
                             <div className="flex gap-4 items-start">
                                 <div className="w-2 h-2 rounded-full bg-amber-500 mt-2 shrink-0"></div>
                                 <div>
                                     <p className="text-sm font-semibold">Partial Payment: Alba&apos;s Pupusas</p>
-                                    <p className="text-xs text-slate-600 dark:text-slate-500">Booth fee balance of $45.00 overdue from morning check-in.</p>
+                                    <p className="text-xs text-slate-600">Booth fee balance of $45.00 overdue from morning check-in.</p>
                                 </div>
                             </div>
                             <div className="flex gap-4 items-start">
                                 <div className="w-2 h-2 rounded-full bg-[#10b981] mt-2 shrink-0"></div>
                                 <div>
                                     <p className="text-sm font-semibold">Deposit Successful</p>
-                                    <p className="text-xs text-slate-600 dark:text-slate-500">Electronic deposit for 06/21 batch confirmed by bank ($12,403.00).</p>
+                                    <p className="text-xs text-slate-600">Electronic deposit for 06/21 batch confirmed by bank ($12,403.00).</p>
                                 </div>
                             </div>
                         </div>

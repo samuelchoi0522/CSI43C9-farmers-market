@@ -300,7 +300,7 @@ function VendorDetailContent() {
     };
 
     return (
-        <div className="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-screen flex transition-colors duration-300">
+        <div className="bg-slate-50 text-slate-900 min-h-screen flex transition-colors duration-300">
             <SidebarNavigation activeItem="Vendors" />
 
             {/* Main Content */}
@@ -314,7 +314,7 @@ function VendorDetailContent() {
                                     Vendors
                                 </Link>
                                 <span className="material-icons text-xs">chevron_right</span>
-                                <span className="text-slate-400 dark:text-slate-300">
+                                <span className="text-slate-400">
                                     {vendorData.name}
                                 </span>
                             </nav>
@@ -322,18 +322,18 @@ function VendorDetailContent() {
                                 <h1 className="text-3xl font-bold">{vendorData.name}</h1>
                                 {vendorData.isActive ? (
                                     <span 
-                                        className="px-3 py-1 rounded-full text-xs font-bold text-[#10b981] dark:bg-green-900/30 dark:text-green-400"
+                                        className="px-3 py-1 rounded-full text-xs font-bold text-[#10b981]"
                                         style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)' }}
                                     >
                                         ACTIVE
                                     </span>
                                 ) : (
-                                    <span className="px-3 py-1 bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200 text-xs font-bold rounded-full border border-slate-200 dark:border-slate-800">
+                                    <span className="px-3 py-1 bg-slate-100 text-slate-700 text-xs font-bold rounded-full border border-slate-200">
                                         INACTIVE
                                     </span>
                                 )}
                             </div>
-                            <p className="text-slate-500 dark:text-slate-400 mt-1">
+                            <p className="text-slate-500 mt-1">
                                 Vendor ID: {vendorData.vendorId} • Owner: {vendorData.owner}
                             </p>
                         </div>
@@ -376,14 +376,14 @@ function VendorDetailContent() {
                                     >
                                         {userName}
                                     </span>
-                                    <span className="material-icons text-lg leading-none text-slate-600 dark:text-slate-400">
+                                    <span className="material-icons text-lg leading-none text-slate-600">
                                         {showUserMenu ? "expand_less" : "expand_more"}
                                     </span>
                                 </Button>
                                 {showUserMenu && (
-                                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-2 z-50">
-                                        <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-700">
-                                            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-2 z-50">
+                                        <div className="px-4 py-2 border-b border-slate-200">
+                                            <p className="text-sm font-semibold text-slate-900">
                                                 {userName}
                                             </p>
                                         </div>
@@ -391,7 +391,7 @@ function VendorDetailContent() {
                                             onClick={handleLogout}
                                             variant="ghost"
                                             size="sm"
-                                            className="w-full flex items-center gap-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                            className="w-full flex items-center gap-2 text-red-600 hover:bg-red-50"
                                         >
                                             <span className="material-icons text-lg leading-none">
                                                 logout
@@ -407,15 +407,15 @@ function VendorDetailContent() {
                     {/* Charts Section */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
                         {/* Sales Trends Chart */}
-                        <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                        <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                             <div className="flex items-center justify-between mb-6">
                                 <div>
                                     <h2 className="text-lg font-bold">Sales Trends</h2>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                                    <p className="text-sm text-slate-500">
                                         Net revenue over the last 6 months
                                     </p>
                                 </div>
-                                <select className="bg-slate-50 dark:bg-slate-800 border-none rounded-lg text-sm font-medium focus:ring-[#10b981] px-3 py-2">
+                                <select className="bg-slate-50 border-none rounded-lg text-sm font-medium focus:ring-[#10b981] px-3 py-2">
                                     <option>Last 6 Months</option>
                                     <option>Last Year</option>
                                 </select>
@@ -426,9 +426,9 @@ function VendorDetailContent() {
                         </div>
 
                         {/* Payment Breakdown Chart */}
-                        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                             <h2 className="text-lg font-bold mb-1">Payment Breakdown</h2>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+                            <p className="text-sm text-slate-500 mb-6">
                                 Distribution of currency types
                             </p>
                             <div className="h-64 flex items-center justify-center mb-6">
@@ -474,10 +474,10 @@ function VendorDetailContent() {
                     {/* Vendor Labels + Summary Cards */}
                     <div className="mb-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
                         {/* Left: Vendor Labels spanning height */}
-                        <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-3">
+                        <div className="lg:col-span-2 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col gap-3">
                             <div>
                                 <h2 className="text-base font-semibold">Vendor Labels</h2>
-                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                <p className="text-xs text-slate-500">
                                     Manage category labels assigned to this vendor.
                                 </p>
                             </div>
@@ -517,7 +517,7 @@ function VendorDetailContent() {
                                     )}
                                 </div>
                                 {labelsLoading ? (
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                                    <p className="text-sm text-slate-500">
                                         Loading labels...
                                     </p>
                                 ) : labelError ? (
@@ -529,16 +529,16 @@ function VendorDetailContent() {
                         {/* Right: Summary cards in 2x2 grid */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {/* Top Selling Month */}
-                            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
                                 <div className="flex items-center justify-between mb-3">
                                 <div
-                                    className="dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
+                                    className="text-purple-600 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
                                     style={{ backgroundColor: 'rgba(243, 232, 255, 0.5)' }}
                                 >
                                         <span className="material-icons leading-none">trending_up</span>
                                     </div>
                                 </div>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                <p className="text-xs text-slate-500 font-medium">
                                     Top Selling Month
                                 </p>
                                 <h3 className="text-lg font-bold mt-1">
@@ -547,16 +547,16 @@ function VendorDetailContent() {
                             </div>
 
                             {/* SNAP Transactions */}
-                            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
                                 <div className="flex items-center justify-between mb-3">
                                 <div
-                                    className="dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
+                                    className="text-pink-600 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
                                     style={{ backgroundColor: 'rgba(252, 231, 243, 0.5)' }}
                                 >
                                         <span className="material-icons leading-none">receipt_long</span>
                                     </div>
                                 </div>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                <p className="text-xs text-slate-500 font-medium">
                                     SNAP Transactions
                                 </p>
                                 <h3 className="text-lg font-bold mt-1">
@@ -565,22 +565,22 @@ function VendorDetailContent() {
                             </div>
 
                             {/* Attendance Rate */}
-                            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
                                 <div className="flex items-center justify-between mb-3">
                                 <div
-                                    className="dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
+                                    className="text-blue-600 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
                                     style={{ backgroundColor: 'rgba(219, 234, 254, 0.5)' }}
                                 >
                                         <span className="material-icons leading-none">calendar_today</span>
                                     </div>
                                     <span 
-                                        className="text-[10px] font-bold text-[#10b981] dark:text-green-400 flex items-center dark:bg-green-900/20 px-2 py-0.5 rounded-full"
+                                        className="text-[10px] font-bold text-[#10b981] flex items-center px-2 py-0.5 rounded-full"
                                         style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)' }}
                                     >
                                         +{vendorData.attendanceChange}%
                                     </span>
                                 </div>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                <p className="text-xs text-slate-500 font-medium">
                                     Attendance Rate
                                 </p>
                                 <h3 className="text-lg font-bold mt-1">
@@ -589,13 +589,13 @@ function VendorDetailContent() {
                             </div>
 
                             {/* Avg Daily Sales */}
-                            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
                                 <div className="flex items-center justify-between mb-3">
                                     <div className="bg-[#10b981]/10 text-[#10b981] p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110">
                                         <span className="material-icons leading-none">payments</span>
                                     </div>
                                 </div>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                <p className="text-xs text-slate-500 font-medium">
                                     Avg. Daily Sales
                                 </p>
                                 <h3 className="text-lg font-bold mt-1">
@@ -606,10 +606,10 @@ function VendorDetailContent() {
                     </div>
 
                     {/* Market History Recap Table */}
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-                        <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div className="p-6 border-b border-slate-200 flex items-center justify-between">
                             <h2 
-                                className="text-lg font-bold dark:text-slate-100"
+                                className="text-lg font-bold"
                                 style={{ color: 'rgb(15, 23, 42)' }}
                             >
                                 Market History Recap
@@ -619,7 +619,7 @@ function VendorDetailContent() {
                                     search
                                 </span>
                                     <input
-                                        className="pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm w-64 focus:ring-[#10b981] focus:border-[#10b981] dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400"
+                                        className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm w-64 focus:ring-[#10b981] focus:border-[#10b981] placeholder:text-slate-500"
                                         placeholder="Search sessions..."
                                         type="text"
                                         style={{ color: 'rgb(51, 65, 85)' }}
@@ -628,7 +628,7 @@ function VendorDetailContent() {
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-left">
-                                <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-xs font-bold uppercase">
+                                <thead className="bg-slate-50 text-slate-500 text-xs font-bold uppercase">
                                     <tr>
                                         <th className="px-6 py-4">Market Date</th>
                                         <th className="px-6 py-4 text-center">Present?</th>
@@ -640,11 +640,11 @@ function VendorDetailContent() {
                                         <th className="px-6 py-4">Produce $$</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                <tbody className="divide-y divide-slate-100">
                                     {vendorData.marketHistory.map((session, index) => (
                                         <tr
                                             key={index}
-                                            className="hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+                                            className="hover:bg-green-50 transition-colors"
                                         >
                                             <td className="px-6 py-4 font-medium">
                                                 {session.marketDate}
@@ -683,7 +683,7 @@ function VendorDetailContent() {
                                 </tbody>
                             </table>
                         </div>
-                        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 flex justify-center">
+                        <div className="p-4 bg-slate-50 flex justify-center">
                             <button className="text-sm font-bold text-[#10b981] hover:underline">
                                 View All Sessions
                             </button>

@@ -5,31 +5,15 @@
     --foreground: #171717;
 }
 
-/* Ensure dark mode works with class strategy */
-@media (prefers-color-scheme: dark) {
-    :root:not(.dark) {
-        color-scheme: light;
-    }
-}
-
 @theme {
     --color-primary: #2D5A27;
     --color-accent: #8BA888;
     --color-background-light: #F9FAF2;
-    --color-background-dark: #121412;
     --color-dashboard-primary: #10b981;
     --color-dashboard-bg-light: #f8fafc;
-    --color-dashboard-bg-dark: #0f172a;
     --font-family-sans: var(--font-inter), "Inter", ui-sans-serif, system-ui, sans-serif;
     --font-family-display: var(--font-fraunces), "Fraunces", ui-serif, serif;
     --radius-default: 0.75rem;
-}
-
-@media (prefers-color-scheme: dark) {
-    :root {
-        --background: #0a0a0a;
-        --foreground: #ededed;
-    }
 }
 
 html {
@@ -50,67 +34,54 @@ body {
     transition: background-image 0.3s ease;
 }
 
-.dark .market-bg {
-    background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url(https://lh3.googleusercontent.com/aida-public/AB6AXuA9I07QkwrqpQC84vxAnzVnlbSElZGH2-0HBWwhpvqSPXb3TjWjeb22uWiltm1ndGNYwdCK49fIprq21rfTR070QvmIMXN5z8aRbV0cQpaWh78ZcEWPGjJF87ZgaeHPwT3Gf4QjMWbC_13mPayvbBVZviHZp-uNZ-aaqLkCj4Og4baxa5Pkm-Qd0WdoJPqDatQMMUHHUZ02XfYtfNufqV_vB2X4PK4sMHGZEFTb1jadcsAnzZ-22cDXZHVoIueecwI28f2e3lOez742);
-}
-
 .glass-panel {
     backdrop-filter: blur(12px);
     background-color: rgba(255, 255, 255, 0.9);
     transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
-.dark .glass-panel {
-    background-color: rgba(24, 28, 24, 0.9);
-}
-
-/* Force text colors in light mode with smooth transitions */
-:root:not(.dark) .font-display:not(.text-white) {
+.font-display:not(.text-white) {
     color: #1a1a1a !important;
     transition: color 0.3s ease;
 }
 
-/* Keep white text white in all modes */
 .font-display.text-white,
 h1.text-white,
-h1.font-display.text-white,
-:root:not(.dark) h1.font-display.text-white,
-:root.dark h1.font-display.text-white {
+h1.font-display.text-white {
     color: #ffffff !important;
     transition: color 0.3s ease;
 }
 
-:root:not(.dark) .text-gray-900,
-:root:not(.dark) h1.text-gray-900 {
+.text-gray-900,
+h1.text-gray-900 {
     color: #1a1a1a !important;
     transition: color 0.3s ease;
 }
 
-:root:not(.dark) .text-gray-800,
-:root:not(.dark) p.text-gray-800 {
+.text-gray-800,
+p.text-gray-800 {
     color: #2a2a2a !important;
     transition: color 0.3s ease;
 }
 
-:root:not(.dark) .text-gray-700,
-:root:not(.dark) label.text-gray-700,
-:root:not(.dark) a.text-gray-700 {
+.text-gray-700,
+label.text-gray-700,
+a.text-gray-700 {
     color: #374151 !important;
     transition: color 0.3s ease;
 }
 
-:root:not(.dark) .text-gray-600,
-:root:not(.dark) p.text-gray-600 {
+.text-gray-600,
+p.text-gray-600 {
     color: #4b5563 !important;
     transition: color 0.3s ease;
 }
 
-:root:not(.dark) a.text-gray-800 {
+a.text-gray-800 {
     color: #1f2937 !important;
     transition: color 0.3s ease;
 }
 
-/* Add smooth transitions to common elements */
 h1,
 h2,
 h3,
@@ -127,12 +98,10 @@ div {
     transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
 }
 
-/* Global button cursor pointer */
 button {
     cursor: pointer;
 }
 
-/* Scrollbar hiding utility */
 .scrollbar-hide::-webkit-scrollbar {
     display: none;
 }
@@ -142,211 +111,87 @@ button {
     scrollbar-width: none;
 }
 
-/* Ensure dark mode class works */
-html.dark,
-.dark {
-    color-scheme: dark;
-}
-
-/* Force dark mode styles to work - Tailwind v4 fallback */
-/* Use both html.dark and .dark selectors to match Tailwind's generated classes */
-html.dark .bg-slate-50,
-.dark .bg-slate-50 {
-    background-color: rgb(15 23 42);
-    /* slate-900 */
-}
-
-html.dark .bg-white,
-.dark .bg-white {
-    background-color: rgb(15 23 42);
-    /* slate-900 */
-}
-
-html.dark .bg-slate-800,
-.dark .bg-slate-800 {
-    background-color: rgb(30 41 59);
-    /* slate-800 */
-}
-
-html.dark .text-slate-900,
-.dark .text-slate-900 {
-    color: rgb(241 245 249);
-    /* slate-100 */
-}
-
-html.dark .text-slate-100,
-.dark .text-slate-100 {
-    color: rgb(241 245 249);
-    /* slate-100 */
-}
-
-html.dark .text-slate-500,
-.dark .text-slate-500 {
-    color: rgb(148 163 184);
-    /* slate-400 */
-}
-
-html.dark .text-slate-400,
-.dark .text-slate-400 {
-    color: rgb(148 163 184);
-    /* slate-400 */
-}
-
-html.dark .border-slate-200,
-.dark .border-slate-200 {
-    border-color: rgb(30 41 59);
-    /* slate-800 */
-}
-
-html.dark .border-slate-700,
-.dark .border-slate-700 {
-    border-color: rgb(51 65 85);
-    /* slate-700 */
-}
-
-html.dark .border-slate-800,
-.dark .border-slate-800 {
-    border-color: rgb(30 41 59);
-    /* slate-800 */
-}
-
-html.dark .hover\:bg-slate-800:hover,
-.dark .hover\:bg-slate-800:hover {
-    background-color: rgb(30 41 59);
-    /* slate-800 */
-}
-
-/* Sidebar navigation hover - light green in light mode */
-html:not(.dark) aside nav a.hover-lift:hover {
+aside nav a.hover-lift:hover {
     background-color: rgba(16, 185, 129, 0.1) !important;
-    /* light green hover for sidebar menu items in light mode */
 }
 
-/* Button hover - light green in light mode (excludes Material UI buttons and dark mode toggle) */
-html:not(.dark) button.hover-lift:hover:not(.MuiButton-root):not([aria-label="Toggle dark mode"]) {
+button.hover-lift:hover:not(.MuiButton-root) {
     background-color: rgba(16, 185, 129, 0.1) !important;
-    /* light green hover for buttons in light mode */
 }
 
-/* Dark mode toggle button - keep white background on hover in light mode */
-html:not(.dark) button[aria-label="Toggle dark mode"]:hover {
-    background-color: #ffffff !important;
-}
-
-/* Material UI primary button - ensure green color on hover */
-html:not(.dark) button.MuiButton-containedPrimary:hover,
-html:not(.dark) button.MuiButton-containedPrimary:focus,
-html:not(.dark) button.MuiButton-containedPrimary:active {
+button.MuiButton-containedPrimary:hover,
+button.MuiButton-containedPrimary:focus,
+button.MuiButton-containedPrimary:active {
     background-color: #059669 !important;
     color: #ffffff !important;
 }
 
-/* Table row hover - light green in light mode */
-html:not(.dark) tr.hover-lift:hover {
+tr.hover-lift:hover {
     background-color: rgba(16, 185, 129, 0.1) !important;
-    /* light green hover for table rows in light mode */
 }
 
-/* Ensure light mode uses correct colors - these should be the default */
-html:not(.dark) .bg-slate-50 {
+.bg-slate-50 {
     background-color: rgb(248 250 252) !important;
-    /* slate-50 */
 }
 
-html:not(.dark) .bg-white {
+.bg-white {
     background-color: rgb(255 255 255) !important;
-    /* white */
 }
 
-html:not(.dark) .text-slate-900 {
+.text-slate-900 {
     color: rgb(15 23 42) !important;
-    /* slate-900 */
 }
 
-html:not(.dark) .text-slate-500 {
+.text-slate-500 {
     color: rgb(100 116 139) !important;
-    /* slate-500 */
 }
 
-html:not(.dark) .text-slate-400 {
+.text-slate-400 {
     color: rgb(148 163 184) !important;
-    /* slate-400 */
 }
 
-html:not(.dark) .text-slate-700 {
+.text-slate-700 {
     color: rgb(51 65 85) !important;
-    /* slate-700 */
 }
 
-html:not(.dark) .border-slate-200 {
+.border-slate-200 {
     border-color: rgb(226 232 240) !important;
-    /* slate-200 */
 }
 
-html:not(.dark) .border-slate-700 {
+.border-slate-700 {
     border-color: rgb(51 65 85) !important;
-    /* slate-700 */
 }
 
-html:not(.dark) .border-slate-800 {
+.border-slate-800 {
     border-color: rgb(30 41 59) !important;
-    /* slate-800 */
 }
 
-/* 
- * Consistent hover effects across the website
- * 
- * For buttons and interactive elements, use:
- * - Light mode: hover:bg-slate-50/15 (15% opacity)
- * - Dark mode: dark:hover:bg-slate-700/50 (50% opacity)
- * 
- * Example:
- * className="hover:bg-slate-50/15 dark:hover:bg-slate-700/50 transition-colors"
- * 
- * Or use the Button component from app/components/Button.tsx for consistent styling
+/*
+ * Consistent hover effects across the website.
+ * Use the Button component from app/components/Button.tsx for shared styling.
  */
 
-/* ============================================
-   TRANSACTIONS PAGE - Dashboard color scheme
-   Matches dashboard: slate palette + #10b981 primary
-   ============================================ */
-
-/* Page background */
 .transactions-page {
     background-color: rgb(248 250 252) !important;
     color: rgb(15 23 42);
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-html.dark .transactions-page,
-.dark .transactions-page {
-    background-color: rgb(15 23 42) !important;
-    color: rgb(241 245 249);
-}
-
-/* Header */
 .transactions-page header {
     background-color: white !important;
     border-color: rgb(226 232 240) !important;
 }
 
-html.dark .transactions-page header,
-.dark .transactions-page header {
-    background-color: rgb(30 41 59) !important;
-    border-color: rgb(51 65 85) !important;
-}
-
-/* Primary icon/buttons - use dashboard green instead of blue */
 .transactions-page .bg-blue-600 {
     background-color: #10b981 !important;
 }
 
 .transactions-page .bg-blue-600:hover,
-.transactions-page button.bg-blue-600:hover {
+.transactions-page button.bg-blue-600:hover,
+.transactions-page button.bg-blue-600:hover:not(:disabled) {
     background-color: #059669 !important;
 }
 
-/* Import button - match dashboard outline style */
 .transactions-page button.bg-white.text-green-700 {
     color: #10b981 !important;
     border-color: rgba(16, 185, 129, 0.3) !important;
@@ -357,65 +202,22 @@ html.dark .transactions-page header,
     border-color: rgba(16, 185, 129, 0.5) !important;
 }
 
-/* Add Vendor button - use dashboard green */
-.transactions-page button.bg-blue-600 {
-    background-color: #10b981 !important;
-}
-
-.transactions-page button.bg-blue-600:hover {
-    background-color: #059669 !important;
-}
-
-/* Main content text */
 .transactions-page h1.text-gray-900,
 .transactions-page h2.text-gray-900 {
     color: rgb(15 23 42) !important;
-}
-
-html.dark .transactions-page h1,
-html.dark .transactions-page h2,
-.dark .transactions-page h1,
-.dark .transactions-page h2 {
-    color: rgb(241 245 249) !important;
 }
 
 .transactions-page .text-gray-500 {
     color: rgb(100 116 139) !important;
 }
 
-html.dark .transactions-page .text-gray-500,
-.dark .transactions-page .text-gray-500 {
-    color: rgb(148 163 184) !important;
-}
-
-/* Market date picker card */
-.transactions-page .bg-white.rounded-lg {
-    background-color: white !important;
-    border-color: rgb(226 232 240) !important;
-}
-
-html.dark .transactions-page .bg-white.rounded-lg,
-.dark .transactions-page .bg-white.rounded-lg {
-    background-color: rgb(30 41 59) !important;
-    border-color: rgb(51 65 85) !important;
-}
-
-/* Table container */
+.transactions-page .bg-white.rounded-lg,
 .transactions-page .bg-white.rounded-xl,
 .transactions-page .bg-white.border {
     background-color: white !important;
     border-color: rgb(226 232 240) !important;
 }
 
-html.dark .transactions-page .bg-white.rounded-xl,
-html.dark .transactions-page .bg-white.border,
-.dark .transactions-page .bg-white.rounded-xl,
-.dark .transactions-page .bg-white.border {
-    background-color: rgb(30 41 59) !important;
-    border-color: rgb(51 65 85) !important;
-}
-
-/* Table header - slate style */
 .transactions-page thead tr,
 .transactions-page th.bg-gray-50 {
     background-color: rgb(248 250 252) !important;
@@ -423,23 +225,14 @@ html.dark .transactions-page .bg-white.border,
     color: rgb(51 65 85) !important;
 }
 
-html.dark .transactions-page thead tr,
-html.dark .transactions-page th,
-.dark .transactions-page thead tr,
-.dark .transactions-page th {
-    background-color: rgba(15, 23, 42, 0.5) !important;
-    border-color: rgb(51 65 85) !important;
-    color: rgb(148 163 184) !important;
-}
-
-/* Table accent columns - use dashboard green tint */
 .transactions-page .bg-blue-50\/50,
 .transactions-page .bg-blue-50 {
     background-color: rgba(16, 185, 129, 0.08) !important;
 }
 
 .transactions-page .bg-blue-50 .border-blue-100,
-.transactions-page .border-blue-100 {
+.transactions-page .border-blue-100,
+.transactions-page .border-blue-200 {
     border-color: rgba(16, 185, 129, 0.2) !important;
 }
 
@@ -448,38 +241,15 @@ html.dark .transactions-page th,
     color: #059669 !important;
 }
 
-html.dark .transactions-page .text-blue-800,
-html.dark .transactions-page .text-blue-700,
-.dark .transactions-page .text-blue-800,
-.dark .transactions-page .text-blue-700 {
-    color: #34d399 !important;
-}
-
-/* Input borders and focus - dashboard green */
 .transactions-page input:focus,
 .transactions-page .focus\:ring-blue-500:focus {
     --tw-ring-color: #10b981 !important;
 }
 
-.transactions-page .border-blue-200 {
-    border-color: rgba(16, 185, 129, 0.3) !important;
-}
-
-/* Row states */
 .transactions-page tbody tr:hover:not([class*="bg-red"]) {
     background-color: rgba(248, 250, 252, 0.5) !important;
 }
 
-html.dark .transactions-page tbody tr:hover:not([class*="bg-red"]),
-.dark .transactions-page tbody tr:hover:not([class*="bg-red"]) {
-    background-color: rgba(51, 65, 85, 0.5) !important;
-}
-
-.transactions-page .bg-blue-50\/50 {
-    background-color: rgba(16, 185, 129, 0.08) !important;
-}
-
-/* Action buttons - green accent */
 .transactions-page .text-blue-600 {
     color: #10b981 !important;
 }
@@ -488,27 +258,11 @@ html.dark .transactions-page tbody tr:hover:not([class*="bg-red"]),
     background-color: rgba(16, 185, 129, 0.15) !important;
 }
 
-/* Save/Upload button */
-.transactions-page button.bg-blue-600:not(.bg-white) {
-    background-color: #10b981 !important;
-}
-
-.transactions-page button.bg-blue-600:hover:not(:disabled) {
-    background-color: #059669 !important;
-}
-
 .transactions-page button.bg-gray-300 {
     background-color: rgb(203 213 225) !important;
     color: rgb(100 116 139) !important;
 }
 
-html.dark .transactions-page button.bg-gray-300,
-.dark .transactions-page button.bg-gray-300 {
-    background-color: rgb(51 65 85) !important;
-    color: rgb(148 163 184) !important;
-}
-
-/* Table body text */
 .transactions-page .text-gray-600 {
     color: rgb(71 85 105) !important;
 }
@@ -517,61 +271,27 @@ html.dark .transactions-page button.bg-gray-300,
     color: rgb(15 23 42) !important;
 }
 
-html.dark .transactions-page .text-gray-600,
-html.dark .transactions-page .text-gray-900,
-.dark .transactions-page .text-gray-600,
-.dark .transactions-page .text-gray-900 {
-    color: rgb(226 232 240) !important;
-}
-
 .transactions-page .text-gray-400 {
     color: rgb(100 116 139) !important;
 }
 
-/* Dividers */
 .transactions-page .divide-gray-100 > * {
     border-color: rgb(241 245 249) !important;
 }
 
-html.dark .transactions-page .divide-gray-100 > *,
-.dark .transactions-page .divide-gray-100 > * {
-    border-color: rgb(51 65 85) !important;
-}
-
-/* Invalid rows - keep red for errors */
 .transactions-page .bg-red-50 {
     background-color: rgb(254 242 242) !important;
 }
 
-html.dark .transactions-page .bg-red-50 {
-    background-color: rgba(127, 29, 29, 0.3) !important;
+.transactions-table tbody tr:hover:not(.bg-red-50):not([class*="bg-red"]) {
+    background-color: rgb(241 245 249) !important;
 }
 
-/* Transactions page table row hover - light grey in light mode, darker in dark mode */
-html:not(.dark) .transactions-table tbody tr:hover:not(.bg-red-50):not([class*="bg-red"]) {
-  background-color: rgb(241 245 249) !important; /* slate-100 - light grey */
-}
-
-html.dark .transactions-table tbody tr:hover:not(.bg-red-50):not([class*="bg-red"]),
-.dark .transactions-table tbody tr:hover:not(.bg-red-50):not([class*="bg-red"]) {
-  background-color: rgba(51, 65, 85, 0.6) !important;
-}
-
-/* Light mode table row hover - FIXED: increased opacity from 0.05 to 0.5 for visibility */
-html:not(.dark) tbody tr.light-hover-bg {
+tbody tr.light-hover-bg,
+tbody tr.light-hover-bg:hover {
     background-color: rgba(248, 250, 252, 0.5) !important;
 }
 
-/* Also target with :hover for better specificity */
-html:not(.dark) tbody tr.light-hover-bg:hover {
-    background-color: rgba(248, 250, 252, 0.5) !important;
-}
-
-/* ============================================
-   SMOOTH ANIMATIONS
-   ============================================ */
-
-/* Fade in animation */
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -581,7 +301,6 @@ html:not(.dark) tbody tr.light-hover-bg:hover {
     }
 }
 
-/* Slide in from bottom */
 @keyframes slideInUp {
     from {
         opacity: 0;
@@ -593,7 +312,6 @@ html:not(.dark) tbody tr.light-hover-bg:hover {
     }
 }
 
-/* Slide in from right */
 @keyframes slideInRight {
     from {
         opacity: 0;
@@ -605,7 +323,6 @@ html:not(.dark) tbody tr.light-hover-bg:hover {
     }
 }
 
-/* Slide in from left */
 @keyframes slideInLeft {
     from {
         opacity: 0;
@@ -617,7 +334,6 @@ html:not(.dark) tbody tr.light-hover-bg:hover {
     }
 }
 
-/* Scale in animation */
 @keyframes scaleIn {
     from {
         opacity: 0;
@@ -629,7 +345,6 @@ html:not(.dark) tbody tr.light-hover-bg:hover {
     }
 }
 
-/* Pulse animation */
 @keyframes pulse {
     0%, 100% {
         opacity: 1;
@@ -639,7 +354,6 @@ html:not(.dark) tbody tr.light-hover-bg:hover {
     }
 }
 
-/* Shimmer loading animation */
 @keyframes shimmer {
     0% {
         transform: translateX(-100%);
@@ -649,14 +363,12 @@ html:not(.dark) tbody tr.light-hover-bg:hover {
     }
 }
 
-/* Progress bar fill animation */
 @keyframes progressFill {
     from {
         width: 0;
     }
 }
 
-/* Percentage change animation */
 @keyframes percentageChange {
     0% {
         transform: scale(1);
@@ -669,7 +381,6 @@ html:not(.dark) tbody tr.light-hover-bg:hover {
     }
 }
 
-/* Animation utility classes */
 .animate-fade-in {
     animation: fadeIn 0.4s ease-out;
 }
@@ -702,7 +413,6 @@ html:not(.dark) tbody tr.light-hover-bg:hover {
     animation: percentageChange 0.4s ease-out;
 }
 
-/* Stagger animation delays for children */
 .animate-stagger > * {
     animation: fadeIn 0.5s ease-out both;
 }
@@ -716,12 +426,10 @@ html:not(.dark) tbody tr.light-hover-bg:hover {
 .animate-stagger > *:nth-child(7) { animation-delay: 0.35s; }
 .animate-stagger > *:nth-child(8) { animation-delay: 0.4s; }
 
-/* Smooth transitions for all interactive elements */
 a, button, input, select, textarea {
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Enhanced hover effects with smooth transitions */
 .hover-lift {
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
@@ -731,33 +439,24 @@ a, button, input, select, textarea {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.dark .hover-lift:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-/* Smooth focus transitions */
 input:focus, textarea:focus, select:focus {
     transition: all 0.2s ease;
     outline: none;
 }
 
-/* Smooth backdrop blur transitions */
 .backdrop-blur-transition {
     transition: backdrop-filter 0.3s ease, background-color 0.3s ease;
 }
 
-/* Smooth scale on click */
 .click-scale:active {
     transform: scale(0.98);
     transition: transform 0.1s ease;
 }
 
-/* Smooth opacity transitions */
 .opacity-transition {
     transition: opacity 0.3s ease;
 }
 
-/* Smooth height transitions for collapsible content */
 .height-transition {
     transition: height 0.3s ease, opacity 0.3s ease;
     overflow: hidden;
