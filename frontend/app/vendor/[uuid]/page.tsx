@@ -449,7 +449,7 @@ function VendorDetailContent() {
     }
 
     return (
-        <div className="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-screen flex transition-colors duration-300">
+        <div className="bg-slate-50 text-slate-900 min-h-screen flex transition-colors duration-300">
             <SidebarNavigation activeItem="Vendors" />
 
             {/* Main Content */}
@@ -476,13 +476,13 @@ function VendorDetailContent() {
                                 <h1 className="text-3xl font-bold">{vendor.vendorName}</h1>
                                 {vendor.isActive ? (
                                     <span 
-                                        className="px-3 py-1 rounded-full text-xs font-bold text-[#10b981] dark:bg-green-900/30 dark:text-green-400"
+                                        className="px-3 py-1 rounded-full text-xs font-bold text-[#10b981]"
                                         style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)' }}
                                     >
                                         ACTIVE
                                     </span>
                                 ) : (
-                                    <span className="px-3 py-1 bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200 text-xs font-bold rounded-full border border-slate-200 dark:border-slate-800">
+                                    <span className="px-3 py-1 bg-slate-100 text-slate-700 text-xs font-bold rounded-full border border-slate-200">
                                         INACTIVE
                                     </span>
                                 )}
@@ -529,14 +529,14 @@ function VendorDetailContent() {
                                     <span className="text-sm font-medium hidden md:block text-slate-900 dark:text-slate-100 transition-colors duration-300">
                                         {userName}
                                     </span>
-                                    <span className="material-icons text-lg leading-none text-slate-600 dark:text-slate-400">
+                                    <span className="material-icons text-lg leading-none text-slate-600">
                                         {showUserMenu ? "expand_less" : "expand_more"}
                                     </span>
                                 </Button>
                                 {showUserMenu && (
-                                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-2 z-50">
-                                        <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-700">
-                                            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-2 z-50">
+                                        <div className="px-4 py-2 border-b border-slate-200">
+                                            <p className="text-sm font-semibold text-slate-900">
                                                 {userName}
                                             </p>
                                         </div>
@@ -544,7 +544,7 @@ function VendorDetailContent() {
                                             onClick={handleLogout}
                                             variant="ghost"
                                             size="sm"
-                                            className="w-full flex items-center gap-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                            className="w-full flex items-center gap-2 text-red-600 hover:bg-red-50"
                                         >
                                             <span className="material-icons text-lg leading-none">
                                                 logout
@@ -666,7 +666,7 @@ function VendorDetailContent() {
                         </div>
 
                         {/* Payment Breakdown Chart */}
-                        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                             <h2 className="text-lg font-bold mb-1">Payment Breakdown</h2>
                             <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
                                 Reported sales split: remainder after SNAP, DUFB, WDFM, and voucher fields (all-time).
@@ -721,10 +721,10 @@ function VendorDetailContent() {
                     {/* Vendor Labels + Summary Cards */}
                     <div className="mb-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
                         {/* Left: Vendor Labels spanning height */}
-                        <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-3">
+                        <div className="lg:col-span-2 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col gap-3">
                             <div>
                                 <h2 className="text-base font-semibold">Vendor Labels</h2>
-                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                <p className="text-xs text-slate-500">
                                     Manage category labels assigned to this vendor.
                                 </p>
                             </div>
@@ -764,7 +764,7 @@ function VendorDetailContent() {
                                     )}
                                 </div>
                                 {labelsLoading ? (
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                                    <p className="text-sm text-slate-500">
                                         Loading labels...
                                     </p>
                                 ) : labelError ? (
@@ -776,16 +776,16 @@ function VendorDetailContent() {
                         {/* Right: Summary cards in 2x2 grid */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {/* Top Selling Month */}
-                            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
                                 <div className="flex items-center justify-between mb-3">
                                 <div
-                                    className="dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
+                                    className="text-purple-600 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
                                     style={{ backgroundColor: 'rgba(243, 232, 255, 0.5)' }}
                                 >
                                         <span className="material-icons leading-none">trending_up</span>
                                     </div>
                                 </div>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                <p className="text-xs text-slate-500 font-medium">
                                     Top Selling Month
                                 </p>
                                 <h3 className="text-lg font-bold mt-1">
@@ -794,10 +794,10 @@ function VendorDetailContent() {
                             </div>
 
                             {/* SNAP Transactions */}
-                            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
                                 <div className="flex items-center justify-between mb-3">
                                 <div
-                                    className="dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
+                                    className="text-pink-600 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
                                     style={{ backgroundColor: 'rgba(252, 231, 243, 0.5)' }}
                                 >
                                         <span className="material-icons leading-none">receipt_long</span>
@@ -812,10 +812,10 @@ function VendorDetailContent() {
                             </div>
 
                             {/* Attendance Rate */}
-                            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
                                 <div className="flex items-center justify-between mb-3">
                                 <div
-                                    className="dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
+                                    className="text-blue-600 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
                                     style={{ backgroundColor: 'rgba(219, 234, 254, 0.5)' }}
                                 >
                                         <span className="material-icons leading-none">calendar_today</span>
@@ -833,7 +833,7 @@ function VendorDetailContent() {
                             </div>
 
                             {/* Avg Daily Sales */}
-                            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
                                 <div className="flex items-center justify-between mb-3">
                                     <div className="bg-[#10b981]/10 text-[#10b981] p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110">
                                         <span className="material-icons leading-none">payments</span>
@@ -868,7 +868,7 @@ function VendorDetailContent() {
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-left">
-                                <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-xs font-bold uppercase">
+                                <thead className="bg-slate-50 text-slate-500 text-xs font-bold uppercase">
                                     <tr>
                                         <th className="px-6 py-4">Market Date</th>
                                         <th className="px-6 py-4 text-center">Present?</th>
@@ -937,7 +937,7 @@ function VendorDetailContent() {
                                 </tbody>
                             </table>
                         </div>
-                        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 flex justify-center">
+                        <div className="p-4 bg-slate-50 flex justify-center">
                             <button className="text-sm font-bold text-[#10b981] hover:underline">
                                 View All Sessions
                             </button>

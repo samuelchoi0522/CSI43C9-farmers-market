@@ -235,7 +235,7 @@ function DashboardContent() {
     };
 
     return (
-        <div className="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-screen flex transition-colors duration-300">
+        <div className="bg-slate-50 text-slate-900 min-h-screen flex transition-colors duration-300">
             <SidebarNavigation activeItem="Dashboard" />
 
             {/* Main Content */}
@@ -264,20 +264,20 @@ function DashboardContent() {
                                 >
                                     {userName}
                                 </span>
-                                <span className="material-icons text-lg leading-none text-slate-600 dark:text-slate-400">
+                                <span className="material-icons text-lg leading-none text-slate-600">
                                     {showUserMenu ? "expand_less" : "expand_more"}
                                 </span>
                             </Button>
                             {showUserMenu && (
-                                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-2 z-50">
-                                    <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-700">
-                                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{userName}</p>
+                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-2 z-50">
+                                    <div className="px-4 py-2 border-b border-slate-200">
+                                        <p className="text-sm font-semibold text-slate-900">{userName}</p>
                                     </div>
                                     <Button
                                         onClick={handleLogout}
                                         variant="ghost"
                                         size="sm"
-                                        className="w-full flex items-center gap-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                        className="w-full flex items-center gap-2 text-red-600 hover:bg-red-50"
                                     >
                                         <span className="material-icons text-lg leading-none">logout</span>
                                         Log Out
@@ -296,10 +296,10 @@ function DashboardContent() {
 
                 {/* Stats Cards — latest Saturday only, from vendor transactions API */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 animate-stagger">
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover-lift transition-all duration-200">
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover-lift transition-all duration-200">
                         <div className="flex items-center justify-between mb-4">
                             <div
-                                className="dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
+                                className="text-blue-600 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
                                 style={{ backgroundColor: 'rgba(219, 234, 254, 0.5)' }}
                             >
                                 <span className="material-icons leading-none">credit_card</span>
@@ -314,7 +314,7 @@ function DashboardContent() {
                         />
                     </div>
 
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover-lift transition-all duration-200">
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover-lift transition-all duration-200">
                         <div className="flex items-center justify-between mb-4">
                             <div className="bg-[#10b981]/10 text-[#10b981] p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110">
                                 <span className="material-icons leading-none">attach_money</span>
@@ -329,10 +329,10 @@ function DashboardContent() {
                         />
                     </div>
 
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover-lift transition-all duration-200">
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover-lift transition-all duration-200">
                         <div className="flex items-center justify-between mb-4">
                             <div
-                                className="dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
+                                className="text-amber-600 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
                                 style={{ backgroundColor: 'rgba(254, 243, 199, 0.5)' }}
                             >
                                 <span className="material-icons leading-none">account_balance_wallet</span>
@@ -359,14 +359,14 @@ function DashboardContent() {
                 <CategoryRevenueChart data={categoryChartData} />
 
                 {/* Vendor Tracking Table */}
-                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden animate-slide-up" style={{ animationDelay: '0.2s' }}>
-                    <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-slide-up" style={{ animationDelay: '0.2s' }}>
+                    <div className="p-6 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <h3 className="font-bold text-lg">Vendor Tracking</h3>
                         <div className="flex items-center gap-2">
                             <div className="relative">
                                 <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm leading-none">search</span>
                                 <input
-                                    className="pl-9 pr-4 py-2 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-[#10b981] focus:border-[#10b981] w-full md:w-64 outline-none"
+                                    className="pl-9 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:ring-[#10b981] focus:border-[#10b981] w-full md:w-64 outline-none"
                                     placeholder="Search vendors..."
                                     type="text"
                                     value={searchQuery}
@@ -382,7 +382,7 @@ function DashboardContent() {
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
-                                <tr className="bg-slate-50 dark:bg-slate-900/50 text-slate-700 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">
+                                <tr className="bg-slate-50 text-slate-700 text-xs font-bold uppercase tracking-wider">
                                     <th className="px-6 py-4">Vendor Name</th>
                                     <th className="px-6 py-4">Status</th>
                                     <th className="px-6 py-4">Category</th>
@@ -392,7 +392,7 @@ function DashboardContent() {
                                     <th className="px-6 py-4 text-right">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                            <tbody className="divide-y divide-slate-100">
                                 {loading ? (
                                     <tr>
                                         <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
@@ -415,7 +415,7 @@ function DashboardContent() {
                                     filteredVendors.map((vendor) => (
                                         <tr
                                             key={vendor.id}
-                                            className="hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+                                            className="hover:bg-green-50 transition-colors"
                                         >
                                             <td className="px-6 py-4">
                                                 <span className="font-semibold">{vendor.vendorName}</span>
@@ -424,7 +424,7 @@ function DashboardContent() {
                                                 {vendor.isActive ? (
                                                     <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-[#10b981]/20 text-[#10b981]">Active</span>
                                                 ) : (
-                                                    <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-[#8f8f8f] text-[#454545] dark:bg-slate-700 dark:text-slate-200">Inactive</span>
+                                                    <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-[#8f8f8f] text-[#454545]">Inactive</span>
                                                 )}
                                             </td>
                                             <td className="px-6 py-4 text-sm">{vendor.products || '-'}</td>

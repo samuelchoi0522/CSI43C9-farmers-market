@@ -415,7 +415,7 @@ function AddVendorContent() {
     ];
 
     return (
-        <div className="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-screen flex transition-colors duration-300">
+        <div className="bg-slate-50 text-slate-900 min-h-screen flex transition-colors duration-300">
             <SidebarNavigation activeItem="Vendors" />
 
             {/* Main Content */}
@@ -423,7 +423,7 @@ function AddVendorContent() {
                 <header className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4 animate-slide-up">
                     <div>
                         <h2 className="text-2xl font-bold animate-fade-in">Add New Vendor</h2>
-                        <p className="text-slate-700 dark:text-slate-400 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+                        <p className="text-slate-700 animate-fade-in" style={{ animationDelay: '0.1s' }}>
                             Register a new vendor in the farmers market system
                         </p>
                     </div>
@@ -443,20 +443,20 @@ function AddVendorContent() {
                             >
                                 {userName}
                             </span>
-                            <span className="material-icons text-lg leading-none text-slate-600 dark:text-slate-400">
+                            <span className="material-icons text-lg leading-none text-slate-600">
                                 {showUserMenu ? "expand_less" : "expand_more"}
                             </span>
                         </Button>
                         {showUserMenu && (
-                            <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-2 z-50">
-                                <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-700">
-                                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{userName}</p>
+                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-2 z-50">
+                                <div className="px-4 py-2 border-b border-slate-200">
+                                    <p className="text-sm font-semibold text-slate-900">{userName}</p>
                                 </div>
                                 <Button
                                     onClick={handleLogout}
                                     variant="ghost"
                                     size="sm"
-                                    className="w-full flex items-center gap-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                    className="w-full flex items-center gap-2 text-red-600 hover:bg-red-50"
                                 >
                                     <span className="material-icons text-lg leading-none">logout</span>
                                     Log Out
@@ -468,11 +468,11 @@ function AddVendorContent() {
 
                 {/* Profile Completion Bar - Only show on form, not overview */}
                 {!showOverview && (
-                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 mb-6 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-6 animate-slide-up" style={{ animationDelay: '0.1s' }}>
                     <div className="flex items-center justify-between mb-3">
                         <div>
                             <h3 className="text-lg font-bold">Profile Completion</h3>
-                            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                            <p className="text-sm text-slate-600 mt-1">
                                 Complete all fields to finish vendor registration
                             </p>
                         </div>
@@ -483,10 +483,10 @@ function AddVendorContent() {
                             >
                                 {animatedPercentage}%
                             </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">Complete</p>
+                            <p className="text-xs text-slate-500">Complete</p>
                         </div>
                     </div>
-                    <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3 overflow-hidden relative">
+                    <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden relative">
                         <div
                             className="bg-dashboard-primary h-full rounded-full transition-all duration-800 ease-out relative overflow-hidden"
                             style={{ width: `${animatedPercentage}%` }}
@@ -502,34 +502,34 @@ function AddVendorContent() {
                 {showOverview ? (
                     /* Overview Section */
                     <div className="animate-slide-up" style={{ animationDelay: '0.2s' }}>
-                        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden mb-6">
-                            <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+                            <div className="p-6 border-b border-slate-200">
                                 <h3 className="font-bold text-lg">Review Vendor Information</h3>
-                                <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">Please review the information before creating the vendor</p>
+                                <p className="text-sm text-slate-600 mt-1">Please review the information before creating the vendor</p>
                             </div>
                             <div className="p-6 space-y-6">
                                 {/* Basic Information Review */}
                                 <div>
-                                    <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4">Basic Information</h4>
+                                    <h4 className="text-sm font-semibold text-slate-700 mb-4">Basic Information</h4>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
-                                            <p className="text-xs text-slate-700 dark:text-slate-400 mb-1">Vendor Name</p>
+                                            <p className="text-xs text-slate-700 mb-1">Vendor Name</p>
                                             <p className="text-sm font-medium">{formData.vendorName ? formData.vendorName : <span className="text-slate-400 italic">Not provided</span>}</p>
                                         </div>
                                         <div>
-                                            <p className="text-xs text-slate-700 dark:text-slate-400 mb-1">Point Person</p>
+                                            <p className="text-xs text-slate-700 mb-1">Point Person</p>
                                             <p className="text-sm font-medium">{formData.pointPerson ? formData.pointPerson : <span className="text-slate-400 italic">Not provided</span>}</p>
                                         </div>
                                         <div>
-                                            <p className="text-xs text-slate-700 dark:text-slate-400 mb-1">Email Address</p>
+                                            <p className="text-xs text-slate-700 mb-1">Email Address</p>
                                             <p className="text-sm font-medium">{formData.email ? formData.email : <span className="text-slate-400 italic">Not provided</span>}</p>
                                         </div>
                                         <div>
-                                            <p className="text-xs text-slate-700 dark:text-slate-400 mb-1">Location</p>
+                                            <p className="text-xs text-slate-700 mb-1">Location</p>
                                             <p className="text-sm font-medium">{formData.location ? formData.location : <span className="text-slate-400 italic">Not provided</span>}</p>
                                         </div>
                                         <div>
-                                            <p className="text-xs text-slate-700 dark:text-slate-400 mb-1">Miles from Market</p>
+                                            <p className="text-xs text-slate-700 mb-1">Miles from Market</p>
                                             <p className="text-sm font-medium">{formData.miles || "0"} mi</p>
                                         </div>
                                     </div>
@@ -537,15 +537,15 @@ function AddVendorContent() {
 
                                 {/* Product Details Review */}
                                 <div>
-                                    <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4">Product Details</h4>
+                                    <h4 className="text-sm font-semibold text-slate-700 mb-4">Product Details</h4>
                                     <div className="space-y-4">
                                         <div>
-                                            <p className="text-xs text-slate-700 dark:text-slate-400 mb-1">Product Category</p>
+                                            <p className="text-xs text-slate-700 mb-1">Product Category</p>
                                             <p className="text-sm font-medium">{formData.products ? formData.products : <span className="text-slate-400 italic">Not provided</span>}</p>
                                         </div>
                                         <div>
-                                            <p className="text-xs text-slate-700 dark:text-slate-400 mb-1">Product List</p>
-                                            <div className="text-sm bg-slate-50 dark:bg-slate-900 p-4 rounded-lg border border-slate-200 dark:border-slate-700 whitespace-pre-wrap">
+                                            <p className="text-xs text-slate-700 mb-1">Product List</p>
+                                            <div className="text-sm bg-slate-50 p-4 rounded-lg border border-slate-200 whitespace-pre-wrap">
                                                 {formData.productDetails ? formData.productDetails : <span className="text-slate-400 italic">Not provided</span>}
                                             </div>
                                         </div>
@@ -554,30 +554,30 @@ function AddVendorContent() {
 
                                 {/* Classifications Review */}
                                 <div>
-                                    <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4">Vendor Classifications</h4>
+                                    <h4 className="text-sm font-semibold text-slate-700 mb-4">Vendor Classifications</h4>
                                     <div className="flex flex-wrap gap-3">
                                         {formData.isFarmer && (
-                                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
+                                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
                                                 Farmer
                                             </span>
                                         )}
                                         {formData.isProduce && (
-                                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+                                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
                                                 Produce Vendor
                                             </span>
                                         )}
                                         {formData.womanOwned && (
-                                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400">
+                                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-pink-100 text-pink-700">
                                                 Woman-Owned
                                             </span>
                                         )}
                                         {formData.bipocOwned && (
-                                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400">
+                                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
                                                 BIPOC-Owned
                                             </span>
                                         )}
                                         {formData.veteranOwned && (
-                                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
+                                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
                                                 Veteran-Owned
                                             </span>
                                         )}
@@ -590,18 +590,18 @@ function AddVendorContent() {
                                 {/* Vendor Defaults Review */}
                                 {hasNonZeroPercentage && (
                                     <div>
-                                        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4">Product Category Percentages</h4>
+                                        <h4 className="text-sm font-semibold text-slate-700 mb-4">Product Category Percentages</h4>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             {percentageFields.map(({ key, label }) => (
                                                 <div key={key}>
-                                                    <p className="text-xs text-slate-700 dark:text-slate-400 mb-1">{label}</p>
+                                                    <p className="text-xs text-slate-700 mb-1">{label}</p>
                                                     <p className="text-sm font-medium">{formData[key] || "0"}%</p>
                                                 </div>
                                             ))}
                                         </div>
                                         {errors.percentageSum && (
-                                            <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                                                <p className="text-sm text-red-600 dark:text-red-400">{errors.percentageSum}</p>
+                                            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                                                <p className="text-sm text-red-600">{errors.percentageSum}</p>
                                             </div>
                                         )}
                                     </div>
@@ -612,13 +612,13 @@ function AddVendorContent() {
 
                         {/* Error Message */}
                         {errors.submit && (
-                            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                                <p className="text-sm text-red-600 dark:text-red-400">{errors.submit}</p>
+                            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                                <p className="text-sm text-red-600">{errors.submit}</p>
                             </div>
                         )}
 
                         {/* Overview Actions */}
-                        <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
+                        <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-200">
                             <Button
                                 type="button"
                                 variant="outline"
@@ -667,13 +667,13 @@ function AddVendorContent() {
                     <form onSubmit={handleNextStep} className="animate-slide-up" style={{ animationDelay: '0.2s' }}>
                     <div className="space-y-6">
                             {/* Basic Information */}
-                            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-                                <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+                            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                                <div className="p-6 border-b border-slate-200">
                                     <h3 className="font-bold text-lg">Basic Information</h3>
                                 </div>
                                 <div className="p-6 space-y-4">
                                     <div>
-                                        <label htmlFor="vendorName" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                        <label htmlFor="vendorName" className="block text-sm font-medium text-slate-700 mb-2">
                                             Vendor Name <span className="text-red-500">*</span>
                                         </label>
                                         <input
@@ -682,10 +682,10 @@ function AddVendorContent() {
                                             name="vendorName"
                                             value={formData.vendorName}
                                             onChange={handleInputChange}
-                                            className={`w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors text-slate-900 dark:text-white ${
+                                            className={`w-full px-4 py-2 bg-slate-50 border rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors text-slate-900 ${
                                                 errors.vendorName
-                                                    ? "border-red-500 dark:border-red-500"
-                                                    : "border-slate-200 dark:border-slate-700"
+                                                    ? "border-red-500"
+                                                    : "border-slate-200"
                                             }`}
                                             placeholder="e.g. Green Valley Orchards"
                                         />
@@ -695,7 +695,7 @@ function AddVendorContent() {
                                     </div>
 
                                     <div>
-                                        <label htmlFor="pointPerson" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                        <label htmlFor="pointPerson" className="block text-sm font-medium text-slate-700 mb-2">
                                             Point Person
                                         </label>
                                         <input
@@ -704,13 +704,13 @@ function AddVendorContent() {
                                             name="pointPerson"
                                             value={formData.pointPerson}
                                             onChange={handleInputChange}
-                                            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors text-slate-900 dark:text-white"
+                                            className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors text-slate-900"
                                             placeholder="Name of primary contact"
                                         />
                                     </div>
 
                                     <div>
-                                        <label htmlFor="email" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                        <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
                                             Email Address
                                         </label>
                                         <input
@@ -719,10 +719,10 @@ function AddVendorContent() {
                                             name="email"
                                             value={formData.email}
                                             onChange={handleInputChange}
-                                            className={`w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors text-slate-900 dark:text-white ${
+                                            className={`w-full px-4 py-2 bg-slate-50 border rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors text-slate-900 ${
                                                 errors.email
-                                                    ? "border-red-500 dark:border-red-500"
-                                                    : "border-slate-200 dark:border-slate-700"
+                                                    ? "border-red-500"
+                                                    : "border-slate-200"
                                             }`}
                                             placeholder="contact@farm.com"
                                         />
@@ -732,7 +732,7 @@ function AddVendorContent() {
                                     </div>
 
                                     <div>
-                                        <label htmlFor="location" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                        <label htmlFor="location" className="block text-sm font-medium text-slate-700 mb-2">
                                             Location
                                         </label>
                                         <input
@@ -741,13 +741,13 @@ function AddVendorContent() {
                                             name="location"
                                             value={formData.location}
                                             onChange={handleInputChange}
-                                            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors text-slate-900 dark:text-white"
+                                            className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors text-slate-900"
                                             placeholder="e.g. Downtown Plaza, Main Street"
                                         />
                                     </div>
 
                                     <div>
-                                        <label htmlFor="miles" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                        <label htmlFor="miles" className="block text-sm font-medium text-slate-700 mb-2">
                                             Miles from Market
                                         </label>
                                         <div className="relative">
@@ -759,14 +759,14 @@ function AddVendorContent() {
                                                 onChange={handleInputChange}
                                                 min="0"
                                                 step="0.1"
-                                                className={`w-full px-4 py-2 pr-12 bg-slate-50 dark:bg-slate-900 border rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors text-slate-900 dark:text-white ${
+                                                className={`w-full px-4 py-2 pr-12 bg-slate-50 border rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors text-slate-900 ${
                                                     errors.miles
-                                                        ? "border-red-500 dark:border-red-500"
-                                                        : "border-slate-200 dark:border-slate-700"
+                                                        ? "border-red-500"
+                                                        : "border-slate-200"
                                                 }`}
                                                 placeholder="0"
                                             />
-                                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 text-sm">mi</span>
+                                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm">mi</span>
                                         </div>
                                         {errors.miles && (
                                             <p className="mt-1 text-sm text-red-500">{errors.miles}</p>
@@ -776,13 +776,13 @@ function AddVendorContent() {
                             </div>
 
                             {/* Product Details */}
-                            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-                                <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+                            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                                <div className="p-6 border-b border-slate-200">
                                     <h3 className="font-bold text-lg">Product Details</h3>
                                 </div>
                                 <div className="p-6 space-y-4">
                                     <div>
-                                        <label htmlFor="products" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                        <label htmlFor="products" className="block text-sm font-medium text-slate-700 mb-2">
                                             Product Category
                                         </label>
                                         <input
@@ -791,21 +791,21 @@ function AddVendorContent() {
                                             name="products"
                                             value={formData.products}
                                             onChange={handleInputChange}
-                                            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors text-slate-900 dark:text-white"
+                                            className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors text-slate-900"
                                             placeholder="e.g., Ready-to-Eat, Produce/Plant, Bakery Goods"
                                         />
                                     </div>
 
                                     <div>
-                                        <label htmlFor="productDetails" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                        <label htmlFor="productDetails" className="block text-sm font-medium text-slate-700 mb-2">
                                             List of Products
                                         </label>
                                         {/* Formatting Toolbar */}
-                                        <div className="flex items-center gap-2 mb-2 p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-t-lg">
+                                        <div className="flex items-center gap-2 mb-2 p-2 bg-slate-50 border border-slate-200 rounded-t-lg">
                                             <button
                                                 type="button"
                                                 onClick={() => formatText('bold')}
-                                                className="p-1.5 hover:bg-dashboard-primary/10 dark:hover:bg-slate-700 rounded transition-colors"
+                                                className="p-1.5 hover:bg-dashboard-primary/10 rounded transition-colors"
                                                 title="Bold"
                                             >
                                                 <span className="material-icons text-sm leading-none">format_bold</span>
@@ -813,7 +813,7 @@ function AddVendorContent() {
                                             <button
                                                 type="button"
                                                 onClick={() => formatText('italic')}
-                                                className="p-1.5 hover:bg-dashboard-primary/10 dark:hover:bg-slate-700 rounded transition-colors"
+                                                className="p-1.5 hover:bg-dashboard-primary/10 rounded transition-colors"
                                                 title="Italic"
                                             >
                                                 <span className="material-icons text-sm leading-none">format_italic</span>
@@ -821,7 +821,7 @@ function AddVendorContent() {
                                             <button
                                                 type="button"
                                                 onClick={() => formatText('list')}
-                                                className="p-1.5 hover:bg-dashboard-primary/10 dark:hover:bg-slate-700 rounded transition-colors"
+                                                className="p-1.5 hover:bg-dashboard-primary/10 rounded transition-colors"
                                                 title="Unordered List"
                                             >
                                                 <span className="material-icons text-sm leading-none">format_list_bulleted</span>
@@ -829,7 +829,7 @@ function AddVendorContent() {
                                             <button
                                                 type="button"
                                                 onClick={() => formatText('link')}
-                                                className="p-1.5 hover:bg-dashboard-primary/10 dark:hover:bg-slate-700 rounded transition-colors"
+                                                className="p-1.5 hover:bg-dashboard-primary/10 rounded transition-colors"
                                                 title="Link"
                                             >
                                                 <span className="material-icons text-sm leading-none">link</span>
@@ -841,10 +841,10 @@ function AddVendorContent() {
                                             value={formData.productDetails}
                                             onChange={handleInputChange}
                                             rows={6}
-                                            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 border-t-0 rounded-b-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors resize-y text-slate-900 dark:text-white"
+                                            className="w-full px-4 py-2 bg-slate-50 border border-slate-200 border-t-0 rounded-b-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors resize-y text-slate-900"
                                             placeholder="the items this vendor will be selling (e.g. Heirloom tomatoes, honey, organic)"
                                         />
-                                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                        <p className="mt-1 text-xs text-slate-500">
                                             Providing a detailed list helps with market variety balancing.
                                         </p>
                                     </div>
@@ -852,8 +852,8 @@ function AddVendorContent() {
                             </div>
 
                             {/* Vendor Classifications */}
-                            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-                                <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+                            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                                <div className="p-6 border-b border-slate-200">
                                     <h3 className="font-bold text-lg">Vendor Classifications</h3>
                                 </div>
                                 <div className="p-6 space-y-4">
@@ -867,8 +867,8 @@ function AddVendorContent() {
                                     ].map(({ key, label, description }) => (
                                         <div key={key} className="flex items-center justify-between py-2">
                                             <div className="flex-1">
-                                                <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{label}</p>
-                                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{description}</p>
+                                                <p className="text-sm font-medium text-slate-700">{label}</p>
+                                                <p className="text-xs text-slate-500 mt-0.5">{description}</p>
                                             </div>
                                             <button
                                                 type="button"
@@ -876,7 +876,7 @@ function AddVendorContent() {
                                                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-dashboard-primary focus:ring-offset-2 ${
                                                     formData[key as keyof VendorFormData]
                                                         ? 'bg-dashboard-primary'
-                                                        : 'bg-slate-300 dark:bg-slate-600'
+                                                        : 'bg-slate-300'
                                                 }`}
                                             >
                                                 <span
@@ -891,11 +891,11 @@ function AddVendorContent() {
                             </div>
 
                             {/* Vendor Labels */}
-                            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-                                <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                                <div className="p-6 border-b border-slate-200 flex items-center justify-between">
                                     <div>
                                         <h3 className="font-bold text-lg">Vendor Labels</h3>
-                                        <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                                        <p className="text-sm text-slate-600 mt-1">
                                             Apply existing labels or create a new one for this vendor.
                                         </p>
                                     </div>
@@ -910,7 +910,7 @@ function AddVendorContent() {
                                 </div>
                                 <div className="p-6 space-y-4">
                                     {labelsLoading ? (
-                                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                                        <p className="text-sm text-slate-500">
                                             Loading labels...
                                         </p>
                                     ) : labelError ? (
@@ -950,17 +950,17 @@ function AddVendorContent() {
                             </div>
 
                             {/* Vendor Defaults Percentages */}
-                            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-                                <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+                            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                                <div className="p-6 border-b border-slate-200">
                                     <h3 className="font-bold text-lg">Product Category Percentages (Optional)</h3>
-                                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                                    <p className="text-sm text-slate-600 mt-1">
                                         Define the percentage breakdown of products sold by this vendor. The total must equal 100%.
                                     </p>
                                 </div>
                                 <div className="p-6 space-y-4">
                                     {percentageFields.map(({ key, label }) => (
                                         <div key={key}>
-                                            <label htmlFor={key} className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                            <label htmlFor={key} className="block text-sm font-medium text-slate-700 mb-2">
                                                 {label}
                                             </label>
                                             <input
@@ -972,10 +972,10 @@ function AddVendorContent() {
                                                 min="0"
                                                 max="100"
                                                 step="0.01"
-                                                className={`w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors text-slate-900 dark:text-white ${
+                                                className={`w-full px-4 py-2 bg-slate-50 border rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors text-slate-900 ${
                                                     errors[key]
-                                                        ? "border-red-500 dark:border-red-500"
-                                                        : "border-slate-200 dark:border-slate-700"
+                                                        ? "border-red-500"
+                                                        : "border-slate-200"
                                                 }`}
                                                 placeholder="0.00"
                                             />
@@ -985,8 +985,8 @@ function AddVendorContent() {
                                         </div>
                                     ))}
                                     {errors.percentageSum && (
-                                        <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                                            <p className="text-sm text-red-600 dark:text-red-400">{errors.percentageSum}</p>
+                                        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                                            <p className="text-sm text-red-600">{errors.percentageSum}</p>
                                         </div>
                                     )}
                                 </div>
@@ -995,13 +995,13 @@ function AddVendorContent() {
 
                     {/* Error Message */}
                     {errors.submit && (
-                        <div className="mt-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                            <p className="text-sm text-red-600 dark:text-red-400">{errors.submit}</p>
+                        <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                            <p className="text-sm text-red-600">{errors.submit}</p>
                         </div>
                     )}
 
                     {/* Form Actions */}
-                    <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
+                    <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-200">
                         <Button
                             type="button"
                             variant="outline"

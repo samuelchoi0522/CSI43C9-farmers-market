@@ -24,7 +24,7 @@ export default function SidebarNavigation({
   ];
 
   return (
-    <aside className={`w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hidden lg:flex flex-col sticky top-0 h-screen ${className}`}>
+    <aside className={`w-64 border-r border-slate-200 bg-white hidden lg:flex flex-col sticky top-0 h-screen ${className}`}>
       <div className="p-6 flex items-center gap-3">
         <div className="bg-[#10b981] p-2 rounded-lg text-white flex items-center justify-center">
           <span className="material-icons block leading-none">storefront</span>
@@ -42,11 +42,11 @@ export default function SidebarNavigation({
               className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 ease-out hover-lift ${
                 isActive
                   ? "bg-[#10b981]/10 text-[#10b981] font-medium shadow-sm"
-                  : "text-slate-900 dark:text-slate-400 hover:bg-[#10b981]/10 dark:hover:bg-slate-800"
+                  : "text-slate-900 hover:bg-[#10b981]/10"
               }`}
               style={{ animationDelay: `${index * 0.05}s` }}
             >
-              <span className={`material-icons text-lg leading-none transition-transform duration-200 ${isActive ? "" : "text-slate-900 dark:text-slate-400"} ${!isActive ? "group-hover:scale-110" : ""}`}>
+              <span className={`material-icons text-lg leading-none transition-transform duration-200 ${isActive ? "" : "text-slate-900"} ${!isActive ? "group-hover:scale-110" : ""}`}>
                 {item.icon}
               </span>
               {item.label}
@@ -56,8 +56,8 @@ export default function SidebarNavigation({
       </nav>
       
       <div className="p-4 mt-auto">
-        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
-          <p className="text-xs font-semibold text-slate-700 dark:text-slate-500 uppercase tracking-wider mb-2">Market Status</p>
+        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+          <p className="text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Market Status</p>
           <p className="text-sm font-bold truncate">Downtown Saturday Mar...</p>
           <div className="mt-3 flex items-center justify-between">
             <span

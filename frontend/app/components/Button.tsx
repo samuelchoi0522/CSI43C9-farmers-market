@@ -57,14 +57,13 @@ const StyledMuiButton = styled(MuiButton)(() => ({
 }));
 
 /**
- * Global Button component with consistent hover effects across light and dark modes.
+ * Global Button component with consistent hover effects across the app.
  * 
  * Primary variant uses Material UI Button component.
  * Other variants use custom styled buttons.
  * 
  * Hover behavior:
- * - Light mode: 15% opacity hover effect
- * - Dark mode: 15% opacity hover effect
+ * - Shared 15% opacity hover effect for non-primary variants
  */
 export default function Button({
   children,
@@ -122,9 +121,9 @@ export default function Button({
   
   // Variant styles with consistent hover effects and smooth transitions
   const variantClasses = {
-    secondary: "bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100 hover:bg-[#10b981]/10 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed",
-    outline: "border-2 border-slate-200 dark:border-slate-700 bg-transparent text-slate-900 dark:text-slate-100 hover:bg-[#10b981]/10 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed",
-    ghost: "bg-transparent text-slate-700 dark:text-slate-300 hover:bg-[#10b981]/10 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed",
+    secondary: "bg-slate-200 text-slate-900 hover:bg-[#10b981]/10 disabled:opacity-50 disabled:cursor-not-allowed",
+    outline: "border-2 border-slate-200 bg-transparent text-slate-900 hover:bg-[#10b981]/10 hover:border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed",
+    ghost: "bg-transparent text-slate-700 hover:bg-[#10b981]/10 disabled:opacity-50 disabled:cursor-not-allowed",
     danger: "bg-red-600 text-white hover:bg-red-700 hover:shadow-lg hover:shadow-red-600/25 disabled:opacity-50 disabled:cursor-not-allowed",
   };
   
@@ -152,4 +151,3 @@ export default function Button({
     </button>
   );
 }
-
