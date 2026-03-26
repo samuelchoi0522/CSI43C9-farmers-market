@@ -40,6 +40,9 @@ public class VendorTransactionService {
     public VendorTransaction create(SaveVendorTransactionRequest request) {
         if (request.isPresent()) {
             validateCustomData(request.getCustomData());
+        } else {
+            // Clean up custom data if not present
+            request.setCustomData(Collections.emptyMap());
         }
         VendorTransaction transaction = new RequestMapper().mapRequest(request);
         return vendorTransactionRepository.save(transaction);
@@ -57,6 +60,9 @@ public class VendorTransactionService {
         for (SaveVendorTransactionRequest req : requests) {
             if (req.isPresent()) {
                 validateCustomData(req.getCustomData(), activeColumns);
+            } else {
+                // Clean up custom data if not present
+                req.setCustomData(Collections.emptyMap());
             }
         }
 
