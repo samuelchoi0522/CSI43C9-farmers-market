@@ -38,7 +38,13 @@ public class VendorTransactionService {
      * @return The saved VendorTransaction entity.
      */
     public VendorTransaction create(SaveVendorTransactionRequest request) {
-        validateCustomData(request.getCustomData());
+        if (request.isPresent()) {
+            validateCustomData(request.getCustomData());
+        } else {
+            // Clean up custom data if not present
+            request.setCustomData(Collections.emptyMap());
+        }
+
         VendorTransaction transaction = new RequestMapper().mapRequest(request);
         return vendorTransactionRepository.save(transaction);
     }
@@ -50,8 +56,16 @@ public class VendorTransactionService {
      * @return A list of the saved VendorTransaction entities.
      */
     public List<VendorTransaction> createBulk(List<SaveVendorTransactionRequest> requests) {
+        // Validate custom data for each request
         List<CustomColumnMetadata> activeColumns = customColumnRepository.findAllActiveColumns();
-        requests.forEach(req -> validateCustomData(req.getCustomData(), activeColumns));
+        for (SaveVendorTransactionRequest req : requests) {
+            if (req.isPresent()) {
+                validateCustomData(req.getCustomData(), activeColumns);
+            } else {
+                // Clean up custom data if not present
+                req.setCustomData(Collections.emptyMap());
+            }
+        }
 
         List<VendorTransaction> transactions = requests.stream()
                 .map(request -> new RequestMapper().mapRequest(request))
