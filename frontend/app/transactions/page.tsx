@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Table as TableIcon, 
   Trash2, 
   Loader2,
   AlertCircle,
@@ -15,6 +14,7 @@ import Button from '../components/Button';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { AddVendorDialog } from '../components/AddVendorDialog'
+import ActiveVendorPreviewDialog from '../components/ActiveVendorPreviewDialog';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast, Toaster } from 'sonner';
 import * as XLSX from 'xlsx';
@@ -32,6 +32,8 @@ interface Vendor {
   name: string;
 }
 
+type SpreadsheetRow = Array<string | number | null | undefined>;
+
 // Matching the database schema exactly
 interface SalesRecord {
   id: string;
@@ -47,7 +49,6 @@ interface SalesRecord {
   reimbursement_due: number;
   est_produce_sales: number;
   est_num_transactions: number;
-  autoAdded?: boolean;
   isInvalid?: boolean;
 }
 
@@ -98,8 +99,9 @@ function TransactionsContent() {
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
   const [allVendors, setAllVendors] = useState<Vendor[]>([]);
   const [activeVendors, setActiveVendors] = useState<ApiVendor[]>([]);
-  const [includeActiveVendors, setIncludeActiveVendors] = useState(false);
   const [vendorsLoading, setVendorsLoading] = useState(true);
+  const [pendingActiveVendors, setPendingActiveVendors] = useState<ApiVendor[]>([]);
+  const [isActivePreviewOpen, setIsActivePreviewOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   const generateRecordId = () => {
@@ -111,6 +113,12 @@ function TransactionsContent() {
     }
 
     return Math.random().toString(36).slice(2, 11);
+  };
+  const handleActiveDialogOpenChange = (open: boolean) => {
+    setIsActivePreviewOpen(open);
+    if (!open) {
+      setPendingActiveVendors([]);
+    }
   };
   const { user, logout } = useAuth();
   const userName = user?.username || "Admin User";
@@ -203,11 +211,6 @@ function TransactionsContent() {
   }, [currentMarketDate]);
 
   const handleMarketDateChange = (newDate: string) => {
-    if (includeActiveVendors) {
-      setRecords(prev => prev.filter(record => !record.autoAdded));
-      setIncludeActiveVendors(false);
-    }
-
     setCurrentMarketDate(newDate);
   };
 
@@ -229,7 +232,7 @@ function TransactionsContent() {
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
         
-        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as SpreadsheetRow[];
         const dataRows = rows.slice(1);
 
         if (dataRows.length === 0) {
@@ -305,7 +308,7 @@ function TransactionsContent() {
       vendor_id: vendor.id,
       vendor_name: vendor.name,
       market_date: currentMarketDate,
-      present: true,
+      present: false,
       snap: 0,
       dufb: 0,
       wdfm_tokens: 0,
@@ -322,38 +325,42 @@ function TransactionsContent() {
     toast.success(`Added ${vendor.name}`);
   };
 
-  const handleToggleActiveVendors = () => {
-    if (includeActiveVendors) {
-      setRecords(prev => prev.filter(record => !record.autoAdded));
-      setIncludeActiveVendors(false);
-      toast.info('Removed auto-added active vendor rows.');
-      return;
-    }
-
+  const handleAddActiveVendors = () => {
     if (vendorsLoading) {
-      toast.info('Active vendor list is still loading.');
+      toast.info("Active vendor list is still loading.");
       return;
     }
 
     if (activeVendors.length === 0) {
-      toast.info('No active vendors are available.');
+      toast.info("No active vendors are available.");
       return;
     }
 
-    const existingVendorIds = new Set(records.map(record => record.vendor_id));
-    const vendorsToAdd = activeVendors.filter(vendor => !existingVendorIds.has(vendor.id));
+    const missingActive = activeVendors.filter(
+      (vendor) => !records.some((record) => record.vendor_id === vendor.id)
+    );
 
-    if (vendorsToAdd.length === 0) {
-      toast.info('All active vendors are already present.');
+    if (missingActive.length === 0) {
+      toast.info("All active vendors are already present.");
       return;
     }
 
-    const newRecords = vendorsToAdd.map(vendor => ({
+    setPendingActiveVendors(missingActive);
+    setIsActivePreviewOpen(true);
+  };
+
+  const handleConfirmAddActiveVendors = () => {
+    if (pendingActiveVendors.length === 0) {
+      setIsActivePreviewOpen(false);
+      return;
+    }
+
+    const newRecords = pendingActiveVendors.map((vendor) => ({
       id: generateRecordId(),
       vendor_id: vendor.id,
       vendor_name: vendor.vendorName,
       market_date: currentMarketDate,
-      present: true,
+      present: false,
       snap: 0,
       dufb: 0,
       wdfm_tokens: 0,
@@ -363,13 +370,15 @@ function TransactionsContent() {
       est_produce_sales: 0,
       est_num_transactions: 0,
       isInvalid: false,
-      autoAdded: true,
     }));
 
-    setRecords(prev => [...newRecords, ...prev]);
-    setIncludeActiveVendors(true);
-    setEditingId(newRecords[0].id);
-    toast.success(`Added ${newRecords.length} active vendor${newRecords.length === 1 ? '' : 's'}.`);
+    setRecords((prev) => [...newRecords, ...prev]);
+    setEditingId(newRecords[0]?.id ?? null);
+    setIsActivePreviewOpen(false);
+    setPendingActiveVendors([]);
+    toast.success(
+      `Added ${newRecords.length} active vendor${newRecords.length === 1 ? "" : "s"}.`
+    );
   };
 
   const handleUpdateRecord = (id: string, updates: Partial<SalesRecord>) => {
@@ -489,34 +498,24 @@ function TransactionsContent() {
             </button>
             <AddVendorDialog vendors={allVendors} onAdd={handleAddVendor} />
             <div className="flex flex-col gap-1 text-right">
-              <div className="flex items-center justify-end gap-3">
-                <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">Current Active vendors</span>
-                <button
-                  type="button"
-                  onClick={handleToggleActiveVendors}
-                  aria-pressed={includeActiveVendors}
-                  aria-label={
-                    includeActiveVendors
-                      ? "Remove auto-added active vendor rows"
-                      : "Add every active vendor row"
-                  }
-                  className={`relative h-6 w-12 rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#10b981] ${
-                    includeActiveVendors ? "bg-[#10b981] border-[#10b981]" : "bg-slate-200 border-slate-300"
-                  }`}
-                >
-                  <span
-                    className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-                      includeActiveVendors ? "translate-x-6" : "translate-x-0"
-                    }`}
-                  />
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={handleAddActiveVendors}
+                disabled={vendorsLoading || activeVendors.length === 0}
+                className={`
+                  flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all border shadow-sm
+                  ${vendorsLoading || activeVendors.length === 0
+                    ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700 cursor-not-allowed'
+                    : 'bg-white dark:bg-slate-800 text-[#10b981] border-[#10b981]/30 dark:border-slate-700 hover:bg-[#10b981]/10 dark:hover:bg-slate-700'}
+                `}
+              >
+                <span className="material-icons text-base leading-none">group_add</span>
+                Add active vendors
+              </button>
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 {vendorsLoading
                   ? "Loading active vendors..."
-                  : includeActiveVendors
-                    ? "Auto rows are added; toggle off to remove them."
-                    : "Toggle to insert every active vendor into the sheet."}
+                  : ""}
               </p>
             </div>
             <div className="relative user-menu-container">
@@ -652,10 +651,17 @@ function TransactionsContent() {
                 {invalidCount > 0 ? `Fix ${invalidCount} invalid vendor(s) to save` : 'Upload Spreadsheet'}
               </>
             )}
-          </Button>
-        </div>
-      </main>
-    </div>
+            </Button>
+          </div>
+        </main>
+        <ActiveVendorPreviewDialog
+          open={isActivePreviewOpen}
+          pendingVendors={pendingActiveVendors}
+          onOpenChange={handleActiveDialogOpenChange}
+          onConfirm={handleConfirmAddActiveVendors}
+          formatCurrency={formatCurrency}
+        />
+      </div>
   );
 }
 
