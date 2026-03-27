@@ -15,6 +15,49 @@ const BASE_HEADERS = [
   'Est # of',
 ] as const;
 
+const SUMMARY_FIELDS = [
+  'Number of Vendors',
+  'Total Reported Sales',
+  '',
+  'Number of Vendors Reporting',
+  '% Reporting',
+  'Est Total Market Sales',
+  'Average Vendor Sales',
+  '',
+  '# of SNAP Token Transactions',
+  '$$ SNAP Tokens purchased',
+  '$$ SNAP Tokens redeemed',
+  'SNAP Redemption Rate',
+  '# of DUFB Token Transactions',
+  '$$ DUFB Tokens Distributed',
+  '$$ DUFB Tokens redeemed',
+  'DUFB Redemption Rate',
+  '# of WDFM Token Transactions',
+  '$$ WDFM Tokens purchased',
+  'Gift Cards Redeemed for Tokens',
+  '$$$ WDFM Tokens for Market Meals',
+  'TOTAL Tokens Distributed',
+  '$$ WDFM Tokens redeemed',
+  'WDFM Token Redemption Rate',
+  '',
+  '',
+  'Total Tokens/Vouchers Reimbursed',
+  '',
+  'Total Cash Booth Fees',
+  'Other Fees',
+  'Donations',
+  'Cash Merch Sales',
+  'Tokens Reimbursed with Cash',
+  'Staff Lunch (Cash)',
+  'Volunteer Lunches',
+  'Net Collected',
+  'Petty Cash',
+  'Fees Not Paid',
+  'Cash Held by Market Manager',
+  '',
+  'Weekly Wellness Attendance',
+] as const;
+
 const toSafeDate = (marketDate: string) => {
   const parsed = new Date(`${marketDate}T00:00:00`);
   return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
@@ -140,6 +183,93 @@ const applyDataValidations = (
   }
 };
 
+const addSummaryTable = (
+  worksheet: ExcelJS.Worksheet,
+  firstDataRow: number,
+  lastDataRow: number
+) => {
+  const labelColumn = 1;
+  const inputColumn = 2;
+  const startRow = 2;
+  const inputColumnLetter = columnLetter(inputColumn);
+  const inputCellByLabel = new Map<string, string>();
+
+  const mainRange = (col: string) => `'Transactions'!${col}${firstDataRow}:${col}${lastDataRow}`;
+
+  SUMMARY_FIELDS.forEach((field, index) => {
+    const row = startRow + index;
+    worksheet.getCell(row, labelColumn).value = field;
+
+    if (field) {
+      const inputCell = worksheet.getCell(row, inputColumn);
+      inputCell.value = '';
+      inputCellByLabel.set(field, `${inputColumnLetter}${row}`);
+      inputCell.border = {
+        top: { style: 'thin' },
+        bottom: { style: 'thin' },
+        left: { style: 'thin' },
+        right: { style: 'thin' },
+      };
+    }
+  });
+
+  const setFormula = (label: string, formula: string) => {
+    const address = inputCellByLabel.get(label);
+    if (!address) return;
+    worksheet.getCell(address).value = { formula };
+  };
+
+  const setValue = (label: string, value: string | number) => {
+    const address = inputCellByLabel.get(label);
+    if (!address) return;
+    worksheet.getCell(address).value = value;
+  };
+
+  //TODO: FIX THE FORMULAS HERE!!!!
+
+  // setFormula('Number of Vendors', `COUNTA(${mainRange('A')})`);
+  // setFormula('Total Reported Sales', `SUM(${mainRange('H')})`);
+  // setFormula('Number of Vendors Reporting', `COUNTIF(${mainRange('H')},">0")`);
+  // setFormula('% Reporting', `${inputCellByLabel.get('Number of Vendors Reporting')}/${inputCellByLabel.get('Number of Vendors')}`);
+  // setFormula('Est Total Market Sales', `${inputCellByLabel.get('Total Reported Sales')}/${inputCellByLabel.get('% Reporting')}`);
+  // setFormula('Average Vendor Sales', `${inputCellByLabel.get('Est Total Market Sales')}/${inputCellByLabel.get('Number of Vendors')}`);
+
+  // setValue('# of SNAP Token Transactions', 3);
+  // setValue('$$ SNAP Tokens purchased', 50);
+  // setFormula('$$ SNAP Tokens redeemed', `SUM(${mainRange('C')})`);
+  // setFormula('SNAP Redemption Rate', `${inputCellByLabel.get('$$ SNAP Tokens redeemed')}/${inputCellByLabel.get('$$ SNAP Tokens purchased')}`);
+  // setValue('# of DUFB Token Transactions', 3);
+  // setValue('$$ DUFB Tokens Distributed', 50);
+  // setFormula('$$ DUFB Tokens redeemed', `SUM(${mainRange('D')})`);
+  // setFormula('DUFB Redemption Rate', `${inputCellByLabel.get('$$ DUFB Tokens redeemed')}/${inputCellByLabel.get('$$ DUFB Tokens Distributed')}`);
+  // setValue('# of WDFM Token Transactions', 16);
+  // setValue('$$ WDFM Tokens purchased', 203);
+  // setValue('Gift Cards Redeemed for Tokens', 5);
+  // setValue('$$$ WDFM Tokens for Market Meals', 60);
+  // setFormula(
+  //   'TOTAL Tokens Distributed',
+  //   `${inputCellByLabel.get('$$ SNAP Tokens purchased')}+${inputCellByLabel.get('$$ DUFB Tokens Distributed')}+${inputCellByLabel.get('$$ WDFM Tokens purchased')}`
+  // );
+  // setFormula('$$ WDFM Tokens redeemed', `SUM(${mainRange('E')})`);
+  // setFormula('WDFM Token Redemption Rate', `${inputCellByLabel.get('$$ WDFM Tokens redeemed')}/${inputCellByLabel.get('TOTAL Tokens Distributed')}`);
+
+  // setFormula('Total Tokens/Vouchers Reimbursed', `SUM(${mainRange('G')})`);
+
+  // setValue('Other Fees', -6);
+  // setValue('Donations', '-');
+  // setValue('Cash Merch Sales', 40);
+  // setValue('Tokens Reimbursed with Cash', -85);
+  // setFormula('Net Collected', `SUM(${inputCellByLabel.get('Total Cash Booth Fees')}:${inputCellByLabel.get('Volunteer Lunches')})`);
+  // setValue('Petty Cash', 200);
+  // setFormula('Fees Not Paid', `SUM(${mainRange('I')})`);
+  // setFormula(
+  //   'Cash Held by Market Manager',
+  //   `${inputCellByLabel.get('Net Collected')}+${inputCellByLabel.get('Petty Cash')}+${inputCellByLabel.get('Fees Not Paid')}`
+  // );
+
+  // setValue('Weekly Wellness Attendance', 'n/a');
+};
+
 export async function downloadVendorTransactionsTemplate(marketDate: string): Promise<void> {
   const [vendorsResponse, customColumns] = await Promise.all([
     getVendors(0, 1000, false),
@@ -156,7 +286,9 @@ export async function downloadVendorTransactionsTemplate(marketDate: string): Pr
   const worksheet = workbook.addWorksheet('Transactions');
   rows.forEach((row) => worksheet.addRow(row));
   const firstDataRow = 2;
-  const lastDataRow = vendorNames.length + 1;
+  const lastDataRow = Math.max(vendorNames.length + 1, firstDataRow);
+  const additionalValuesSheet = workbook.addWorksheet('Additional Values');
+  addSummaryTable(additionalValuesSheet, firstDataRow, lastDataRow);
   const hasDataRows = vendorNames.length > 0;
 
   if (hasDataRows) {
