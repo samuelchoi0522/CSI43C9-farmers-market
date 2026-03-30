@@ -11,7 +11,6 @@ import VendorTransactionsSheet from '../components/VendorTransactionsSheet';
 import { type VendorTransactionsSheetRowModel as VendorTransactionsSheetRow } from '../components/VendorTransactionsSheetRow';
 import { toast, Toaster } from 'sonner';
 import * as XLSX from 'xlsx';
-=======
 import ActiveVendorAddButton from "../components/ActiveVendorAddButton";
 import {
   bulkCreateVendorTransactions,
