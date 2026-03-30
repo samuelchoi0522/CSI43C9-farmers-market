@@ -39,6 +39,7 @@ function VendorNameEditCell(params: GridRenderEditCellParams<VendorTransactionsS
     <div className="flex h-full w-full items-center px-2 py-1">
       <input
         type="text"
+        autoFocus
         value={params.value ?? ''}
         onChange={(event) => {
           apiRef.current.setEditCellValue({
@@ -47,6 +48,7 @@ function VendorNameEditCell(params: GridRenderEditCellParams<VendorTransactionsS
             value: event.target.value,
           });
         }}
+        onFocus={(event) => event.currentTarget.select()}
         className={`w-full rounded border bg-white px-2 py-1 text-sm text-slate-900 outline-none ${
           hasError
             ? 'border-red-400 text-red-700 focus:ring-2 focus:ring-red-300'
@@ -66,6 +68,7 @@ function NumericEditCell(params: GridRenderEditCellParams<VendorTransactionsShee
       <input
         type="number"
         step={params.field === 'est_num_transactions' ? '1' : '0.01'}
+        autoFocus
         value={params.value ?? ''}
         onChange={(event) => {
           apiRef.current.setEditCellValue({
@@ -74,6 +77,7 @@ function NumericEditCell(params: GridRenderEditCellParams<VendorTransactionsShee
             value: event.target.value,
           });
         }}
+        onFocus={(event) => event.currentTarget.select()}
         className="w-full rounded border border-slate-300 bg-white px-2 py-1 text-right text-sm text-slate-900 outline-none focus:ring-2 focus:ring-[#10b981]"
       />
     </div>
