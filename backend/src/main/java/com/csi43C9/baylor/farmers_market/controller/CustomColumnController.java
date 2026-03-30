@@ -1,10 +1,10 @@
 package com.csi43C9.baylor.farmers_market.controller;
-
 import com.csi43C9.baylor.farmers_market.dto.PagedResponse;
 import com.csi43C9.baylor.farmers_market.dto.custom_column.CustomColumnMetadata;
 import com.csi43C9.baylor.farmers_market.service.CustomColumnService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -22,6 +22,7 @@ import java.util.Optional;
 /**
  * REST controller for managing CustomColumnMetadata.
  */
+@CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/custom-columns")
 public class CustomColumnController {
