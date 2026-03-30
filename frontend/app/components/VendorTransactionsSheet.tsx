@@ -47,13 +47,25 @@ export default function VendorTransactionsSheet({
   onSave,
 }: VendorTransactionsSheetProps) {
   const [rowSelectionModel, setRowSelectionModel] = useState<GridRowSelectionModel>({ type: 'include', ids: new Set() });
-  const selectedRowIds = useMemo(
-    () => Array.from(rowSelectionModel.ids).filter(id => rows.some(row => row.id === id)),
-    [rowSelectionModel, rows]
-  );
+  const selectedRowIds = useMemo(() => {
+    if (rowSelectionModel.type === 'exclude') {
+      return rows
+        .map(row => row.id)
+        .filter(id => !rowSelectionModel.ids.has(id));
+    }
+
+    return Array.from(rowSelectionModel.ids).filter(id => rows.some(row => row.id === id));
+  }, [rowSelectionModel, rows]);
   const effectiveRowSelectionModel = useMemo(
-    () => ({ ...rowSelectionModel, ids: new Set(selectedRowIds) }),
-    [rowSelectionModel, selectedRowIds]
+    () => {
+      if (rowSelectionModel.type === 'exclude') {
+        const validExclusions = Array.from(rowSelectionModel.ids).filter(id => rows.some(row => row.id === id));
+        return { ...rowSelectionModel, ids: new Set(validExclusions) };
+      }
+
+      return { ...rowSelectionModel, ids: new Set(selectedRowIds) };
+    },
+    [rowSelectionModel, selectedRowIds, rows]
   );
 
   const handleDeleteSelected = () => {
