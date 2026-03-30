@@ -1,23 +1,24 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Download, Loader2 } from 'lucide-react';
-import SidebarNavigation from '../components/SidebarNavigation';
-import Button from '../components/Button';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { useAuth } from '@/contexts/AuthContext';
-import { AddVendorDialog } from '../components/AddVendorDialog';
-import VendorTransactionsSheet from '../components/VendorTransactionsSheet';
-import { type VendorTransactionsSheetRowModel as VendorTransactionsSheetRow } from '../components/VendorTransactionsSheetRow';
-import { toast, Toaster } from 'sonner';
-import * as XLSX from 'xlsx';
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Download, Loader2 } from "lucide-react";
+import SidebarNavigation from "../components/SidebarNavigation";
+import Button from "../components/Button";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { useAuth } from "@/contexts/AuthContext";
+import { AddVendorDialog } from "../components/AddVendorDialog";
+import ActiveVendorAddButton from "../components/ActiveVendorAddButton";
+import VendorTransactionsSheet from "../components/VendorTransactionsSheet";
+import { type VendorTransactionsSheetRowModel as VendorTransactionsSheetRow } from "../components/VendorTransactionsSheetRow";
+import { toast, Toaster } from "sonner";
+import * as XLSX from "xlsx";
 import {
   bulkCreateVendorTransactions,
   searchVendorTransactions,
   type CreateVendorTransactionRequest,
   type VendorTransaction,
-} from '@/lib/api/transactions';
-import { getVendors, type Vendor as ApiVendor } from '@/lib/api/vendor';
+} from "@/lib/api/transactions";
+import { getVendors, type Vendor as ApiVendor } from "@/lib/api/vendor";
 
 interface Vendor {
   id: string;
@@ -30,18 +31,20 @@ const getMostRecentSaturday = () => {
   const diff = (day + 1) % 7;
   const saturday = new Date(date);
   saturday.setDate(date.getDate() - diff);
-  return saturday.toISOString().split('T')[0];
+  return saturday.toISOString().split("T")[0];
 };
 
 const parseNumericValue = (value: unknown) => {
-  if (value === '' || value === null || value === undefined) return 0;
-  const parsed = typeof value === 'number' ? value : parseFloat(String(value));
+  if (value === "" || value === null || value === undefined) return 0;
+  const parsed = typeof value === "number" ? value : parseFloat(String(value));
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
 const createLocalId = () => Math.random().toString(36).slice(2, 11);
 
-const mapTransactionToSalesRecord = (transaction: VendorTransaction): VendorTransactionsSheetRow => ({
+const mapTransactionToSalesRecord = (
+  transaction: VendorTransaction
+): VendorTransactionsSheetRow => ({
   id: transaction.id,
   vendor_id: transaction.vendorId,
   vendor_name: transaction.vendorName,
@@ -62,74 +65,106 @@ function TransactionsContent() {
   const [currentMarketDate, setCurrentMarketDate] = useState(getMostRecentSaturday());
   const [records, setRecords] = useState<VendorTransactionsSheetRow[]>([]);
   const [allVendors, setAllVendors] = useState<Vendor[]>([]);
+  const [activeVendors, setActiveVendors] = useState<ApiVendor[]>([]);
+  const [vendorsLoading, setVendorsLoading] = useState(true);
   const [isImporting, setIsImporting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user, logout } = useAuth();
-  const userName = user?.username || 'Admin User';
+  const userName = user?.username || "Admin User";
 
   const getMatchedVendor = useCallback(
-    (vendorName: string) => allVendors.find(v => v.name.toLowerCase() === vendorName.trim().toLowerCase()),
+    (vendorName: string) =>
+      allVendors.find((vendor) => vendor.name.toLowerCase() === vendorName.trim().toLowerCase()),
     [allVendors]
   );
 
-  const buildRecord = useCallback((
-    record: Partial<VendorTransactionsSheetRow> & Pick<VendorTransactionsSheetRow, 'id' | 'vendor_name'>
-  ): VendorTransactionsSheetRow => {
-    const vendorName = record.vendor_name.trim();
-    const matchedVendor = getMatchedVendor(vendorName);
-    const snap = parseNumericValue(record.snap);
-    const dufb = parseNumericValue(record.dufb);
-    const wdfmTokens = parseNumericValue(record.wdfm_tokens);
-    const voucher = parseNumericValue(record.voucher);
+  const buildRecord = useCallback(
+    (
+      record: Partial<VendorTransactionsSheetRow> &
+        Pick<VendorTransactionsSheetRow, "id" | "vendor_name">
+    ): VendorTransactionsSheetRow => {
+      const vendorName = record.vendor_name.trim();
+      const matchedVendor = getMatchedVendor(vendorName);
+      const snap = parseNumericValue(record.snap);
+      const dufb = parseNumericValue(record.dufb);
+      const wdfmTokens = parseNumericValue(record.wdfm_tokens);
+      const voucher = parseNumericValue(record.voucher);
 
-    return {
-      id: record.id,
-      vendor_id: matchedVendor?.id ?? '',
-      vendor_name: vendorName,
-      market_date: record.market_date ?? currentMarketDate,
-      present: Boolean(record.present),
-      snap,
-      dufb,
-      wdfm_tokens: wdfmTokens,
-      voucher,
-      reported_sales: parseNumericValue(record.reported_sales),
-      reimbursement_due: snap + dufb + wdfmTokens + voucher,
-      est_produce_sales: parseNumericValue(record.est_produce_sales),
-      est_num_transactions: parseNumericValue(record.est_num_transactions),
-      isInvalid: !matchedVendor,
-    };
-  }, [currentMarketDate, getMatchedVendor]);
+      return {
+        id: record.id,
+        vendor_id: matchedVendor?.id ?? "",
+        vendor_name: vendorName,
+        market_date: record.market_date ?? currentMarketDate,
+        present: Boolean(record.present),
+        snap,
+        dufb,
+        wdfm_tokens: wdfmTokens,
+        voucher,
+        reported_sales: parseNumericValue(record.reported_sales),
+        reimbursement_due: snap + dufb + wdfmTokens + voucher,
+        est_produce_sales: parseNumericValue(record.est_produce_sales),
+        est_num_transactions: parseNumericValue(record.est_num_transactions),
+        isInvalid: !matchedVendor,
+      };
+    },
+    [currentMarketDate, getMatchedVendor]
+  );
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (showUserMenu && !target.closest('.user-menu-container')) {
+      if (showUserMenu && !target.closest(".user-menu-container")) {
         setShowUserMenu(false);
       }
     };
 
     if (showUserMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
 
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showUserMenu]);
 
   useEffect(() => {
-    getVendors(0, 100)
-      .then(response => {
-        setAllVendors(response.data.map((vendor: ApiVendor) => ({
-          id: vendor.id,
-          name: vendor.vendorName,
-        })));
-      })
-      .catch(error => {
-        console.error('Failed to load vendors:', error);
-        toast.error('Failed to load vendors.');
-      });
+    let isMounted = true;
+
+    const loadVendors = async () => {
+      setVendorsLoading(true);
+
+      try {
+        const response = await getVendors(0, 1000, true);
+        if (!isMounted) return;
+
+        const vendorList: ApiVendor[] = Array.isArray(response) ? response : response?.data ?? [];
+
+        setAllVendors(
+          vendorList
+            .map((vendor) => ({ id: vendor.id, name: vendor.vendorName }))
+            .sort((a, b) => a.name.localeCompare(b.name))
+        );
+        setActiveVendors(
+          vendorList
+            .filter((vendor) => vendor.isActive)
+            .sort((a, b) => a.vendorName.localeCompare(b.vendorName))
+        );
+      } catch (error) {
+        console.error("Failed to load vendors:", error);
+        toast.error("Failed to load vendors.");
+      } finally {
+        if (isMounted) {
+          setVendorsLoading(false);
+        }
+      }
+    };
+
+    loadVendors();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -146,13 +181,13 @@ function TransactionsContent() {
         });
 
         if (!isActive) return;
-        setRecords(response.data.map(transaction => buildRecord(mapTransactionToSalesRecord(transaction))));
+        setRecords(response.data.map((transaction) => buildRecord(mapTransactionToSalesRecord(transaction))));
       } catch (error) {
-        console.error('Failed to load transactions:', error);
+        console.error("Failed to load transactions:", error);
         if (!isActive) return;
 
         setRecords([]);
-        toast.error('Failed to load transactions for the selected market date.');
+        toast.error("Failed to load transactions for the selected market date.");
       } finally {
         if (isActive) {
           setIsLoadingTransactions(false);
@@ -167,16 +202,16 @@ function TransactionsContent() {
     };
   }, [buildRecord, currentMarketDate]);
 
-  const invalidCount = records.filter(record => record.isInvalid).length;
+  const invalidCount = records.filter((record) => record.isInvalid).length;
 
-  const normalizeRows = (rows: VendorTransactionsSheetRow[]) => rows.map(row => buildRecord(row));
+  const normalizeRows = (rows: VendorTransactionsSheetRow[]) => rows.map((row) => buildRecord(row));
 
   const handleImportClick = () => {
     fileInputRef.current?.click();
   };
 
   const handleAddVendor = (vendor: Vendor) => {
-    if (records.some(record => record.vendor_id === vendor.id)) {
+    if (records.some((record) => record.vendor_id === vendor.id)) {
       toast.error(`${vendor.name} is already in the list.`);
       return;
     }
@@ -195,7 +230,7 @@ function TransactionsContent() {
       est_num_transactions: 0,
     });
 
-    setRecords(prev => [nextRecord, ...prev]);
+    setRecords((previous) => [nextRecord, ...previous]);
     toast.success(`Added ${vendor.name}`);
   };
 
@@ -209,25 +244,25 @@ function TransactionsContent() {
     reader.onload = (loadEvent) => {
       try {
         const data = loadEvent.target?.result;
-        const workbook = XLSX.read(data, { type: 'binary' });
+        const workbook = XLSX.read(data, { type: "binary" });
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }) as unknown[][];
-        const dataRows = rows.slice(1).filter(row => row.length > 0);
+        const dataRows = rows.slice(1).filter((row) => row.length > 0);
 
         if (dataRows.length === 0) {
-          toast.error('The file appears to be empty.');
+          toast.error("The file appears to be empty.");
           return;
         }
 
         const imported = dataRows.map((row) => {
-          const vendorName = row[0]?.toString().trim() || 'Unknown Vendor';
+          const vendorName = row[0]?.toString().trim() || "Unknown Vendor";
           const presentValue = row[1]?.toString().trim().toUpperCase();
 
           return buildRecord({
             id: createLocalId(),
             vendor_name: vendorName,
             market_date: currentMarketDate,
-            present: presentValue === 'Y' || presentValue === 'YES' || presentValue === 'TRUE',
+            present: presentValue === "Y" || presentValue === "YES" || presentValue === "TRUE",
             snap: parseNumericValue(row[2]),
             dufb: parseNumericValue(row[3]),
             wdfm_tokens: parseNumericValue(row[4]),
@@ -238,27 +273,29 @@ function TransactionsContent() {
           });
         });
 
-        setRecords(prev => [...imported, ...prev]);
+        setRecords((previous) => [...imported, ...previous]);
 
-        const invalidImportedCount = imported.filter(record => record.isInvalid).length;
+        const invalidImportedCount = imported.filter((record) => record.isInvalid).length;
         if (invalidImportedCount > 0) {
-          toast.warning(`${invalidImportedCount} vendor name(s) could not be matched. Review the highlighted rows.`);
+          toast.warning(
+            `${invalidImportedCount} vendor name(s) could not be matched. Review the highlighted rows.`
+          );
         } else {
           toast.success(`Imported ${imported.length} transaction row(s) from ${file.name}.`);
         }
       } catch (error) {
-        console.error('Error parsing file:', error);
-        toast.error('Failed to process the file. Please use a valid Excel or CSV file.');
+        console.error("Error parsing file:", error);
+        toast.error("Failed to process the file. Please use a valid Excel or CSV file.");
       } finally {
         setIsImporting(false);
         if (fileInputRef.current) {
-          fileInputRef.current.value = '';
+          fileInputRef.current.value = "";
         }
       }
     };
 
     reader.onerror = () => {
-      toast.error('Error reading file.');
+      toast.error("Error reading file.");
       setIsImporting(false);
     };
 
@@ -267,7 +304,7 @@ function TransactionsContent() {
 
   const handleSaveToBackend = async () => {
     if (records.length === 0) {
-      toast.error('No records to save. Add vendors or import a spreadsheet first.');
+      toast.error("No records to save. Add vendors or import a spreadsheet first.");
       return;
     }
 
@@ -279,7 +316,7 @@ function TransactionsContent() {
     setIsSaving(true);
 
     try {
-      const payload: CreateVendorTransactionRequest[] = records.map(record => ({
+      const payload: CreateVendorTransactionRequest[] = records.map((record) => ({
         vendorId: record.vendor_id,
         vendorName: record.vendor_name,
         marketDate: record.market_date,
@@ -297,8 +334,8 @@ function TransactionsContent() {
       await bulkCreateVendorTransactions(payload);
       toast.success(`Successfully saved ${records.length} vendor transaction row(s).`);
     } catch (error) {
-      console.error('Error saving transactions:', error);
-      toast.error('Failed to save data. Please try again.');
+      console.error("Error saving transactions:", error);
+      toast.error("Failed to save data. Please try again.");
     } finally {
       setIsSaving(false);
     }
@@ -340,14 +377,21 @@ function TransactionsContent() {
               disabled={isImporting}
               className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium shadow-sm transition-all ${
                 isImporting
-                  ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'
-                  : 'border-[#10b981]/30 bg-white text-[#10b981] hover:bg-[#10b981]/10'
+                  ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+                  : "border-[#10b981]/30 bg-white text-[#10b981] hover:bg-[#10b981]/10"
               }`}
             >
               {isImporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
               Import Excel
             </button>
             <AddVendorDialog vendors={allVendors} onAdd={handleAddVendor} />
+            <ActiveVendorAddButton
+              activeVendors={activeVendors}
+              vendorsLoading={vendorsLoading}
+              currentMarketDate={currentMarketDate}
+              rows={records}
+              onRowsChange={setRecords}
+            />
             <div className="relative user-menu-container">
               <Button
                 onClick={() => setShowUserMenu(!showUserMenu)}
@@ -357,11 +401,9 @@ function TransactionsContent() {
                 <div className="flex h-8 w-8 aspect-square flex-shrink-0 items-center justify-center rounded-full bg-[#10b981] text-sm font-semibold text-white">
                   {userName.charAt(0).toUpperCase()}
                 </div>
-                <span className="hidden text-sm font-medium text-slate-900 md:block">
-                  {userName}
-                </span>
+                <span className="hidden text-sm font-medium text-slate-900 md:block">{userName}</span>
                 <span className="material-icons text-lg leading-none text-slate-600">
-                  {showUserMenu ? 'expand_less' : 'expand_more'}
+                  {showUserMenu ? "expand_less" : "expand_more"}
                 </span>
               </Button>
               {showUserMenu && (

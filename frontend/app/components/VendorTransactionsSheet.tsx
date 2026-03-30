@@ -274,6 +274,10 @@ export default function VendorTransactionsSheet({
               '& .MuiDataGrid-cell': {
                 borderColor: 'rgba(148, 163, 184, 0.12)',
               },
+              '& .MuiDataGrid-cell--editing': {
+                backgroundColor: 'rgba(16, 185, 129, 0.12)',
+                boxShadow: 'inset 0 0 0 2px rgba(5, 150, 105, 0.45)',
+              },
               '& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus': {
                 outline: 'none',
               },
