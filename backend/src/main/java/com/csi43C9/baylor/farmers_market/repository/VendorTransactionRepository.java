@@ -283,9 +283,14 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
                 : "select * from vendor_transactions where 1 = 1");
         List<Object> args = new ArrayList<>();
 
-        if (vendorId != null) {
+        UUID effectiveVendorId = vendorId;
+        if (effectiveVendorId == null && filter != null) {
+            effectiveVendorId = filter.getVendorId();
+        }
+
+        if (effectiveVendorId != null) {
             sql.append(" and vendor_id = ?");
-            args.add(UuidUtils.toBytes(vendorId));
+            args.add(UuidUtils.toBytes(effectiveVendorId));
         }
 
         if (filter != null) {

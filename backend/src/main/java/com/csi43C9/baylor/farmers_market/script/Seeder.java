@@ -42,7 +42,7 @@ public class Seeder {
     // Change this number to change the number of vendors seeded
     private static final int VENDOR_COUNT = 20;
 
-    static void main(String[] args) {
+    public static void main(String[] args) {
         // Load environment variables from .env file
         Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
         dotenv.entries().forEach(e -> System.setProperty(e.getKey(), e.getValue()));
