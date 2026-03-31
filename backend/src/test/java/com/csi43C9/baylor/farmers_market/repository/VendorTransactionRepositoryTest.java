@@ -89,6 +89,18 @@ class VendorTransactionRepositoryTest {
         assertThat(vendorTransactionRepository.countByVendorId(vendorOneId)).isEqualTo(2L);
     }
 
+    @Test
+    void findFilteredPagedByVendorIdReturnsOnlyMatchingVendorTransactions() {
+        VendorTransactionFilterRequest filter = new VendorTransactionFilterRequest();
+        filter.setVendorId(vendorOneId);
+
+        List<VendorTransaction> results = vendorTransactionRepository.findFilteredPaged(filter, 0, 10);
+
+        assertThat(results).hasSize(2);
+        assertThat(results).extracting(VendorTransaction::getVendorId).containsOnly(vendorOneId);
+        assertThat(vendorTransactionRepository.countFiltered(filter)).isEqualTo(2L);
+    }
+
     private VendorTransaction createTransaction(UUID vendorId, String vendorName, LocalDate marketDate) {
         VendorTransaction transaction = new VendorTransaction();
         transaction.setVendorId(vendorId);

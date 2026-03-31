@@ -4,6 +4,7 @@ import lombok.Data;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 /**
  * Request DTO for filtering vendor transactions.
@@ -11,6 +12,11 @@ import java.time.LocalDate;
  */
 @Data
 public class VendorTransactionFilterRequest {
+
+    /**
+     * Optional vendor constraint for filter-driven transaction queries.
+     */
+    private UUID vendorId;
 
     /**
      * Filters to one exact market date.
