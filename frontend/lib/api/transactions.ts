@@ -74,7 +74,7 @@ export async function getVendorTransactionsByVendor(
   size: number = 10
 ): Promise<PagedResponse<VendorTransaction>> {
   return apiRequest<PagedResponse<VendorTransaction>>(
-    `/api/vendor-transaction?vendorId=${vendorId}&page=${page}&size=${size}`,
+    `/api/vendor-transaction/vendor/${vendorId}?page=${page}&size=${size}`,
     { method: 'GET' }
   );
 }
