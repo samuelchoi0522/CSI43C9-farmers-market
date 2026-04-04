@@ -47,7 +47,7 @@ create table if not exists custom_columns
     name           varchar(255),
     is_required    boolean  default false,
     type           varchar(255),
-    check ( type in ('text', 'number') ),
+    check ( type in ('text', 'number', 'boolean', 'usd') ),
     created_at     datetime default current_timestamp,
     updated_at     datetime default current_timestamp on update current_timestamp,
     deactivated_at datetime,
