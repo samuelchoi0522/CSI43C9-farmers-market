@@ -5,7 +5,6 @@ import com.csi43C9.baylor.farmers_market.dto.custom_column.CustomColumnMetadata;
 import com.csi43C9.baylor.farmers_market.repository.CustomColumnRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
