@@ -12,7 +12,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { getAllCategoryLabels, createCategoryLabel, deleteCategoryLabel, updateCategoryLabel, CategoryLabel } from "@/lib/api/vendorLabels";
 import { getAllCustomColumns, getActiveCustomColumns, createCustomColumn, updateCustomColumn, deleteCustomColumn, deactivateCustomColumn, reactivateCustomColumn, CustomColumnMetadata } from "@/lib/api/customColumns";
 import { getLabelColors, COLOR_PALETTE } from "@/lib/labelColors";
-import { Switch } from "../components/figma/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/figma/select";
 import { Label } from "../components/figma/label";
 import {
@@ -343,7 +342,7 @@ function CustomColumnManagement() {
         <Card>
             <CardHeader>
                 <CardTitle>Custom Columns</CardTitle>
-                <CardDescription>Add extra data fields to all vendors.</CardDescription>
+                <CardDescription>Add extra data fields to all vendor transactions.</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="flex flex-col gap-6">
@@ -512,7 +511,7 @@ function CustomColumnManagement() {
                     <AlertDialogHeader>
                         <AlertDialogTitle className="text-slate-900">Delete Custom Column?</AlertDialogTitle>
                         <AlertDialogDescription className="text-slate-500">
-                            Are you sure you want to <strong>PERMANENTLY</strong> delete the column <strong>{deletingColumn?.name}</strong>? This will remove this data field and all its values from every vendor. This action cannot be undone.
+                            Are you sure you want to <strong>PERMANENTLY</strong> delete the column <strong>{deletingColumn?.name}</strong>? This will remove this data field and all its values from all transactions. This action cannot be undone.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -551,7 +550,7 @@ function AdminContent() {
                     <div>
                         <h2 className="text-2xl font-bold animate-fade-in">Administration</h2>
                         <p className="text-slate-700 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-                            Configure system settings, labels, and custom fields.
+                            Configure global settings and fields.
                         </p>
                     </div>
                     <div className="flex items-center gap-3">
@@ -593,7 +592,6 @@ function AdminContent() {
                     <TabsList className="mb-6">
                         <TabsTrigger value="labels">Category Labels</TabsTrigger>
                         <TabsTrigger value="columns">Custom Columns</TabsTrigger>
-                        <TabsTrigger value="settings" disabled>General Settings</TabsTrigger>
                     </TabsList>
                     <TabsContent value="labels" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
                         <LabelManagement />
