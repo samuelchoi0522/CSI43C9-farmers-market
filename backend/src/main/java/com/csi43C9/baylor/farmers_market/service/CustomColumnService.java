@@ -147,7 +147,7 @@ public class CustomColumnService {
      */
     private void validateColumnType(String type) {
         if (Objects.isNull(type) || (!VALID_COLUMN_TYPES.contains(type))) {
-            throw new IllegalArgumentException("Column type must be exactly 'text' or 'number'.");
+            throw new IllegalArgumentException("Column type must be in: text, number, boolean, usd.");
         }
     }
 }

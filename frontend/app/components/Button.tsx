@@ -121,10 +121,10 @@ export default function Button({
   
   // Variant styles with consistent hover effects and smooth transitions
   const variantClasses = {
-    secondary: "bg-slate-200 text-slate-900 hover:bg-[#10b981]/10 disabled:opacity-50 disabled:cursor-not-allowed",
-    outline: "border-2 border-slate-200 bg-transparent text-slate-900 hover:bg-[#10b981]/10 hover:border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed",
-    ghost: "bg-transparent text-slate-700 hover:bg-[#10b981]/10 disabled:opacity-50 disabled:cursor-not-allowed",
-    danger: "bg-red-600 text-white hover:bg-red-700 hover:shadow-lg hover:shadow-red-600/25 disabled:opacity-50 disabled:cursor-not-allowed",
+    secondary: "variant-secondary bg-slate-200 text-slate-900 hover:bg-[#10b981]/10 disabled:opacity-50 disabled:cursor-not-allowed",
+    outline: "variant-outline border-2 border-slate-200 bg-transparent text-slate-900 hover:bg-[#10b981]/10 hover:border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed",
+    ghost: "variant-ghost bg-transparent text-slate-700 hover:bg-[#10b981]/10 disabled:opacity-50 disabled:cursor-not-allowed",
+    danger: "variant-danger bg-red-600 text-white hover:!bg-red-700 hover:shadow-lg hover:shadow-red-600/25 disabled:opacity-50 disabled:cursor-not-allowed",
   };
   
   // Size styles

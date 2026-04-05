@@ -115,8 +115,15 @@ aside nav a.hover-lift:hover {
     background-color: rgba(16, 185, 129, 0.1) !important;
 }
 
-button.hover-lift:hover:not(.MuiButton-root) {
+button.hover-lift:hover:not(.MuiButton-root):not([class*="variant-"]):not([class*="bg-red"]) {
     background-color: rgba(16, 185, 129, 0.1) !important;
+}
+
+/* Ensure red/danger buttons keep their color on hover */
+button.variant-danger:hover,
+button[class*="bg-red"]:hover {
+    background-color: rgb(153 27 27) !important; /* red-800 */
+    color: white !important;
 }
 
 button.MuiButton-containedPrimary:hover,

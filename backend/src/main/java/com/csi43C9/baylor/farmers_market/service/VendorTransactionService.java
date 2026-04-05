@@ -57,7 +57,7 @@ public class VendorTransactionService {
      */
     public List<VendorTransaction> createBulk(List<SaveVendorTransactionRequest> requests) {
         // Validate custom data for each request
-        List<CustomColumnMetadata> activeColumns = customColumnRepository.findAllActiveColumns();
+        List<CustomColumnMetadata> activeColumns = customColumnRepository.findAll();
         for (SaveVendorTransactionRequest req : requests) {
             if (req.isPresent()) {
                 validateCustomData(req.getCustomData(), activeColumns);
@@ -233,8 +233,8 @@ public class VendorTransactionService {
      * @param customData The payload containing the dynamic column data to validate.
      */
     private void validateCustomData(Map<String, Object> customData) {
-        List<CustomColumnMetadata> activeColumns = customColumnRepository.findAllActiveColumns();
-        validateCustomData(customData, activeColumns);
+        List<CustomColumnMetadata> validColumns = customColumnRepository.findAll();
+        validateCustomData(customData, validColumns);
     }
 
     /**
@@ -242,13 +242,13 @@ public class VendorTransactionService {
      * Checks for required columns, data types, and rejects any unrecognized extra columns.
      *
      * @param customData    The payload containing the dynamic column data to validate.
-     * @param activeColumns The list of currently active column definitions.
+     * @param validColumns The list of currently active column definitions.
      * @throws IllegalArgumentException If extra columns exist, required columns are missing, or types are invalid.
      */
-    private void validateCustomData(Map<String, Object> customData, List<CustomColumnMetadata> activeColumns) {
+    private void validateCustomData(Map<String, Object> customData, List<CustomColumnMetadata> validColumns) {
         Map<String, Object> dataToValidate = Objects.nonNull(customData) ? customData : Collections.emptyMap();
 
-        Set<String> validColumnIds = activeColumns.stream()
+        Set<String> validColumnIds = validColumns.stream()
                 .map(column -> String.valueOf(column.id()))
                 .collect(Collectors.toSet());
 
@@ -259,7 +259,7 @@ public class VendorTransactionService {
             }
         }
 
-        for (CustomColumnMetadata column : activeColumns) {
+        for (CustomColumnMetadata column : validColumns) {
             String colId = String.valueOf(column.id());
             Object value = customData.get(colId);
             boolean isMissing = Objects.isNull(value) || value.toString().isBlank();
