@@ -1,19 +1,19 @@
 "use client";
 
-import React from 'react';
 import {
   type GridAlignment,
   type GridColDef,
   type GridRenderEditCellParams,
   useGridApiContext,
 } from '@mui/x-data-grid';
+import { Checkbox, TextField, Box } from '@mui/material';
 import { type VendorTransactionsSheetRowModel } from './VendorTransactionsSheetRow';
 
 export type VendorTransactionsSheetColumnType = GridColDef<VendorTransactionsSheetRowModel>['type'];
 export type VendorTransactionsSheetColumn = GridColDef<VendorTransactionsSheetRowModel>;
 
 interface VendorTransactionsSheetColumnProps {
-  field: keyof VendorTransactionsSheetRowModel;
+  field: string;
   headerName: string;
   type?: VendorTransactionsSheetColumnType;
   minWidth?: number;
@@ -23,9 +23,12 @@ interface VendorTransactionsSheetColumnProps {
   align?: GridAlignment;
   headerAlign?: GridAlignment;
   valueGetter?: VendorTransactionsSheetColumn['valueGetter'];
+  valueSetter?: VendorTransactionsSheetColumn['valueSetter'];
   valueFormatter?: VendorTransactionsSheetColumn['valueFormatter'];
   renderEditCell?: VendorTransactionsSheetColumn['renderEditCell'];
   cellClassName?: VendorTransactionsSheetColumn['cellClassName'];
+  description?: string;
+  preProcessEditCellProps?: VendorTransactionsSheetColumn['preProcessEditCellProps'];
 }
 
 const formatCurrency = (amount: number = 0) =>
@@ -33,14 +36,16 @@ const formatCurrency = (amount: number = 0) =>
 
 function VendorNameEditCell(params: GridRenderEditCellParams<VendorTransactionsSheetRowModel, string>) {
   const apiRef = useGridApiContext();
-  const hasError = Boolean(params.row?.isInvalid);
+  const hasError = Boolean(params.row?.isInvalid || params.error);
 
   return (
-    <div className="flex h-full w-full items-center px-2 py-1">
-      <input
-        type="text"
+    <Box sx={{ display: 'flex', height: '100%', width: '100%', alignItems: 'center', px: 1 }}>
+      <TextField
+        fullWidth
         autoFocus
+        size="small"
         value={params.value ?? ''}
+        error={hasError}
         onChange={(event) => {
           apiRef.current.setEditCellValue({
             id: params.id,
@@ -48,39 +53,98 @@ function VendorNameEditCell(params: GridRenderEditCellParams<VendorTransactionsS
             value: event.target.value,
           });
         }}
-        onFocus={(event) => event.currentTarget.select()}
-        className={`w-full rounded border bg-white px-2 py-1 text-sm text-slate-900 outline-none ${
-          hasError
-            ? 'border-red-400 text-red-700 focus:ring-2 focus:ring-red-300'
-            : 'border-slate-300 focus:ring-2 focus:ring-[#10b981]'
-        }`}
-        placeholder="Enter vendor name..."
+        onFocus={(event) => event.currentTarget.querySelector('input')?.select()}
+        sx={{
+          '& .MuiInputBase-root': {
+            fontSize: '0.875rem',
+            bgcolor: 'white',
+          },
+          '& .MuiOutlinedInput-notchedOutline': {
+            borderColor: hasError ? 'error.main' : 'rgba(148, 163, 184, 0.3)',
+          },
+          '& .Mui-focused .MuiOutlinedInput-notchedOutline': {
+            borderColor: hasError ? 'error.main' : '#10b981 !important',
+            borderWidth: '2px',
+          },
+        }}
+        placeholder="Enter value..."
       />
-    </div>
+    </Box>
   );
 }
 
 function NumericEditCell(params: GridRenderEditCellParams<VendorTransactionsSheetRowModel, number | string>) {
   const apiRef = useGridApiContext();
+  const hasError = Boolean(params.error);
+
+  const displayValue = (params.value === null || params.value === undefined || Number.isNaN(params.value)) 
+    ? '' 
+    : params.value;
 
   return (
-    <div className="flex h-full w-full items-center justify-end px-2 py-1">
-      <input
+    <Box sx={{ display: 'flex', height: '100%', width: '100%', alignItems: 'center', justifyContent: 'flex-end', px: 1 }}>
+      <TextField
+        fullWidth
         type="number"
-        step={params.field === 'est_num_transactions' ? '1' : '0.01'}
         autoFocus
-        value={params.value ?? ''}
+        size="small"
+        value={displayValue}
+        error={hasError}
+        onChange={(event) => {
+          const val = event.target.value;
+          apiRef.current.setEditCellValue({
+            id: params.id,
+            field: params.field,
+            value: val === '' ? null : Number(val),
+          });
+        }}
+        onFocus={(event) => event.currentTarget.querySelector('input')?.select()}
+        slotProps={{
+          htmlInput: {
+            step: params.field === 'est_num_transactions' ? '1' : '0.01',
+            style: { textAlign: 'right' }
+          }
+        }}
+        sx={{
+          '& .MuiInputBase-root': {
+            fontSize: '0.875rem',
+            bgcolor: 'white',
+          },
+          '& .MuiOutlinedInput-notchedOutline': {
+            borderColor: hasError ? 'error.main' : 'rgba(148, 163, 184, 0.3)',
+          },
+          '& .Mui-focused .MuiOutlinedInput-notchedOutline': {
+            borderColor: hasError ? 'error.main' : '#10b981 !important',
+            borderWidth: '2px',
+          },
+        }}
+      />
+    </Box>
+  );
+}
+
+function BooleanEditCell(params: GridRenderEditCellParams<VendorTransactionsSheetRowModel, boolean>) {
+  const apiRef = useGridApiContext();
+
+  return (
+    <Box sx={{ display: 'flex', height: '100%', width: '100%', alignItems: 'center', justifyContent: 'center' }}>
+      <Checkbox
+        checked={Boolean(params.value)}
         onChange={(event) => {
           apiRef.current.setEditCellValue({
             id: params.id,
             field: params.field,
-            value: event.target.value,
+            value: event.target.checked,
           });
         }}
-        onFocus={(event) => event.currentTarget.select()}
-        className="w-full rounded border border-slate-300 bg-white px-2 py-1 text-right text-sm text-slate-900 outline-none focus:ring-2 focus:ring-[#10b981]"
+        sx={{
+          color: '#10b981',
+          '&.Mui-checked': {
+            color: '#10b981',
+          },
+        }}
       />
-    </div>
+    </Box>
   );
 }
 
@@ -95,9 +159,12 @@ export default function VendorTransactionsSheetColumn({
   align,
   headerAlign,
   valueGetter,
+  valueSetter,
   valueFormatter,
   renderEditCell,
   cellClassName,
+  description,
+  preProcessEditCellProps,
 }: VendorTransactionsSheetColumnProps): VendorTransactionsSheetColumn {
   return {
     field,
@@ -110,9 +177,12 @@ export default function VendorTransactionsSheetColumn({
     align,
     headerAlign,
     valueGetter,
+    valueSetter,
     valueFormatter,
     renderEditCell,
     cellClassName,
+    description,
+    preProcessEditCellProps,
   };
 }
 
@@ -124,5 +194,8 @@ export const vendorTransactionsSheetEditors = {
   text: (params: GridRenderEditCellParams<VendorTransactionsSheetRowModel, string>) => <VendorNameEditCell {...params} />,
   numeric: (params: GridRenderEditCellParams<VendorTransactionsSheetRowModel, number | string>) => (
     <NumericEditCell {...params} />
+  ),
+  boolean: (params: GridRenderEditCellParams<VendorTransactionsSheetRowModel, boolean>) => (
+    <BooleanEditCell {...params} />
   ),
 };

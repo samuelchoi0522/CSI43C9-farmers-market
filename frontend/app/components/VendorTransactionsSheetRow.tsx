@@ -19,6 +19,7 @@ export interface VendorTransactionsSheetRowModel {
   est_produce_sales: number;
   est_num_transactions: number;
   isInvalid: boolean;
+  customData?: Record<string, unknown>;
 }
 
 const INVALID_ROW_CLASS = 'vendor-transactions-sheet-row--invalid';

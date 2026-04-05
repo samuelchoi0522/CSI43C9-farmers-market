@@ -3,7 +3,7 @@ import { apiRequest } from './client';
 export interface CustomColumnMetadata {
   id: number;
   name: string;
-  type: 'text' | 'number';
+  type: 'text' | 'number' | 'boolean' | 'usd';
   isRequired: boolean;
 }
 
