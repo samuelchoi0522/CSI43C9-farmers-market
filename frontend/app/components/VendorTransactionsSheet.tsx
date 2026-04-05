@@ -20,6 +20,7 @@ import VendorTransactionsSheetRow, {
   type VendorTransactionsSheetRowModel,
   vendorTransactionsSheetRowSx,
 } from './VendorTransactionsSheetRow';
+import { type CustomColumnMetadata } from '@/lib/api/customColumns';
 
 export type VendorTransactionsSheetRow = VendorTransactionsSheetRowModel;
 
@@ -33,6 +34,7 @@ interface VendorTransactionsSheetProps {
   normalizeRow: (row: VendorTransactionsSheetRow) => VendorTransactionsSheetRow;
   onRowsChange: (rows: VendorTransactionsSheetRow[]) => void;
   onSave: () => void;
+  customColumns?: CustomColumnMetadata[];
 }
 
 export default function VendorTransactionsSheet({
@@ -45,6 +47,7 @@ export default function VendorTransactionsSheet({
   normalizeRow,
   onRowsChange,
   onSave,
+  customColumns = [],
 }: VendorTransactionsSheetProps) {
   const [rowSelectionModel, setRowSelectionModel] = useState<GridRowSelectionModel>({ type: 'include', ids: new Set() });
   const selectedRowIds = useMemo(() => {
@@ -192,8 +195,46 @@ export default function VendorTransactionsSheet({
         headerAlign: 'center',
         renderEditCell: vendorTransactionsSheetEditors.numeric,
       }),
+      ...customColumns.map((col) => {
+        const fieldName = `custom_${col.id}`;
+        return VendorTransactionsSheetColumn({
+          field: fieldName,
+          headerName: `${col.name}${col.isRequired ? ' *' : ''}`,
+          type: col.type === 'boolean' ? 'boolean' : (col.type === 'text' ? 'string' : 'number'),
+          editable: true,
+          width: 150,
+          align: col.type === 'boolean' ? 'center' : (col.type === 'text' ? 'left' : 'right'),
+          headerAlign: col.type === 'boolean' ? 'center' : (col.type === 'text' ? 'left' : 'right'),
+          renderEditCell:
+            col.type === 'boolean'
+              ? vendorTransactionsSheetEditors.boolean
+              : col.type === 'text'
+              ? vendorTransactionsSheetEditors.text
+              : vendorTransactionsSheetEditors.numeric,
+          valueFormatter: col.type === 'usd' ? vendorTransactionsSheetFormatters.currency : undefined,
+          valueGetter: (_value, row) => row.customData?.[col.id],
+          valueSetter: (value, row) => {
+            return {
+              ...row,
+              customData: {
+                ...(row.customData || {}),
+                [col.id]: col.type === 'number' || col.type === 'usd' ? Number(value) : value,
+              },
+            };
+          },
+          preProcessEditCellProps: (params) => {
+            const hasError = col.isRequired && (params.props.value === null || params.props.value === undefined || params.props.value === '');
+            return { ...params.props, error: hasError };
+          },
+          cellClassName: (params) => {
+            const value = params.row.customData?.[col.id];
+            const hasError = col.isRequired && (value === null || value === undefined || value === '');
+            return hasError ? 'bg-red-50 font-bold text-red-600' : '';
+          },
+        });
+      }),
     ],
-    []
+    [customColumns]
   );
 
   const Toolbar = () => (
