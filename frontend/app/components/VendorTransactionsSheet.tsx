@@ -195,44 +195,49 @@ export default function VendorTransactionsSheet({
         headerAlign: 'center',
         renderEditCell: vendorTransactionsSheetEditors.numeric,
       }),
-      ...customColumns.map((col) => {
-        const fieldName = `custom_${col.id}`;
-        return VendorTransactionsSheetColumn({
-          field: fieldName,
-          headerName: `${col.name}${col.isRequired ? ' *' : ''}`,
-          type: col.type === 'boolean' ? 'boolean' : (col.type === 'text' ? 'string' : 'number'),
-          editable: true,
-          width: 150,
-          align: col.type === 'boolean' ? 'center' : (col.type === 'text' ? 'left' : 'right'),
-          headerAlign: col.type === 'boolean' ? 'center' : (col.type === 'text' ? 'left' : 'right'),
-          renderEditCell:
-            col.type === 'boolean'
-              ? vendorTransactionsSheetEditors.boolean
-              : col.type === 'text'
-              ? vendorTransactionsSheetEditors.text
-              : vendorTransactionsSheetEditors.numeric,
-          valueFormatter: col.type === 'usd' ? vendorTransactionsSheetFormatters.currency : undefined,
-          valueGetter: (_value, row) => row.customData?.[col.id],
-          valueSetter: (value, row) => {
-            return {
-              ...row,
-              customData: {
-                ...(row.customData || {}),
-                [col.id]: col.type === 'number' || col.type === 'usd' ? Number(value) : value,
-              },
-            };
-          },
-          preProcessEditCellProps: (params) => {
-            const hasError = col.isRequired && (params.props.value === null || params.props.value === undefined || params.props.value === '');
-            return { ...params.props, error: hasError };
-          },
-          cellClassName: (params) => {
-            const value = params.row.customData?.[col.id];
-            const hasError = col.isRequired && (value === null || value === undefined || value === '');
-            return hasError ? 'bg-red-50 font-bold text-red-600' : '';
-          },
-        });
-      }),
+      ...customColumns
+        .filter((col) => col.id !== undefined)
+        .map((col) => {
+          const columnId = col.id!;
+          const fieldName = `custom_${columnId}`;
+          return VendorTransactionsSheetColumn({
+            field: fieldName,
+            headerName: `${col.name}${col.isRequired ? ' *' : ''}`,
+            type: col.type === 'boolean' ? 'boolean' : col.type === 'text' ? 'string' : 'number',
+            editable: true,
+            width: 150,
+            align: col.type === 'boolean' ? 'center' : col.type === 'text' ? 'left' : 'right',
+            headerAlign: col.type === 'boolean' ? 'center' : col.type === 'text' ? 'left' : 'right',
+            renderEditCell:
+              col.type === 'boolean'
+                ? vendorTransactionsSheetEditors.boolean
+                : col.type === 'text'
+                ? vendorTransactionsSheetEditors.text
+                : vendorTransactionsSheetEditors.numeric,
+            valueFormatter: col.type === 'usd' ? vendorTransactionsSheetFormatters.currency : undefined,
+            valueGetter: (_value, row) => row.customData?.[columnId],
+            valueSetter: (value, row) => {
+              return {
+                ...row,
+                customData: {
+                  ...(row.customData || {}),
+                  [columnId]: col.type === 'number' || col.type === 'usd' ? Number(value) : value,
+                },
+              };
+            },
+            preProcessEditCellProps: (params) => {
+              const hasError =
+                col.isRequired &&
+                (params.props.value === null || params.props.value === undefined || params.props.value === '');
+              return { ...params.props, error: hasError };
+            },
+            cellClassName: (params) => {
+              const value = params.row.customData?.[columnId];
+              const hasError = col.isRequired && (value === null || value === undefined || value === '');
+              return hasError ? 'bg-red-50 font-bold text-red-600' : '';
+            },
+          });
+        }),
     ],
     [customColumns]
   );
