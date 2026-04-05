@@ -16,6 +16,7 @@ import java.util.Optional;
 public class CustomColumnService {
 
     private final CustomColumnRepository customColumnRepository;
+    private static final List<String> VALID_COLUMN_TYPES = List.of(new String[]{"text", "number", "boolean", "usd"});
 
     /**
      * Constructs the CustomColumnService.
@@ -145,7 +146,7 @@ public class CustomColumnService {
      * @throws IllegalArgumentException if the type is not 'text' or 'number'.
      */
     private void validateColumnType(String type) {
-        if (Objects.isNull(type) || (!type.equals("text") && !type.equals("number"))) {
+        if (Objects.isNull(type) || (!VALID_COLUMN_TYPES.contains(type))) {
             throw new IllegalArgumentException("Column type must be exactly 'text' or 'number'.");
         }
     }

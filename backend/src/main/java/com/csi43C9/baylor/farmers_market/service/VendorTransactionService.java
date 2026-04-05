@@ -86,7 +86,7 @@ public class VendorTransactionService {
     /**
      * Updates an existing vendor transaction based on the provided request DTO.
      *
-     * @param uuid The unique identifier of the transaction to update.
+     * @param uuid    The unique identifier of the transaction to update.
      * @param request The data transfer object containing updated details.
      * @return The updated VendorTransaction entity.
      */
@@ -140,7 +140,7 @@ public class VendorTransactionService {
      * Retrieves a revenue breakdown for a specific date range.
      *
      * @param startDate The start of the date range.
-     * @param endDate The end of the date range.
+     * @param endDate   The end of the date range.
      * @return The revenue breakdown.
      */
     public RevenueBreakdown getRevenueBreakdownForDateRange(LocalDate startDate, LocalDate endDate) {
@@ -149,9 +149,10 @@ public class VendorTransactionService {
 
     /**
      * Returns a paged list of vendor transactions matching the provided filters.
+     *
      * @param filter transaction filters
-     * @param page 0-based page number
-     * @param size page size
+     * @param page   0-based page number
+     * @param size   page size
      * @return paged response of matching transactions
      */
     public PagedResponse<VendorTransaction> getTransactions(VendorTransactionFilterRequest filter, int page, int size) {
@@ -172,9 +173,10 @@ public class VendorTransactionService {
 
     /**
      * Returns a paged list of vendor transactions for the provided vendor.
+     *
      * @param vendorId the vendor UUID
-     * @param page 0-based page number
-     * @param size page size
+     * @param page     0-based page number
+     * @param size     page size
      * @return paged response of matching transactions
      */
     public PagedResponse<VendorTransaction> getTransactionsByVendorId(UUID vendorId, int page, int size) {
@@ -239,7 +241,7 @@ public class VendorTransactionService {
      * Validates the custom data payload against the database's column metadata using column IDs.
      * Checks for required columns, data types, and rejects any unrecognized extra columns.
      *
-     * @param customData The payload containing the dynamic column data to validate.
+     * @param customData    The payload containing the dynamic column data to validate.
      * @param activeColumns The list of currently active column definitions.
      * @throws IllegalArgumentException If extra columns exist, required columns are missing, or types are invalid.
      */
@@ -258,22 +260,52 @@ public class VendorTransactionService {
         }
 
         for (CustomColumnMetadata column : activeColumns) {
-            String columnIdKey = String.valueOf(column.id());
-            Object value = dataToValidate.get(columnIdKey);
+            String colId = String.valueOf(column.id());
+            Object value = customData.get(colId);
+            boolean isMissing = Objects.isNull(value) || value.toString().isBlank();
 
-            // Check Required Rule
-            if (column.isRequired() && (Objects.isNull(value) || value.toString().isBlank())) {
-                throw new IllegalArgumentException("Missing required custom column: " + column.name() + " (ID: " + column.id() + ")");
+            // Check Required Columns
+            if (column.isRequired() && isMissing) {
+                throw new IllegalArgumentException("Missing required field: " + column.name());
             }
 
-            // Check Type Rule
-            if (Objects.nonNull(value) && !value.toString().isBlank()) {
-                if ("number".equals(column.type())) {
-                    try {
-                        Double.parseDouble(value.toString());
-                    } catch (NumberFormatException e) {
-                        throw new IllegalArgumentException("Column '" + column.name() + "' (ID: " + column.id() + ") must be a valid number.");
-                    }
+            // Validate Types
+            if (!isMissing) {
+                String strValue = value.toString().trim();
+
+                switch (column.type().toLowerCase()) {
+                    case "boolean":
+                        if (!(value instanceof Boolean) &&
+                                !strValue.equalsIgnoreCase("true") &&
+                                !strValue.equalsIgnoreCase("false")) {
+                            throw new IllegalArgumentException(column.name() + " must be a boolean (true/false).");
+                        }
+                        break;
+
+                    case "usd":
+                        try {
+                            // Strip formatting if the frontend accidentally sends "$1,000.00"
+                            String cleanUsd = strValue.replace("$", "").replace(",", "");
+                            Double.parseDouble(cleanUsd);
+                        } catch (NumberFormatException e) {
+                            throw new IllegalArgumentException(column.name() + " must be a valid currency amount.");
+                        }
+                        break;
+
+                    case "number":
+                        try {
+                            Double.parseDouble(strValue);
+                        } catch (NumberFormatException e) {
+                            throw new IllegalArgumentException(column.name() + " must be a valid number.");
+                        }
+                        break;
+
+                    case "text":
+                        // Text accepts any string, no validation needed
+                        break;
+
+                    default:
+                        throw new IllegalStateException("Unknown column type: " + column.type());
                 }
             }
         }
