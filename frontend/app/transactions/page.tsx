@@ -286,17 +286,18 @@ function TransactionsContent() {
 
           const customData: Record<string, unknown> = {};
           // Attempt to map remaining columns to custom fields if headers match
-          customColumns.forEach((col) => {
+          customColumns.filter(col => col.id !== undefined).forEach((col) => {
+            const columnId = col.id!;
             const headerIndex = headers.findIndex(h => h?.toLowerCase().includes(col.name.toLowerCase()));
             if (headerIndex !== -1 && row[headerIndex] !== undefined) {
               const val = row[headerIndex];
               if (col.type === 'number' || col.type === 'usd') {
-                customData[col.id] = parseNumericValue(val);
+                customData[columnId] = parseNumericValue(val);
               } else if (col.type === 'boolean') {
                 const s = String(val).toUpperCase();
-                customData[col.id] = s === 'Y' || s === 'YES' || s === 'TRUE';
+                customData[columnId] = s === 'Y' || s === 'YES' || s === 'TRUE';
               } else {
-                customData[col.id] = String(val);
+                customData[columnId] = String(val);
               }
             }
           });
@@ -359,7 +360,7 @@ function TransactionsContent() {
 
     // Custom data validation for required fields
     const missingRequired = records.some(record =>
-      customColumns.some(col => col.isRequired && (record.customData?.[col.id] === undefined || record.customData?.[col.id] === ""))
+      customColumns.some(col => col.id !== undefined && col.isRequired && (record.customData?.[col.id] === undefined || record.customData?.[col.id] === ""))
     );
 
     if (missingRequired) {
