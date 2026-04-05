@@ -139,7 +139,7 @@ function LabelManagement() {
                             ) : (
                                 labels.map((label) => {
                                     const style = getLabelColors(label.name, label.color);
-                                    const isEditing = editingLabel?.id === label.id;
+                                    const isEditing = !!editingLabel && editingLabel.id === label.id;
 
                                     return (
                                         <TableRow key={label.id}>
@@ -411,7 +411,7 @@ function CustomColumnManagement() {
                                 </TableRow>
                             ) : (
                                 columns.map((col) => {
-                                    const isEditing = editingColumn?.id === col.id;
+                                    const isEditing = !!editingColumn && editingColumn.id === col.id;
                                     return (
                                         <TableRow key={col.id} className={!col.isActive ? "opacity-60 bg-slate-50/50" : ""}>
                                             <TableCell>
