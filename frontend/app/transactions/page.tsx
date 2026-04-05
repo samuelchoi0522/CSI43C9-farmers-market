@@ -20,6 +20,7 @@ import {
 } from '@/lib/api/transactions';
 import { getVendors, type Vendor as ApiVendor } from '@/lib/api/vendor';
 import { downloadVendorTransactionsTemplate } from '@/lib/transactionsTemplate';
+import { getActiveCustomColumns, type CustomColumnMetadata } from '@/lib/api/customColumns';
 
 interface Vendor {
   id: string;
@@ -59,6 +60,7 @@ const mapTransactionToSalesRecord = (
   reimbursement_due: transaction.reimbursementDue,
   est_produce_sales: transaction.estProduceSales,
   est_num_transactions: transaction.estNumTransactions,
+  customData: transaction.customData ?? {},
   isInvalid: false,
 });
 
@@ -67,6 +69,7 @@ function TransactionsContent() {
   const [records, setRecords] = useState<VendorTransactionsSheetRow[]>([]);
   const [allVendors, setAllVendors] = useState<Vendor[]>([]);
   const [activeVendors, setActiveVendors] = useState<ApiVendor[]>([]);
+  const [customColumns, setCustomColumns] = useState<CustomColumnMetadata[]>([]);
   const [vendorsLoading, setVendorsLoading] = useState(true);
   const [isImporting, setIsImporting] = useState(false);
   const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false);
@@ -109,6 +112,7 @@ function TransactionsContent() {
         reimbursement_due: snap + dufb + wdfmTokens + voucher,
         est_produce_sales: parseNumericValue(record.est_produce_sales),
         est_num_transactions: parseNumericValue(record.est_num_transactions),
+        customData: record.customData ?? {},
         isInvalid: !matchedVendor,
       };
     },
@@ -133,14 +137,18 @@ function TransactionsContent() {
   useEffect(() => {
     let isMounted = true;
 
-    const loadVendors = async () => {
+    const loadMetadata = async () => {
       setVendorsLoading(true);
 
       try {
-        const response = await getVendors(0, 1000, true);
+        const [vendorResponse, columnsResponse] = await Promise.all([
+          getVendors(0, 1000, true),
+          getActiveCustomColumns()
+        ]);
+
         if (!isMounted) return;
 
-        const vendorList: ApiVendor[] = Array.isArray(response) ? response : response?.data ?? [];
+        const vendorList: ApiVendor[] = Array.isArray(vendorResponse) ? vendorResponse : vendorResponse?.data ?? [];
 
         setAllVendors(
           vendorList
@@ -152,9 +160,10 @@ function TransactionsContent() {
             .filter((vendor) => vendor.isActive)
             .sort((a, b) => a.vendorName.localeCompare(b.vendorName))
         );
+        setCustomColumns(columnsResponse);
       } catch (error) {
-        console.error("Failed to load vendors:", error);
-        toast.error("Failed to load vendors.");
+        console.error("Failed to load metadata:", error);
+        toast.error("Failed to load vendors or custom columns.");
       } finally {
         if (isMounted) {
           setVendorsLoading(false);
@@ -162,7 +171,7 @@ function TransactionsContent() {
       }
     };
 
-    loadVendors();
+    loadMetadata();
 
     return () => {
       isMounted = false;
@@ -243,6 +252,7 @@ function TransactionsContent() {
       reported_sales: 0,
       est_produce_sales: 0,
       est_num_transactions: 0,
+      customData: {},
     });
 
     setRecords((previous) => [nextRecord, ...previous]);
@@ -262,6 +272,7 @@ function TransactionsContent() {
         const workbook = XLSX.read(data, { type: "binary" });
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }) as unknown[][];
+        const headers = rows[0] as string[];
         const dataRows = rows.slice(1).filter((row) => row.length > 0);
 
         if (dataRows.length === 0) {
@@ -272,6 +283,23 @@ function TransactionsContent() {
         const imported = dataRows.map((row) => {
           const vendorName = row[0]?.toString().trim() || "Unknown Vendor";
           const presentValue = row[1]?.toString().trim().toUpperCase();
+
+          const customData: Record<string, unknown> = {};
+          // Attempt to map remaining columns to custom fields if headers match
+          customColumns.forEach((col) => {
+            const headerIndex = headers.findIndex(h => h?.toLowerCase().includes(col.name.toLowerCase()));
+            if (headerIndex !== -1 && row[headerIndex] !== undefined) {
+              const val = row[headerIndex];
+              if (col.type === 'number' || col.type === 'usd') {
+                customData[col.id] = parseNumericValue(val);
+              } else if (col.type === 'boolean') {
+                const s = String(val).toUpperCase();
+                customData[col.id] = s === 'Y' || s === 'YES' || s === 'TRUE';
+              } else {
+                customData[col.id] = String(val);
+              }
+            }
+          });
 
           return buildRecord({
             id: createLocalId(),
@@ -285,6 +313,7 @@ function TransactionsContent() {
             reported_sales: parseNumericValue(row[6]),
             est_produce_sales: parseNumericValue(row[7]),
             est_num_transactions: parseNumericValue(row[8]),
+            customData,
           });
         });
 
@@ -328,6 +357,16 @@ function TransactionsContent() {
       return;
     }
 
+    // Custom data validation for required fields
+    const missingRequired = records.some(record =>
+      customColumns.some(col => col.isRequired && (record.customData?.[col.id] === undefined || record.customData?.[col.id] === ""))
+    );
+
+    if (missingRequired) {
+      toast.error("Some required custom columns are missing values. Please fill them before saving.");
+      return;
+    }
+
     setIsSaving(true);
 
     try {
@@ -344,6 +383,7 @@ function TransactionsContent() {
         reportedSales: record.reported_sales,
         estProduceSales: record.est_produce_sales,
         estNumTransactions: record.est_num_transactions,
+        customData: record.customData,
       }));
 
       await bulkCreateVendorTransactions(payload);
@@ -466,6 +506,7 @@ function TransactionsContent() {
           normalizeRow={buildRecord}
           onRowsChange={(nextRows) => setRecords(normalizeRows(nextRows))}
           onSave={handleSaveToBackend}
+          customColumns={customColumns}
         />
       </main>
     </div>

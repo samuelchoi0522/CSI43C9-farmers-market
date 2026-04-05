@@ -13,6 +13,7 @@ export interface CreateVendorTransactionRequest {
   reportedSales?: number;
   estProduceSales?: number;
   estNumTransactions?: number;
+  customData?: Record<string, unknown>;
 }
 
 export interface VendorTransaction {
@@ -29,6 +30,7 @@ export interface VendorTransaction {
   reportedSales: number;
   estProduceSales: number;
   estNumTransactions: number;
+  customData?: Record<string, unknown>;
 }
 
 export interface VendorTransactionSearchParams {
