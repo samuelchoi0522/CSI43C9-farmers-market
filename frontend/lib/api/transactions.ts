@@ -13,6 +13,7 @@ export interface CreateVendorTransactionRequest {
   reportedSales?: number;
   estProduceSales?: number;
   estNumTransactions?: number;
+  customData?: Record<string, unknown>;
 }
 
 export interface VendorTransaction {
@@ -29,6 +30,7 @@ export interface VendorTransaction {
   reportedSales: number;
   estProduceSales: number;
   estNumTransactions: number;
+  customData?: Record<string, unknown>;
 }
 
 export interface VendorTransactionSearchParams {
@@ -74,7 +76,7 @@ export async function getVendorTransactionsByVendor(
   size: number = 10
 ): Promise<PagedResponse<VendorTransaction>> {
   return apiRequest<PagedResponse<VendorTransaction>>(
-    `/api/vendor-transaction?vendorId=${vendorId}&page=${page}&size=${size}`,
+    `/api/vendor-transaction/vendor/${vendorId}?page=${page}&size=${size}`,
     { method: 'GET' }
   );
 }

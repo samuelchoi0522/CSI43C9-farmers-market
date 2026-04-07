@@ -68,6 +68,26 @@ class VendorTransactionControllerTest {
 
     @Test
     @WithMockUser
+    void getFilteredTransactionsByVendorIdReturnsPagedResponse() throws Exception {
+        UUID vendorId = UUID.randomUUID();
+        VendorTransaction transaction = new VendorTransaction();
+        transaction.setId(UUID.randomUUID());
+        transaction.setVendorId(vendorId);
+        transaction.setVendorName("Fresh Farm");
+
+        PagedResponse<VendorTransaction> response = new PagedResponse<>(List.of(transaction), 0, 10, 1L, 1);
+        when(vendorTransactionService.getTransactions(any(VendorTransactionFilterRequest.class), eq(0), eq(10)))
+                .thenReturn(response);
+
+        mockMvc.perform(get("/api/vendor-transaction/search")
+                        .param("vendorId", vendorId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].vendorId").value(vendorId.toString()))
+                .andExpect(jsonPath("$.totalElements").value(1));
+    }
+
+    @Test
+    @WithMockUser
     void getTransactionsByVendorIdReturnsPagedResponse() throws Exception {
         UUID vendorId = UUID.randomUUID();
         VendorTransaction transaction = new VendorTransaction();

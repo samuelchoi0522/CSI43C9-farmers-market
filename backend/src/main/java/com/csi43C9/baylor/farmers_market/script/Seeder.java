@@ -42,7 +42,7 @@ public class Seeder {
     // Change this number to change the number of vendors seeded
     private static final int VENDOR_COUNT = 20;
 
-    static void main(String[] args) {
+    public static void main(String[] args) {
         // Load environment variables from .env file
         Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
         dotenv.entries().forEach(e -> System.setProperty(e.getKey(), e.getValue()));
@@ -83,11 +83,13 @@ public class Seeder {
         System.out.println("Seeding custom columns...");
 
         // Only seed if the table is empty to avoid unique constraint violations
-        if (customColumnRepository.count() == 0) {
+        if (customColumnRepository.count() == 0L) {
             customColumnRepository.save(new CustomColumnMetadata(null, "Booth Size", "text", true));
             customColumnRepository.save(new CustomColumnMetadata(null, "Vehicle License Plate", "text", false));
             customColumnRepository.save(new CustomColumnMetadata(null, "Distance Traveled (Miles)", "number", true));
             customColumnRepository.save(new CustomColumnMetadata(null, "Number of Tables", "number", false));
+            customColumnRepository.save(new CustomColumnMetadata(null, "Requires Electricity", "boolean", false));
+            customColumnRepository.save(new CustomColumnMetadata(null, "Booth Fees", "usd", false));
         }
 
         System.out.println("Done seeding custom columns!");
@@ -285,15 +287,18 @@ public class Seeder {
                             continue;
                         }
 
-                        if ("number".equals(column.type())) {
-                            customData.put(keyId, faker.number().numberBetween(1, 50));
-                        } else {
-                            if (column.name().toLowerCase().contains("size")) {
-                                customData.put(keyId, faker.options().option("10x10", "10x20", "Standard"));
-                            } else if (column.name().toLowerCase().contains("plate")) {
-                                customData.put(keyId, faker.bothify("???-####").toUpperCase());
-                            } else {
-                                customData.put(keyId, faker.lorem().word());
+                        switch (column.type()) {
+                            case "number" -> customData.put(keyId, faker.number().numberBetween(1, 50));
+                            case "boolean" -> customData.put(keyId, faker.bool().bool());
+                            case "usd" -> customData.put(keyId, faker.number().randomDouble(2, 5, 75));
+                            case null, default -> {
+                                if (column.name().toLowerCase().contains("size")) {
+                                    customData.put(keyId, faker.options().option("10x10", "10x20", "Standard"));
+                                } else if (column.name().toLowerCase().contains("plate")) {
+                                    customData.put(keyId, faker.bothify("???-####").toUpperCase());
+                                } else {
+                                    customData.put(keyId, faker.lorem().word());
+                                }
                             }
                         }
                     }

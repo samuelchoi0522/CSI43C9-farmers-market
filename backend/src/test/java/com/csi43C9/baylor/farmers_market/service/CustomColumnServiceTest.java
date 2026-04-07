@@ -48,15 +48,32 @@ class CustomColumnServiceTest {
     }
 
     /**
+     * Verifies that the service successfully saves valid boolean and usd custom columns.
+     */
+    @Test
+    void createColumnSavesNewTypesSuccessfully() {
+        CustomColumnMetadata booleanRequest = new CustomColumnMetadata(null, "Requires Electricity", "boolean", false);
+        CustomColumnMetadata usdRequest = new CustomColumnMetadata(null, "Stall Fee", "usd", false);
+
+        when(customColumnRepository.save(any(CustomColumnMetadata.class))).thenAnswer(i -> i.getArguments()[0]);
+
+        CustomColumnMetadata booleanResult = customColumnService.createColumn(booleanRequest);
+        assertThat(booleanResult.type()).isEqualTo("boolean");
+
+        CustomColumnMetadata usdResult = customColumnService.createColumn(usdRequest);
+        assertThat(usdResult.type()).isEqualTo("usd");
+    }
+
+    /**
      * Verifies that the service throws an exception when attempting to create a column with an invalid type.
      */
     @Test
     void createColumnWithInvalidTypeThrowsException() {
-        CustomColumnMetadata request = new CustomColumnMetadata(null, "Invalid Type Column", "boolean", false);
+        CustomColumnMetadata request = new CustomColumnMetadata(null, "Invalid Type Column", "date", false);
 
         assertThatThrownBy(() -> customColumnService.createColumn(request))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Column type must be exactly 'text' or 'number'");
+                .hasMessageContaining("type must be");
     }
 
     /**
