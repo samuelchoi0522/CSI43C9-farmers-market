@@ -11,6 +11,14 @@ checkstyle {
     configFile = file('config/checkstyle/checkstyle.xml')
 }
 
+graalvmNative {
+    metadataRepository {
+        enabled = true
+        // Forces the cache onto the D:\ drive to prevent the Windows 'other has different root' crash
+        cacheDir = file("${projectDir}/build/native/metadata-cache")
+    }
+}
+
 group = 'com.csi43C9.baylor'
 version = '0.0.1-SNAPSHOT'
 description = 'Demo project for Spring Boot'
