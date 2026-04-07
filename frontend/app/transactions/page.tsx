@@ -15,6 +15,7 @@ import ActiveVendorAddButton from "../components/ActiveVendorAddButton";
 import {
   bulkCreateVendorTransactions,
   searchVendorTransactions,
+  updateVendorTransaction,
   type CreateVendorTransactionRequest,
   type VendorTransaction,
 } from '@/lib/api/transactions';
@@ -26,6 +27,9 @@ interface Vendor {
   id: string;
   name: string;
 }
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const TRANSACTION_ID_HEADERS = new Set(['vendor transaction id', 'transaction id', 'uuid']);
 
 const getMostRecentSaturday = () => {
   const date = new Date();
@@ -43,6 +47,8 @@ const parseNumericValue = (value: unknown) => {
 };
 
 const createLocalId = () => Math.random().toString(36).slice(2, 11);
+const isPersistedTransactionId = (value: string) => UUID_PATTERN.test(value);
+const normalizeHeader = (value: unknown) => String(value ?? '').trim().toLowerCase();
 
 const mapTransactionToSalesRecord = (
   transaction: VendorTransaction
@@ -64,6 +70,50 @@ const mapTransactionToSalesRecord = (
   isInvalid: false,
 });
 
+const buildTransactionPayload = (
+  record: VendorTransactionsSheetRow
+): CreateVendorTransactionRequest => ({
+  vendorId: record.vendor_id,
+  vendorName: record.vendor_name,
+  marketDate: record.market_date,
+  present: record.present,
+  snap: record.snap,
+  dufb: record.dufb,
+  wdfmTokens: record.wdfm_tokens,
+  voucher: record.voucher,
+  reimbursementDue: record.reimbursement_due,
+  reportedSales: record.reported_sales,
+  estProduceSales: record.est_produce_sales,
+  estNumTransactions: record.est_num_transactions,
+  customData: record.customData,
+});
+
+const normalizeComparableValue = (value: unknown): unknown => {
+  if (Array.isArray(value)) {
+    return value.map(normalizeComparableValue);
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, nestedValue]) => [key, normalizeComparableValue(nestedValue)])
+    );
+  }
+
+  return value;
+};
+
+const serializeTransactionPayload = (record: VendorTransactionsSheetRow) =>
+  JSON.stringify(normalizeComparableValue(buildTransactionPayload(record)));
+
+const buildPersistedPayloadSnapshot = (rows: VendorTransactionsSheetRow[]) =>
+  Object.fromEntries(
+    rows
+      .filter((record) => isPersistedTransactionId(record.id))
+      .map((record) => [record.id, serializeTransactionPayload(record)])
+  );
+
 function TransactionsContent() {
   const [currentMarketDate, setCurrentMarketDate] = useState(getMostRecentSaturday());
   const [records, setRecords] = useState<VendorTransactionsSheetRow[]>([]);
@@ -77,6 +127,7 @@ function TransactionsContent() {
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const persistedPayloadsRef = useRef<Record<string, string>>({});
   const { user, logout } = useAuth();
   const userName = user?.username || "Admin User";
 
@@ -117,6 +168,21 @@ function TransactionsContent() {
       };
     },
     [currentMarketDate, getMatchedVendor]
+  );
+
+  const fetchTransactionsForDate = useCallback(
+    async (marketDate: string) => {
+      const response = await searchVendorTransactions({
+        marketDate,
+        page: 0,
+        size: 500,
+      });
+
+      return response.data.map((transaction) =>
+        buildRecord(mapTransactionToSalesRecord(transaction))
+      );
+    },
+    [buildRecord]
   );
 
   useEffect(() => {
@@ -185,19 +251,17 @@ function TransactionsContent() {
       setIsLoadingTransactions(true);
 
       try {
-        const response = await searchVendorTransactions({
-          marketDate: currentMarketDate,
-          page: 0,
-          size: 500,
-        });
+        const nextRecords = await fetchTransactionsForDate(currentMarketDate);
 
         if (!isActive) return;
-        setRecords(response.data.map((transaction) => buildRecord(mapTransactionToSalesRecord(transaction))));
+        setRecords(nextRecords);
+        persistedPayloadsRef.current = buildPersistedPayloadSnapshot(nextRecords);
       } catch (error) {
         console.error("Failed to load transactions:", error);
         if (!isActive) return;
 
         setRecords([]);
+        persistedPayloadsRef.current = {};
         toast.error("Failed to load transactions for the selected market date.");
       } finally {
         if (isActive) {
@@ -211,7 +275,7 @@ function TransactionsContent() {
     return () => {
       isActive = false;
     };
-  }, [buildRecord, currentMarketDate]);
+  }, [currentMarketDate, fetchTransactionsForDate]);
 
   const invalidCount = records.filter((record) => record.isInvalid).length;
 
@@ -274,6 +338,9 @@ function TransactionsContent() {
         const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }) as unknown[][];
         const headers = rows[0] as string[];
         const dataRows = rows.slice(1).filter((row) => row.length > 0);
+        const transactionIdIndex = headers.findIndex((header) =>
+          TRANSACTION_ID_HEADERS.has(normalizeHeader(header))
+        );
 
         if (dataRows.length === 0) {
           toast.error("The file appears to be empty.");
@@ -303,7 +370,10 @@ function TransactionsContent() {
           });
 
           return buildRecord({
-            id: createLocalId(),
+            id:
+              transactionIdIndex >= 0 && row[transactionIdIndex]
+                ? String(row[transactionIdIndex]).trim()
+                : createLocalId(),
             vendor_name: vendorName,
             market_date: currentMarketDate,
             present: presentValue === "Y" || presentValue === "YES" || presentValue === "TRUE",
@@ -318,15 +388,28 @@ function TransactionsContent() {
           });
         });
 
-        setRecords((previous) => [...imported, ...previous]);
+        const dedupedImported = Array.from(
+          new Map(imported.map((record) => [record.id, record])).values()
+        );
 
-        const invalidImportedCount = imported.filter((record) => record.isInvalid).length;
+        setRecords((previous) => {
+          const importedById = new Map(dedupedImported.map((record) => [record.id, record]));
+          const existingIds = new Set(previous.map((record) => record.id));
+          const importedNewRows = dedupedImported.filter((record) => !existingIds.has(record.id));
+          const updatedExistingRows = previous.map(
+            (record) => importedById.get(record.id) ?? record
+          );
+
+          return [...importedNewRows, ...updatedExistingRows];
+        });
+
+        const invalidImportedCount = dedupedImported.filter((record) => record.isInvalid).length;
         if (invalidImportedCount > 0) {
           toast.warning(
             `${invalidImportedCount} vendor name(s) could not be matched. Review the highlighted rows.`
           );
         } else {
-          toast.success(`Imported ${imported.length} transaction row(s) from ${file.name}.`);
+          toast.success(`Imported ${dedupedImported.length} transaction row(s) from ${file.name}.`);
         }
       } catch (error) {
         console.error("Error parsing file:", error);
@@ -368,27 +451,51 @@ function TransactionsContent() {
       return;
     }
 
+    const rowsToCreate = records.filter((record) => !isPersistedTransactionId(record.id));
+    const rowsToUpdate = records.filter((record) => {
+      if (!isPersistedTransactionId(record.id)) {
+        return false;
+      }
+
+      const previousPayload = persistedPayloadsRef.current[record.id];
+      return previousPayload === undefined || previousPayload !== serializeTransactionPayload(record);
+    });
+
+    if (rowsToCreate.length === 0 && rowsToUpdate.length === 0) {
+      toast.info("No changes to save.");
+      return;
+    }
+
     setIsSaving(true);
 
     try {
-      const payload: CreateVendorTransactionRequest[] = records.map((record) => ({
-        vendorId: record.vendor_id,
-        vendorName: record.vendor_name,
-        marketDate: record.market_date,
-        present: record.present,
-        snap: record.snap,
-        dufb: record.dufb,
-        wdfmTokens: record.wdfm_tokens,
-        voucher: record.voucher,
-        reimbursementDue: record.reimbursement_due,
-        reportedSales: record.reported_sales,
-        estProduceSales: record.est_produce_sales,
-        estNumTransactions: record.est_num_transactions,
-        customData: record.customData,
-      }));
 
-      await bulkCreateVendorTransactions(payload);
-      toast.success(`Successfully saved ${records.length} vendor transaction row(s).`);
+      await Promise.all([
+        rowsToCreate.length > 0
+          ? bulkCreateVendorTransactions(rowsToCreate.map(buildTransactionPayload))
+          : Promise.resolve([]),
+        rowsToUpdate.length > 0
+          ? Promise.all(
+              rowsToUpdate.map((record) =>
+                updateVendorTransaction(record.id, buildTransactionPayload(record))
+              )
+            )
+          : Promise.resolve([]),
+      ]);
+
+      const refreshedRecords = await fetchTransactionsForDate(currentMarketDate);
+      setRecords(refreshedRecords);
+      persistedPayloadsRef.current = buildPersistedPayloadSnapshot(refreshedRecords);
+
+      if (rowsToCreate.length > 0 && rowsToUpdate.length > 0) {
+        toast.success(
+          `Saved ${rowsToCreate.length} new and ${rowsToUpdate.length} existing vendor transaction row(s).`
+        );
+      } else if (rowsToCreate.length > 0) {
+        toast.success(`Successfully saved ${rowsToCreate.length} vendor transaction row(s).`);
+      } else {
+        toast.success(`Successfully updated ${rowsToUpdate.length} vendor transaction row(s).`);
+      }
     } catch (error) {
       console.error("Error saving transactions:", error);
       toast.error("Failed to save data. Please try again.");
