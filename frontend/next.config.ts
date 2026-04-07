@@ -1,7 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // This tells Next.js to generate flat HTML/CSS/JS files
+  output: 'export',
+  
+  images: {
+    unoptimized: true,
+  }
 };
 
 export default nextConfig;

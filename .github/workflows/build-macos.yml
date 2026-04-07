@@ -12,6 +12,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build Frontend
+        working-directory: ./frontend
+        run: |
+            npm ci
+            npm run build
+
+      - name: Copy Frontend to Backend
+        run: |
+            mkdir -p backend/src/main/resources/static
+            # NOTE: If using Next.js static export, change 'build' to 'out'
+            cp -r frontend/build/* backend/src/main/resources/static/
+
       - name: Setup GraalVM
         uses: graalvm/setup-graalvm@v1
         with:
