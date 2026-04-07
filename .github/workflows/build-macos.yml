@@ -25,9 +25,8 @@ jobs:
 
       - name: Copy Frontend to Backend
         run: |
-            mkdir -p backend/src/main/resources/static
-            # NOTE: If using Next.js static export, change 'build' to 'out'
-            cp -r frontend/build/* backend/src/main/resources/static/
+          mkdir -p backend/src/main/resources/static
+          cp -r frontend/out/* backend/src/main/resources/static/
 
       - name: Setup GraalVM
         uses: graalvm/setup-graalvm@v1

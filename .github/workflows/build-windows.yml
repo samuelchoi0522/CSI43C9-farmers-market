@@ -25,8 +25,8 @@ jobs:
 
       - name: Copy Frontend to Backend
         run: |
-            if (!(Test-Path -Path "backend\src\main\resources\static")) { New-Item -ItemType Directory -Force -Path "backend\src\main\resources\static" }
-            Copy-Item -Path "frontend\build\*" -Destination "backend\src\main\resources\static" -Recurse -Force
+          if (!(Test-Path -Path "backend\src\main\resources\static")) { New-Item -ItemType Directory -Force -Path "backend\src\main\resources\static" }
+          Copy-Item -Path "frontend\out\*" -Destination "backend\src\main\resources\static" -Recurse -Force
 
       - name: Setup GraalVM
         uses: graalvm/setup-graalvm@v1
