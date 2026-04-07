@@ -185,8 +185,9 @@ function LabelManagement() {
                                                     </div>
                                                 ) : (
                                                     <div className="flex items-center gap-2">
-                                                        <div className="w-3 h-3 rounded-full border border-slate-200" style={{ backgroundColor: label.color || style.backgroundColor }} />
-                                                        <code className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">{label.color || "Auto"}</code>
+                                                        <div className="w-3 h-3 rounded-full border border-slate-200" style={{ backgroundColor: style.backgroundColor }} />
+                                                        <code className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 uppercase font-mono">{label.color || style.backgroundColor}</code>
+                                                        {!label.color && <span className="text-[10px] text-slate-400 italic">(Auto)</span>}
                                                     </div>
                                                 )}
                                             </TableCell>
@@ -209,7 +210,15 @@ function LabelManagement() {
                                                     </div>
                                                 ) : (
                                                     <div className="flex justify-end gap-2">
-                                                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setEditingLabel(label)}>
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            size="sm" 
+                                                            className="h-8 w-8 p-0" 
+                                                            onClick={() => setEditingLabel({
+                                                                ...label,
+                                                                color: label.color || getLabelColors(label.name).backgroundColor
+                                                            })}
+                                                        >
                                                             <span className="material-icons text-sm">edit</span>
                                                         </Button>
                                                     </div>
