@@ -14,8 +14,6 @@ checkstyle {
 graalvmNative {
     metadataRepository {
         enabled = true
-        // Forces the cache onto the D:\ drive to prevent the Windows 'other has different root' crash
-        cacheDir = file("${projectDir}/build/native/metadata-cache")
     }
 }
 

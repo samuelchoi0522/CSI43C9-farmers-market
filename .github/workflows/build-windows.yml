@@ -22,7 +22,8 @@ jobs:
 
       - name: Build Native Image
         working-directory: ./backend
-        run: .\gradlew.bat nativeCompile
+        # This forces the Gradle cache into the current folder on the D:\ drive!
+        run: .\gradlew.bat nativeCompile --gradle-user-home .gradle
 
       # (Optional) Uncomment when the .ico file is ready
       # - name: Download rcedit
