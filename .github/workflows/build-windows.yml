@@ -22,8 +22,9 @@ jobs:
 
       - name: Build Native Image
         working-directory: ./backend
-        # This forces the Gradle cache into the current folder on the D:\ drive!
-        run: .\gradlew.bat nativeCompile --gradle-user-home .gradle
+        run: |
+            mkdir -Force build\tmp
+            .\gradlew.bat nativeCompile -Djava.io.tmpdir="${{ github.workspace }}\backend\build\tmp"
 
       # (Optional) Uncomment when the .ico file is ready
       # - name: Download rcedit

@@ -55,8 +55,12 @@ jobs:
           </dict>
           </plist>' > FarmersMarket.app/Contents/Info.plist
 
+      - name: Zip the App Bundle
+        run: zip -r FarmersMarket-macOS.zip FarmersMarket.app
+
       - name: Upload Mac App
         uses: actions/upload-artifact@v4
         with:
           name: farmers-market-mac
-          path: FarmersMarket.app
+          # Upload the zip file we just created, NOT the raw folder
+          path: FarmersMarket-macOS.zip
