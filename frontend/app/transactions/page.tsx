@@ -88,6 +88,32 @@ const buildTransactionPayload = (
   customData: record.customData,
 });
 
+const normalizeComparableValue = (value: unknown): unknown => {
+  if (Array.isArray(value)) {
+    return value.map(normalizeComparableValue);
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, nestedValue]) => [key, normalizeComparableValue(nestedValue)])
+    );
+  }
+
+  return value;
+};
+
+const serializeTransactionPayload = (record: VendorTransactionsSheetRow) =>
+  JSON.stringify(normalizeComparableValue(buildTransactionPayload(record)));
+
+const buildPersistedPayloadSnapshot = (rows: VendorTransactionsSheetRow[]) =>
+  Object.fromEntries(
+    rows
+      .filter((record) => isPersistedTransactionId(record.id))
+      .map((record) => [record.id, serializeTransactionPayload(record)])
+  );
+
 function TransactionsContent() {
   const [currentMarketDate, setCurrentMarketDate] = useState(getMostRecentSaturday());
   const [records, setRecords] = useState<VendorTransactionsSheetRow[]>([]);
@@ -101,6 +127,7 @@ function TransactionsContent() {
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const persistedPayloadsRef = useRef<Record<string, string>>({});
   const { user, logout } = useAuth();
   const userName = user?.username || "Admin User";
 
@@ -228,11 +255,13 @@ function TransactionsContent() {
 
         if (!isActive) return;
         setRecords(nextRecords);
+        persistedPayloadsRef.current = buildPersistedPayloadSnapshot(nextRecords);
       } catch (error) {
         console.error("Failed to load transactions:", error);
         if (!isActive) return;
 
         setRecords([]);
+        persistedPayloadsRef.current = {};
         toast.error("Failed to load transactions for the selected market date.");
       } finally {
         if (isActive) {
@@ -422,11 +451,24 @@ function TransactionsContent() {
       return;
     }
 
+    const rowsToCreate = records.filter((record) => !isPersistedTransactionId(record.id));
+    const rowsToUpdate = records.filter((record) => {
+      if (!isPersistedTransactionId(record.id)) {
+        return false;
+      }
+
+      const previousPayload = persistedPayloadsRef.current[record.id];
+      return previousPayload === undefined || previousPayload !== serializeTransactionPayload(record);
+    });
+
+    if (rowsToCreate.length === 0 && rowsToUpdate.length === 0) {
+      toast.info("No changes to save.");
+      return;
+    }
+
     setIsSaving(true);
 
     try {
-      const rowsToUpdate = records.filter((record) => isPersistedTransactionId(record.id));
-      const rowsToCreate = records.filter((record) => !isPersistedTransactionId(record.id));
 
       await Promise.all([
         rowsToCreate.length > 0
@@ -443,6 +485,7 @@ function TransactionsContent() {
 
       const refreshedRecords = await fetchTransactionsForDate(currentMarketDate);
       setRecords(refreshedRecords);
+      persistedPayloadsRef.current = buildPersistedPayloadSnapshot(refreshedRecords);
 
       if (rowsToCreate.length > 0 && rowsToUpdate.length > 0) {
         toast.success(
