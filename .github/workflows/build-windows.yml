@@ -22,10 +22,12 @@ jobs:
 
       - name: Build Native Image
         working-directory: ./backend
+        # Bypasses PowerShell entirely and injects the temp path directly into Java
+        env:
+          GRADLE_OPTS: "-Djava.io.tmpdir=${{ github.workspace }}\\backend\\build\\tmp"
         run: |
             mkdir -Force build\tmp
-            .\gradlew.bat nativeCompile -Djava.io.tmpdir="${{ github.workspace }}\backend\build\tmp"
-
+            .\gradlew.bat nativeCompile
       # (Optional) Uncomment when the .ico file is ready
       # - name: Download rcedit
       #   run: Invoke-WebRequest -Uri "https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe" -OutFile rcedit.exe
