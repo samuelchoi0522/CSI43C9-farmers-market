@@ -32,7 +32,7 @@ create table if not exists vendor_transactions
     reported_sales       double                    null,
     est_produce_sales    double                    null,
     est_num_transactions bigint                    null,
-    custom_data          json                      null,
+    custom_data          text                      null,
     created_at           timestamp  default now(),
     updated_at           timestamp on update now() null,
     foreign key (vendor_id) references vendors (id),
