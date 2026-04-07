@@ -7,6 +7,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @Controller
 public class FrontendRoutingController {
 
+    @RequestMapping("/vendor/{uuid}")
+    public String vendorProfile() {
+        return "forward:/vendor/template.html";
+    }
+
     // Catch all routes that aren't API calls or static assets (like .css or .js)
     @RequestMapping(value = {
             "/{path:[^\\.]*}",

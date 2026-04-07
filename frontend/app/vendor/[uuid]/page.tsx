@@ -49,6 +49,10 @@ import { EditVendorDialog } from "@/app/components/EditVendorDialog";
 import { getLabelColors } from "@/lib/labelColors";
 import { SmoothCurrencyValue } from "@/lib/smoothNumbers";
 
+export function generateStaticParams() {
+  return [{ uuid: 'template' }];
+}
+
 // Register Chart.js components
 ChartJS.register(
     CategoryScale,
