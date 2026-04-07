@@ -4,7 +4,6 @@ import com.csi43C9.baylor.farmers_market.dto.vendor.CategoryLabelDto;
 import com.csi43C9.baylor.farmers_market.repository.base.AbstractJdbcRepository;
 import com.csi43C9.baylor.farmers_market.repository.base.MarketRepository;
 import com.csi43C9.baylor.farmers_market.util.UuidUtils;
-import org.mariadb.jdbc.Statement;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -12,6 +11,7 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import java.sql.PreparedStatement;
+import java.sql.Statement;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -66,11 +66,14 @@ public class VendorCategoryRepository extends AbstractJdbcRepository implements 
      * If the list is null or empty, the operation returns immediately.
      */
     public void insertVendorLabels(UUID vendorId, List<Long> labelIds) {
-        if (labelIds == null || labelIds.isEmpty()) {
+        if (Objects.isNull(labelIds) || labelIds.isEmpty()) {
             return;
         }
 
-        String sql = "INSERT IGNORE INTO vendor_category_labels (vendor_id, label_id) VALUES (?, ?)";
+        String sql = """
+            INSERT IGNORE INTO vendor_category_labels (vendor_id, label_id)
+            VALUES (?, ?)
+        """;
 
         // Optimization: Convert UUID to bytes once before the loop
         byte[] vendorBytes = UuidUtils.toBytes(vendorId);
@@ -98,22 +101,17 @@ public class VendorCategoryRepository extends AbstractJdbcRepository implements 
     }
 
     /**
-     * Helper method to convert a Java {@link UUID} into a 16-byte array.
-     * <p>
-     * This conversion ensures compatibility with the database's {@code BINARY(16)} column type
-     * and matches the standard Big-Endian ordering used by SQL's {@code uuid_to_bin()} function.
-     *
-     * @param uuid the UUID to convert
-     * @return a 16-byte array representing the UUID, or null if the input is null
-     */
-    /**
      * Inserts a new label into the category_labels table.
-     * * @param name The name of the category (e.g., "Organic")
-     * * @param color The hex color for the label (e.g., "#10b981")
+     *
+     * @param name The name of the category (e.g., "Organic")
+     * @param color The hex color for the label (e.g., "#10b981")
      * @return A DTO containing the newly generated ID, name, and color
      */
     public CategoryLabelDto createLabel(String name, String color) {
-        String sql = "INSERT INTO category_labels (name, color) VALUES (?, ?)";
+        String sql = """
+            INSERT INTO category_labels (name, color)
+            VALUES (?, ?)
+        """;
         KeyHolder keyHolder = new GeneratedKeyHolder();
 
         jdbcTemplate.update(connection -> {
@@ -131,7 +129,12 @@ public class VendorCategoryRepository extends AbstractJdbcRepository implements 
      * Retrieves all labels available in the database.
      */
     public List<CategoryLabelDto> findAllLabels() {
-        String sql = "SELECT id, name, color FROM category_labels ORDER BY name ASC";
+        String sql = """
+            SELECT id, name, color
+            FROM category_labels
+            ORDER BY name ASC
+        """;
+
         return jdbcTemplate.query(sql, (rs, rowNum) -> new CategoryLabelDto(
                 rs.getLong("id"),
                 rs.getString("name"),
@@ -143,8 +146,14 @@ public class VendorCategoryRepository extends AbstractJdbcRepository implements 
      * Deletes a category label from the global label table and removes its vendor mappings first.
      */
     public void deleteCategoryLabel(Long labelId) {
-        String deleteVendorMappingsSql = "DELETE FROM vendor_category_labels WHERE label_id = ?";
-        String deleteLabelSql = "DELETE FROM category_labels WHERE id = ?";
+        String deleteVendorMappingsSql = """
+            DELETE FROM vendor_category_labels
+            WHERE label_id = ?
+        """;
+        String deleteLabelSql = """
+            DELETE FROM category_labels
+            WHERE id = ?
+        """;
 
         jdbcTemplate.update(deleteVendorMappingsSql, labelId);
         jdbcTemplate.update(deleteLabelSql, labelId);
@@ -154,14 +163,19 @@ public class VendorCategoryRepository extends AbstractJdbcRepository implements 
      * Updates a category label's name.
      */
     public CategoryLabelDto updateCategoryLabel(Long labelId, String name, String color) {
-        String sql = "UPDATE category_labels SET name = ?, color = ? WHERE id = ?";
+        String sql = """
+            UPDATE category_labels
+            SET name = ?, color = ?
+            WHERE id = ?
+        """;
+
         jdbcTemplate.update(sql, name, color, labelId);
         return new CategoryLabelDto(labelId, name, color);
     }
 
     @Override
     public CategoryLabelDto save(CategoryLabelDto entity) {
-        if (entity.getId() == null) {
+        if (Objects.isNull(entity.getId())) {
             return createLabel(entity.getName(), entity.getColor());
         }
         return updateCategoryLabel(entity.getId(), entity.getName(), entity.getColor());
@@ -169,7 +183,12 @@ public class VendorCategoryRepository extends AbstractJdbcRepository implements 
 
     @Override
     public Optional<CategoryLabelDto> findById(Long id) {
-        String sql = "SELECT id, name, color FROM category_labels WHERE id = ?";
+        String sql = """
+            SELECT id, name, color
+            FROM category_labels
+            WHERE id = ?
+        """;
+
         try {
             CategoryLabelDto label = jdbcTemplate.queryForObject(sql, (rs, rowNum) -> new CategoryLabelDto(
                     rs.getLong("id"),
@@ -190,7 +209,13 @@ public class VendorCategoryRepository extends AbstractJdbcRepository implements 
     @Override
     public List<CategoryLabelDto> findAllPaged(int pageNumber, int pageSize) {
         int offset = pageNumber * pageSize;
-        String sql = "SELECT id, name, color FROM category_labels ORDER BY name ASC LIMIT ? OFFSET ?";
+        String sql = """
+            SELECT id, name, color
+            FROM category_labels
+            ORDER BY name ASC
+            LIMIT ? OFFSET ?
+        """;
+
         return jdbcTemplate.query(sql, (rs, rowNum) -> new CategoryLabelDto(
                 rs.getLong("id"),
                 rs.getString("name"),
@@ -200,7 +225,11 @@ public class VendorCategoryRepository extends AbstractJdbcRepository implements 
 
     @Override
     public Long count() {
-        String sql = "SELECT COUNT(*) FROM category_labels";
+        String sql = """
+            SELECT COUNT(*)
+            FROM category_labels
+        """;
+
         return jdbcTemplate.queryForObject(sql, Long.class);
     }
 

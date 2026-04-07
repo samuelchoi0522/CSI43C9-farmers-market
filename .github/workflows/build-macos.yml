@@ -1,0 +1,60 @@
+name: Build macOS App
+
+on:
+  push:
+    branches:
+      - native-build-experiment # Change this to workflow_dispatch when ready to merge
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '25'
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cache: 'gradle'
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Build Native Image
+        run: ./gradlew nativeCompile
+
+      - name: Package Mac .app Bundle
+        run: |
+          mkdir -p FarmersMarket.app/Contents/MacOS
+          mkdir -p FarmersMarket.app/Contents/Resources
+          cp backend/build/native/nativeCompile/farmers_market FarmersMarket.app/Contents/MacOS/
+#          cp backend/icons/icon.icns FarmersMarket.app/Contents/Resources/
+          cat <<EOF > FarmersMarket.app/Contents/Info.plist
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleExecutable</key>
+              <string>farmers_market</string>
+#              <key>CFBundleIconFile</key>
+#              <string>icon.icns</string>
+              <key>CFBundleIdentifier</key>
+              <string>com.csi43C9.farmersmarket</string>
+              <key>CFBundleName</key>
+              <string>Farmers Market</string>
+              <key>CFBundlePackageType</key>
+              <string>APPL</string>
+              <key>LSMinimumSystemVersion</key>
+              <string>10.15</string>
+          </dict>
+          </plist>
+          EOF
+
+      - name: Upload Mac App
+        uses: actions/upload-artifact@v4
+        with:
+          name: farmers-market-mac
+          path: FarmersMarket.app

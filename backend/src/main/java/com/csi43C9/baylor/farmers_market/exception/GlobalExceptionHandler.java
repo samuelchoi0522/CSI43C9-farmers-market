@@ -8,8 +8,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -91,23 +89,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<@NonNull ErrorResponse> handleConflict(DataIntegrityViolationException ex, WebRequest request) {
         logger.error("Database error: ", ex);
         return buildResponse(HttpStatus.CONFLICT, "Database error: Possible duplicate entry or constraint violation.", request);
-    }
-
-    /**
-     * Handles login and user lookup failures.
-     */
-    @ExceptionHandler({BadCredentialsException.class, UsernameNotFoundException.class})
-    public ResponseEntity<@NonNull ErrorResponse> handleAuthFailure(Exception e, WebRequest request) {
-        logger.debug("Authentication error: ", e);
-        return buildResponse(HttpStatus.UNAUTHORIZED, "Invalid username or password.", request);
-    }
-
-    /**
-     * Handles custom TokenExceptions (Missing tokens, expired tokens).
-     */
-    @ExceptionHandler(TokenException.class)
-    public ResponseEntity<@NonNull ErrorResponse> handleTokenException(TokenException ex, WebRequest request) {
-        return buildResponse(ex.getStatus(), ex.getMessage(), request);
     }
 
     /**
