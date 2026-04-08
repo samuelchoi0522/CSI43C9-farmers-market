@@ -22,7 +22,7 @@ import java.util.Optional;
 /**
  * REST controller for managing CustomColumnMetadata.
  */
-@CrossOrigin(origins = "*", maxAge = 3600)
+@CrossOrigin(origins = {"tauri://localhost", "https://tauri.localhost", "http://localhost:3000"})
 @RestController
 @RequestMapping("/api/custom-columns")
 public class CustomColumnController {

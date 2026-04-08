@@ -1,7 +1,0 @@
-1:"$Sreact.fragment"
-2:I[39756,["/_next/static/chunks/ff1a16fafef87110.js","/_next/static/chunks/61cc43b3d7ad2990.js"],"default"]
-3:I[37457,["/_next/static/chunks/ff1a16fafef87110.js","/_next/static/chunks/61cc43b3d7ad2990.js"],"default"]
-4:I[36768,["/_next/static/chunks/28f8d22d6df498e0.js"],"default"]
-:HL["/_next/static/chunks/40dcb99a5e049c1e.css","style"]
-:HL["https://fonts.googleapis.com/icon?family=Material+Icons","style"]
-0:{"buildId":"tXQGyXYTZbDAxvy0HrY1U","rsc":["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/chunks/40dcb99a5e049c1e.css","precedence":"next"}]],["$","html",null,{"lang":"en","suppressHydrationWarning":true,"children":[["$","head",null,{"children":["$","link",null,{"href":"https://fonts.googleapis.com/icon?family=Material+Icons","rel":"stylesheet"}]}],["$","body",null,{"className":"inter_5ba3adcc-module__M5nlAW__variable fraunces_5e323de4-module__S-QdHW__variable antialiased","children":["$","$L2",null,{"parallelRouterKey":"children","template":["$","$L3",null,{}],"notFound":[["$","$L4",null,{}],[]]}]}]]}]]}],"loading":null,"isPartial":false}

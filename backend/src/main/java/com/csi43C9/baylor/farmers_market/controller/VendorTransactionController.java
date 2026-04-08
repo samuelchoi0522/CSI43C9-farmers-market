@@ -33,7 +33,7 @@ import java.util.UUID;
  * <p>This controller is protected by JWT authentication as configured in
  * the SecurityConfig class.</p>
  */
-@CrossOrigin(origins = "*", maxAge = 3600)
+@CrossOrigin(origins = {"tauri://localhost", "https://tauri.localhost", "http://localhost:3000"})
 @RestController
 @RequestMapping("/api/vendor-transaction")
 @AllArgsConstructor

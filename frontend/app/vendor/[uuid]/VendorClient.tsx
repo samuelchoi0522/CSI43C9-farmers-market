@@ -46,6 +46,7 @@ import LabelPickerDialog from "../../components/LabelPickerDialog";
 import { EditVendorDialog } from "@/app/components/EditVendorDialog";
 import { getLabelColors } from "@/lib/labelColors";
 import { SmoothCurrencyValue } from "@/lib/smoothNumbers";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 
 // Register Chart.js components
 ChartJS.register(
@@ -376,21 +377,12 @@ function VendorDetailContent() {
     const userName = "Market Manager";
 
     const handleShutdown = async () => {
-        if (window.confirm("Are you sure you want to shut down MarketOS?")) {
-            try {
-                await fetch('/api/system/shutdown', { method: 'POST' });
-                // Replaces the screen with a safe-to-close message
-                document.body.innerHTML = `
-                    <div style="display:flex; height:100vh; align-items:center; justify-content:center; font-family:sans-serif; flex-direction:column; background:#F9FAF2;">
-                        <h1 style="font-size:24px; margin-bottom:8px; color:#1e293b;">MarketOS has been shut down</h1>
-                        <p style="color:#64748b;">You can safely close this window.</p>
-                    </div>
-                `;
-            } catch (e) {
-                window.close(); // Fallback
-            }
-        }
-    };
+    if (window.confirm("Are you sure you want to shut down MarketOS?")) {
+        // This closes the native OS window, which tells Tauri to 
+        // instantly kill itself and the Spring Boot sidecar.
+        await getCurrentWindow().close(); 
+    }
+};
 
     const formatCurrency = (value: number | null) => {
         if (value === null) return "-";

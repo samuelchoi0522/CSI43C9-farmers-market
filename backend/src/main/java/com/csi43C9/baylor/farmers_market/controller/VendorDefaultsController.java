@@ -24,7 +24,7 @@ import java.util.UUID;
 /**
  * REST Controller for managing vendor defaults-related operations.
  */
-@CrossOrigin(origins = "*", maxAge = 3600)
+@CrossOrigin(origins = {"tauri://localhost", "https://tauri.localhost", "http://localhost:3000"})
 @RestController
 @RequestMapping("/api/defaults")
 @AllArgsConstructor

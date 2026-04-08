@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Fraunces } from "next/font/google";
 import "./globals.css";
+import SidecarBooter from "./components/SidecarBooter";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -32,9 +33,9 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body
-        className={`${inter.variable} ${fraunces.variable} antialiased`}
-      >
+      <body className={`${inter.variable} ${fraunces.variable} antialiased`}>
+        {/* The invisible booter will safely launch Spring Boot in the background */}
+        <SidecarBooter />
         {children}
       </body>
     </html>

@@ -22,7 +22,7 @@ import java.util.UUID;
  * REST Controller for managing the general categories (labels) associated with a specific vendor.
  * Maps to the `vendor_category_labels` and `category_labels` tables.
  */
-@CrossOrigin(origins = "*", maxAge = 3600)
+@CrossOrigin(origins = {"tauri://localhost", "https://tauri.localhost", "http://localhost:3000"})
 @RestController
 @RequestMapping("/api/vendors/{vendorId}/categories")
 public class VendorLabelController {
