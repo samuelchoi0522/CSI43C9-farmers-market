@@ -40,6 +40,7 @@ export default function SidebarNavigation({
             <Link
               key={item.id}
               href={item.href}
+              prefetch={false}
               className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 ease-out hover-lift ${
                 isActive
                   ? "bg-[#10b981]/10 text-[#10b981] font-medium shadow-sm"

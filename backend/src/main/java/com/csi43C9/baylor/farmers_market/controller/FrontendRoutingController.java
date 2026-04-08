@@ -39,6 +39,11 @@ public class FrontendRoutingController {
             return "forward:" + uri;
         }
 
+        // If Next.js is prefetching via <Link> hover
+        if ("1".equals(request.getHeader("RSC"))) {
+            return "forward:" + uri + ".txt";
+        }
+
         // Forward to the static Next.js HTML file
         return "forward:" + uri + ".html";
     }
