@@ -1,17 +1,19 @@
 "use client";
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Box } from '@mui/material';
 import {
   DataGrid,
   GridRowSelectionModel,
   GridToolbarContainer,
   GridToolbarQuickFilter,
+  type GridRenderCellParams,
 } from '@mui/x-data-grid';
-import { AlertCircle, Loader2, Trash2, Upload } from 'lucide-react';
+import { AlertCircle, Loader2, Sparkles, Trash2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import Button from './Button';
 import MarketDatePicker from './MarketDatePicker';
+import { VendorDefaultsDialog } from './VendorDefaultsDialog';
 import VendorTransactionsSheetColumn, {
   vendorTransactionsSheetEditors,
   vendorTransactionsSheetFormatters,
@@ -20,9 +22,15 @@ import VendorTransactionsSheetRow, {
   type VendorTransactionsSheetRowModel,
   vendorTransactionsSheetRowSx,
 } from './VendorTransactionsSheetRow';
+import { type Vendor as ApiVendor } from '@/lib/api/vendor';
+import { getVendorDefaultsByVendorId, type VendorDefaults } from '@/lib/api/defaults';
 import { type CustomColumnMetadata } from '@/lib/api/customColumns';
 
 export type VendorTransactionsSheetRow = VendorTransactionsSheetRowModel;
+
+type VendorWithDefaults = ApiVendor & {
+  defaults?: VendorDefaults & { avgSaleAmount?: string };
+};
 
 interface VendorTransactionsSheetProps {
   currentMarketDate: string;
@@ -34,6 +42,7 @@ interface VendorTransactionsSheetProps {
   normalizeRow: (row: VendorTransactionsSheetRow) => VendorTransactionsSheetRow;
   onRowsChange: (rows: VendorTransactionsSheetRow[]) => void;
   onSave: () => void;
+  vendorsWithDefaults: VendorWithDefaults[];
   customColumns?: CustomColumnMetadata[];
 }
 
@@ -47,9 +56,50 @@ export default function VendorTransactionsSheet({
   normalizeRow,
   onRowsChange,
   onSave,
+  vendorsWithDefaults,
   customColumns = [],
 }: VendorTransactionsSheetProps) {
   const [rowSelectionModel, setRowSelectionModel] = useState<GridRowSelectionModel>({ type: 'include', ids: new Set() });
+  const handleApplyDefaults = (rowId: string, data: {
+    pctHandmade: number;
+    pctAgricultural: number;
+    pctPreparedFood: number;
+    pctCottageGoods: number;
+    pctManufactured: number;
+    avgSaleAmount: number;
+  }) => {
+    const targetRow = rows.find((row) => row.id === rowId);
+    if (!targetRow) return;
+
+    const sales = targetRow.reported_sales || 0;
+    const produceSales = (sales * (data.pctAgricultural + data.pctPreparedFood)) / 100;
+    const estTransactions = data.avgSaleAmount > 0 ? Math.round(sales / data.avgSaleAmount) : 0;
+
+    const updatedRow = normalizeRow({
+      ...targetRow,
+      est_produce_sales: Math.round(produceSales * 100) / 100,
+      est_num_transactions: estTransactions,
+      defaults_applied: true,
+      defaults_override: {
+        pctHandmade: data.pctHandmade,
+        pctAgricultural: data.pctAgricultural,
+        pctPreparedFood: data.pctPreparedFood,
+        pctCottageGoods: data.pctCottageGoods,
+        pctManufactured: data.pctManufactured,
+      },
+    });
+
+    onRowsChange(rows.map((row) => (row.id === rowId ? updatedRow : row)));
+    toast.success(`Applied defaults for ${updatedRow.vendor_name}.`);
+  };
+  const isDefaultsRequired = (row: VendorTransactionsSheetRow) => {
+    const vendor = vendorsWithDefaults.find(
+      (item) =>
+        item.id === row.vendor_id ||
+        item.vendorName?.toLowerCase() === row.vendor_name.trim().toLowerCase()
+    );
+    return Boolean(vendor?.defaults);
+  };
   const selectedRowIds = useMemo(() => {
     if (rowSelectionModel.type === 'exclude') {
       return rows
@@ -175,6 +225,28 @@ export default function VendorTransactionsSheet({
         valueFormatter: vendorTransactionsSheetFormatters.currency,
       }),
       VendorTransactionsSheetColumn({
+        field: 'defaults',
+        headerName: 'Defaults',
+        width: 120,
+        align: 'center',
+        headerAlign: 'center',
+        sortable: false,
+        filterable: false,
+        editable: false,
+        cellClassName: (params) => {
+          const row = params.row as VendorTransactionsSheetRow;
+          const requiresDefaults = isDefaultsRequired(row);
+          return requiresDefaults && !row.defaults_applied ? 'bg-red-50 font-bold text-red-600' : '';
+        },
+        renderCell: (params: GridRenderCellParams) => (
+          <VendorDefaultsCell
+            row={params.row as VendorTransactionsSheetRow}
+            vendorsWithDefaults={vendorsWithDefaults}
+            onApply={handleApplyDefaults}
+          />
+        ),
+      }),
+      VendorTransactionsSheetColumn({
         field: 'est_produce_sales',
         headerName: 'Est. Produce',
         type: 'number',
@@ -239,7 +311,7 @@ export default function VendorTransactionsSheet({
           });
         }),
     ],
-    [customColumns]
+    [customColumns, vendorsWithDefaults, handleApplyDefaults]
   );
 
   const Toolbar = () => (
@@ -366,6 +438,117 @@ export default function VendorTransactionsSheet({
           )}
         </Button>
       </div>
+    </>
+  );
+}
+
+interface VendorDefaultsCellProps {
+  row: VendorTransactionsSheetRow;
+  vendorsWithDefaults: VendorWithDefaults[];
+  onApply: (rowId: string, data: {
+    pctHandmade: number;
+    pctAgricultural: number;
+    pctPreparedFood: number;
+    pctCottageGoods: number;
+    pctManufactured: number;
+    avgSaleAmount: number;
+  }) => void;
+}
+
+function VendorDefaultsCell({ row, vendorsWithDefaults, onApply }: VendorDefaultsCellProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isLoadingDefaults, setIsLoadingDefaults] = useState(false);
+  const [localDefaults, setLocalDefaults] = useState<VendorDefaults | null>(null);
+  const vendor = useMemo(
+    () =>
+      vendorsWithDefaults.find((item) =>
+        item.id === row.vendor_id ||
+        item.vendorName?.toLowerCase() === row.vendor_name.trim().toLowerCase()
+      ),
+    [vendorsWithDefaults, row.vendor_id, row.vendor_name]
+  );
+
+  useEffect(() => {
+    if (!vendor) return;
+    if (vendor.defaults) {
+      setLocalDefaults(vendor.defaults);
+    }
+  }, [vendor]);
+
+  const resolvedVendor = vendor
+    ? {
+        ...vendor,
+        defaults: localDefaults ?? vendor.defaults,
+      }
+    : undefined;
+
+  const handleOpen = async () => {
+    if (!resolvedVendor) {
+      toast.error('Vendor not found for this row.');
+      return;
+    }
+
+    if (resolvedVendor.defaults) {
+      setIsOpen(true);
+      return;
+    }
+
+    setIsLoadingDefaults(true);
+    try {
+      const defaults = await getVendorDefaultsByVendorId(resolvedVendor.id);
+      if (defaults) {
+        setLocalDefaults(defaults);
+        setIsOpen(true);
+      } else {
+        toast.error(`No defaults saved for ${resolvedVendor.vendorName}.`);
+      }
+    } catch (error) {
+      console.error('Failed to load vendor defaults:', error);
+      toast.error('Unable to load vendor defaults.');
+    } finally {
+      setIsLoadingDefaults(false);
+    }
+  };
+
+  return (
+    <>
+      <button
+        onClick={handleOpen}
+        className={`rounded-full p-1.5 transition-all hover:scale-110 active:scale-95 ${
+          resolvedVendor
+            ? 'text-[#10b981] hover:bg-[#10b981]/15'
+            : 'text-slate-300 cursor-not-allowed'
+        } ${isLoadingDefaults ? 'opacity-60 pointer-events-none' : ''}`}
+        title={
+          resolvedVendor
+            ? resolvedVendor.defaults
+              ? 'Use Vendor Defaults'
+              : 'Load Vendor Defaults'
+            : 'Vendor not found'
+        }
+        type="button"
+        disabled={!resolvedVendor}
+      >
+        <Sparkles size={18} />
+      </button>
+      {resolvedVendor?.defaults && (
+        <VendorDefaultsDialog
+          vendor={resolvedVendor}
+          reportedSales={row.reported_sales || 0}
+          isOpen={isOpen}
+          onOpenChange={setIsOpen}
+          initialPercentages={
+            row.defaults_override ?? {
+              pctHandmade: parseFloat(resolvedVendor.defaults.pctHandmade || '0'),
+              pctAgricultural: parseFloat(resolvedVendor.defaults.pctAgricultural || '0'),
+              pctPreparedFood: parseFloat(resolvedVendor.defaults.pctPreparedFood || '0'),
+              pctCottageGoods: parseFloat(resolvedVendor.defaults.pctCottageGoods || '0'),
+              pctManufactured: parseFloat(resolvedVendor.defaults.pctManufactured || '0'),
+            }
+          }
+          onApply={(data) => onApply(row.id, data)}
+        />
+      )}
     </>
   );
 }

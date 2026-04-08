@@ -20,6 +20,14 @@ export interface VendorTransactionsSheetRowModel {
   est_num_transactions: number;
   isInvalid: boolean;
   customData?: Record<string, unknown>;
+  defaults_applied?: boolean;
+  defaults_override?: {
+    pctHandmade: number;
+    pctAgricultural: number;
+    pctPreparedFood: number;
+    pctCottageGoods: number;
+    pctManufactured: number;
+  };
 }
 
 const INVALID_ROW_CLASS = 'vendor-transactions-sheet-row--invalid';

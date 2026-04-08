@@ -20,6 +20,7 @@ import {
   type VendorTransaction,
 } from '@/lib/api/transactions';
 import { getVendors, type Vendor as ApiVendor } from '@/lib/api/vendor';
+import { getAllVendorDefaults, type VendorDefaults } from '@/lib/api/defaults';
 import { downloadVendorTransactionsTemplate } from '@/lib/transactionsTemplate';
 import { getActiveCustomColumns, type CustomColumnMetadata } from '@/lib/api/customColumns';
 
@@ -27,6 +28,10 @@ interface Vendor {
   id: string;
   name: string;
 }
+
+type VendorWithDefaults = ApiVendor & {
+  defaults?: VendorDefaults & { avgSaleAmount?: string };
+};
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const TRANSACTION_ID_HEADERS = new Set(['vendor transaction id', 'transaction id', 'uuid']);
@@ -67,6 +72,8 @@ const mapTransactionToSalesRecord = (
   est_produce_sales: transaction.estProduceSales,
   est_num_transactions: transaction.estNumTransactions,
   customData: transaction.customData ?? {},
+  defaults_applied: true,
+  defaults_override: undefined,
   isInvalid: false,
 });
 
@@ -119,6 +126,7 @@ function TransactionsContent() {
   const [records, setRecords] = useState<VendorTransactionsSheetRow[]>([]);
   const [allVendors, setAllVendors] = useState<Vendor[]>([]);
   const [activeVendors, setActiveVendors] = useState<ApiVendor[]>([]);
+  const [vendorDetails, setVendorDetails] = useState<VendorWithDefaults[]>([]);
   const [customColumns, setCustomColumns] = useState<CustomColumnMetadata[]>([]);
   const [vendorsLoading, setVendorsLoading] = useState(true);
   const [isImporting, setIsImporting] = useState(false);
@@ -164,6 +172,8 @@ function TransactionsContent() {
         est_produce_sales: parseNumericValue(record.est_produce_sales),
         est_num_transactions: parseNumericValue(record.est_num_transactions),
         customData: record.customData ?? {},
+        defaults_applied: record.defaults_applied ?? false,
+        defaults_override: record.defaults_override,
         isInvalid: !matchedVendor,
       };
     },
@@ -207,20 +217,32 @@ function TransactionsContent() {
       setVendorsLoading(true);
 
       try {
-        const [vendorResponse, columnsResponse] = await Promise.all([
+        const [vendorResponse, columnsResponse, defaultsResponse] = await Promise.all([
           getVendors(0, 1000, true),
-          getActiveCustomColumns()
+          getActiveCustomColumns(),
+          getAllVendorDefaults(0, 2000),
         ]);
 
         if (!isMounted) return;
 
-        const vendorList: ApiVendor[] = Array.isArray(vendorResponse) ? vendorResponse : vendorResponse?.data ?? [];
+        const vendorList: ApiVendor[] = Array.isArray(vendorResponse) ? vendorResponse : vendorResponse?.data ?? vendorResponse?.content ?? [];
+        const defaultsList: VendorDefaults[] = Array.isArray(defaultsResponse)
+          ? defaultsResponse
+          : defaultsResponse?.data ?? defaultsResponse?.content ?? [];
+        const defaultsByVendorId = new Map(defaultsList.map((defaults) => [defaults.vendorId, defaults]));
+        const vendorWithDefaults: VendorWithDefaults[] = vendorList.map((vendor) => ({
+          ...vendor,
+          defaults: defaultsByVendorId.has(vendor.id)
+            ? { ...defaultsByVendorId.get(vendor.id)!, avgSaleAmount: "0" }
+            : undefined,
+        }));
 
         setAllVendors(
           vendorList
             .map((vendor) => ({ id: vendor.id, name: vendor.vendorName }))
             .sort((a, b) => a.name.localeCompare(b.name))
         );
+        setVendorDetails(vendorWithDefaults);
         setActiveVendors(
           vendorList
             .filter((vendor) => vendor.isActive)
@@ -278,6 +300,15 @@ function TransactionsContent() {
   }, [currentMarketDate, fetchTransactionsForDate]);
 
   const invalidCount = records.filter((record) => record.isInvalid).length;
+  const defaultsMissingCount = records.filter((record) => {
+    const vendor = vendorDetails.find(
+      (item) =>
+        item.id === record.vendor_id ||
+        item.vendorName?.toLowerCase() === record.vendor_name.trim().toLowerCase()
+    );
+    if (!vendor?.defaults) return false;
+    return !record.defaults_applied;
+  }).length;
 
   const normalizeRows = (rows: VendorTransactionsSheetRow[]) => rows.map((row) => buildRecord(row));
 
@@ -438,6 +469,10 @@ function TransactionsContent() {
 
     if (invalidCount > 0) {
       toast.error(`Please fix ${invalidCount} invalid vendor name(s) before saving.`);
+      return;
+    }
+    if (defaultsMissingCount > 0) {
+      toast.error(`Please apply defaults to ${defaultsMissingCount} vendor(s) before saving.`);
       return;
     }
 
@@ -612,8 +647,9 @@ function TransactionsContent() {
           isSaving={isSaving}
           invalidCount={invalidCount}
           normalizeRow={buildRecord}
-          onRowsChange={(nextRows) => setRecords(normalizeRows(nextRows))}
+          onRowsChange={(nextRows) => setRecords(nextRows)}
           onSave={handleSaveToBackend}
+          vendorsWithDefaults={vendorDetails}
           customColumns={customColumns}
         />
       </main>
