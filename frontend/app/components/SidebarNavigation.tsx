@@ -17,7 +17,7 @@ export default function SidebarNavigation({
   const isSaturday = new Date().getDay() === 6;
 
   const navigationItems = [
-    { id: "Dashboard", label: "Dashboard", icon: "dashboard", href: "/dashboard" },
+    { id: "Dashboard", label: "Dashboard", icon: "dashboard", href: "/" },
     { id: "Vendors", label: "Vendors", icon: "store", href: "/vendors" },
     { id: "Transactions", label: "Transactions", icon: "receipt", href: "/transactions" },
     { id: "Reports", label: "Reports", icon: "assessment", href: "/reports" },

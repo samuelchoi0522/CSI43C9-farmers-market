@@ -4,8 +4,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Download, FileSpreadsheet, Loader2 } from 'lucide-react';
 import SidebarNavigation from '../components/SidebarNavigation';
 import Button from '../components/Button';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { useAuth } from '@/contexts/AuthContext';
 import { AddVendorDialog } from '../components/AddVendorDialog';
 import VendorTransactionsSheet from '../components/VendorTransactionsSheet';
 import { type VendorTransactionsSheetRowModel as VendorTransactionsSheetRow } from '../components/VendorTransactionsSheetRow';
@@ -128,8 +126,24 @@ function TransactionsContent() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const persistedPayloadsRef = useRef<Record<string, string>>({});
-  const { user, logout } = useAuth();
-  const userName = user?.username || "Admin User";
+  const userName = "Market Manager";
+
+  const handleShutdown = async () => {
+      if (window.confirm("Are you sure you want to shut down MarketOS?")) {
+          try {
+              await fetch('/api/system/shutdown', { method: 'POST' });
+              // Replaces the screen with a safe-to-close message
+              document.body.innerHTML = `
+                  <div style="display:flex; height:100vh; align-items:center; justify-content:center; font-family:sans-serif; flex-direction:column; background:#F9FAF2;">
+                      <h1 style="font-size:24px; margin-bottom:8px; color:#1e293b;">MarketOS has been shut down</h1>
+                      <p style="color:#64748b;">You can safely close this window.</p>
+                  </div>
+              `;
+          } catch (e) {
+              window.close(); // Fallback
+          }
+      }
+  };
 
   const getMatchedVendor = useCallback(
     (vendorName: string) =>
@@ -587,17 +601,14 @@ function TransactionsContent() {
                     <p className="text-sm font-semibold text-slate-900">{userName}</p>
                   </div>
                   <Button
-                    onClick={() => {
-                      logout();
-                      setShowUserMenu(false);
-                    }}
+                    onClick={handleShutdown}
                     variant="ghost"
                     size="sm"
-                    className="w-full items-center gap-2 text-red-600 hover:bg-red-50"
-                  >
-                    <span className="material-icons text-lg leading-none">logout</span>
-                    Log Out
-                  </Button>
+                    className="w-full flex items-center gap-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                >
+                    <span className="material-icons text-lg leading-none">power_settings_new</span>
+                    Shut Down App
+                </Button>
                 </div>
               )}
             </div>
@@ -623,8 +634,6 @@ function TransactionsContent() {
 
 export default function TransactionsPage() {
   return (
-    <ProtectedRoute>
       <TransactionsContent />
-    </ProtectedRoute>
   );
 }

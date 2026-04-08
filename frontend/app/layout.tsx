@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Fraunces } from "next/font/google";
 import "./globals.css";
-import { AuthProvider } from "@/contexts/AuthContext";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -16,7 +15,7 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "Market Manager Login | MarketOS",
+  title: "MarketOS | Market Manager Portal",
   description: "MarketOS Market Manager Portal",
 };
 
@@ -36,9 +35,7 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${fraunces.variable} antialiased`}
       >
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        {children}
       </body>
     </html>
   );

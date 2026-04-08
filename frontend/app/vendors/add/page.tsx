@@ -5,8 +5,6 @@ import { useRouter } from "next/navigation";
 import SidebarNavigation from "../../components/SidebarNavigation";
 import Button from "../../components/Button";
 import LabelPickerDialog from "../../components/LabelPickerDialog";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { useAuth } from "@/contexts/AuthContext";
 import { createVendor, createVendorDefaults } from "@/lib/api";
 import {
     CategoryLabel,
@@ -46,8 +44,6 @@ function AddVendorContent() {
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [animatedPercentage, setAnimatedPercentage] = useState(0);
     const [showOverview, setShowOverview] = useState(false);
-    const { user, logout } = useAuth();
-    const userName = user?.username || "Admin User";
     const animationFrameRef = useRef<number | null>(null);
 
     const [allLabels, setAllLabels] = useState<CategoryLabel[]>([]);
@@ -55,6 +51,25 @@ function AddVendorContent() {
     const [labelsLoading, setLabelsLoading] = useState(false);
     const [labelError, setLabelError] = useState<string | null>(null);
     const [isLabelDialogOpen, setIsLabelDialogOpen] = useState(false);
+
+    const userName = "Market Manager";
+
+    const handleShutdown = async () => {
+        if (window.confirm("Are you sure you want to shut down MarketOS?")) {
+            try {
+                await fetch('/api/system/shutdown', { method: 'POST' });
+                // Replaces the screen with a safe-to-close message
+                document.body.innerHTML = `
+                    <div style="display:flex; height:100vh; align-items:center; justify-content:center; font-family:sans-serif; flex-direction:column; background:#F9FAF2;">
+                        <h1 style="font-size:24px; margin-bottom:8px; color:#1e293b;">MarketOS has been shut down</h1>
+                        <p style="color:#64748b;">You can safely close this window.</p>
+                    </div>
+                `;
+            } catch (e) {
+                window.close(); // Fallback
+            }
+        }
+    };
 
     const [formData, setFormData] = useState<VendorFormData>({
         vendorName: "",
@@ -397,10 +412,6 @@ function AddVendorContent() {
         }
     };
 
-    const handleLogout = () => {
-        logout();
-    };
-
     type PercentageKeys = 'pctHandmade' | 'pctAgricultural' | 'pctPreparedFood' | 'pctCottageGoods' | 'pctManufactured';
     interface PercentageField {
         key: PercentageKeys;
@@ -453,13 +464,13 @@ function AddVendorContent() {
                                     <p className="text-sm font-semibold text-slate-900">{userName}</p>
                                 </div>
                                 <Button
-                                    onClick={handleLogout}
+                                    onClick={handleShutdown}
                                     variant="ghost"
                                     size="sm"
-                                    className="w-full flex items-center gap-2 text-red-600 hover:bg-red-50"
+                                    className="w-full flex items-center gap-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                                 >
-                                    <span className="material-icons text-lg leading-none">logout</span>
-                                    Log Out
+                                    <span className="material-icons text-lg leading-none">power_settings_new</span>
+                                    Shut Down App
                                 </Button>
                             </div>
                         )}
@@ -1102,8 +1113,6 @@ function AddVendorContent() {
 
 export default function AddVendorPage() {
     return (
-        <ProtectedRoute>
-            <AddVendorContent />
-        </ProtectedRoute>
+        <AddVendorContent />
     );
 }

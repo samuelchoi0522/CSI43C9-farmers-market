@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import {
     Chart as ChartJS,
@@ -27,8 +27,6 @@ import {
 } from "recharts";
 import SidebarNavigation from "@/app/components/SidebarNavigation";
 import Button from "@/app/components/Button";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { useAuth } from "@/contexts/AuthContext";
 import { Vendor, getVendor } from "@/lib/api/vendor";
 import {
     getVendorTransactionsByVendor,
@@ -247,9 +245,8 @@ function aggregateVendorAnalytics(txs: VendorTransaction[]): VendorAnalytics {
 }
 
 function VendorDetailContent() {
-    const params = useParams();
-    const uuid = params.uuid as string;
-    const { user, logout } = useAuth();
+    const pathname = usePathname();
+    const uuid = pathname.split('/').pop() as string;
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [vendor, setVendor] = useState<Vendor | null>(null);
     const [transactions, setTransactions] = useState<VendorTransaction[]>([]);
@@ -258,7 +255,7 @@ function VendorDetailContent() {
 
     const [allLabels, setAllLabels] = useState<CategoryLabel[]>([]);
     const [vendorLabels, setVendorLabels] = useState<CategoryLabel[]>([]);
-    const [labelsLoading, setLabelsLoading] = useState(false);
+    const [labelsLoading, setLabelsLoading] = useState(true);
     const [labelError, setLabelError] = useState<string | null>(null);
     const [isLabelDialogOpen, setIsLabelDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -322,6 +319,8 @@ function VendorDetailContent() {
     const normalizeLabelName = (name: string) => name.trim().toLowerCase();
 
     useEffect(() => {
+        if (!uuid || uuid === 'template') return;
+
         const fetchVendorAndLabels = async () => {
             setLabelsLoading(true);
             setLabelError(null);
@@ -374,11 +373,24 @@ function VendorDetailContent() {
         };
     }, [showUserMenu]);
 
-    const handleLogout = () => {
-        logout();
-    };
+    const userName = "Market Manager";
 
-    const userName = user?.username || "Admin User";
+    const handleShutdown = async () => {
+        if (window.confirm("Are you sure you want to shut down MarketOS?")) {
+            try {
+                await fetch('/api/system/shutdown', { method: 'POST' });
+                // Replaces the screen with a safe-to-close message
+                document.body.innerHTML = `
+                    <div style="display:flex; height:100vh; align-items:center; justify-content:center; font-family:sans-serif; flex-direction:column; background:#F9FAF2;">
+                        <h1 style="font-size:24px; margin-bottom:8px; color:#1e293b;">MarketOS has been shut down</h1>
+                        <p style="color:#64748b;">You can safely close this window.</p>
+                    </div>
+                `;
+            } catch (e) {
+                window.close(); // Fallback
+            }
+        }
+    };
 
     const formatCurrency = (value: number | null) => {
         if (value === null) return "-";
@@ -541,16 +553,14 @@ function VendorDetailContent() {
                                             </p>
                                         </div>
                                         <Button
-                                            onClick={handleLogout}
-                                            variant="ghost"
-                                            size="sm"
-                                            className="w-full flex items-center gap-2 text-red-600 hover:bg-red-50"
-                                        >
-                                            <span className="material-icons text-lg leading-none">
-                                                logout
-                                            </span>
-                                            Log Out
-                                        </Button>
+                                        onClick={handleShutdown}
+                                        variant="ghost"
+                                        size="sm"
+                                        className="w-full flex items-center gap-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                    >
+                                        <span className="material-icons text-lg leading-none">power_settings_new</span>
+                                        Shut Down App
+                                    </Button>
                                     </div>
                                 )}
                             </div>
@@ -1054,8 +1064,6 @@ function VendorDetailContent() {
 
 export default function VendorClient() {
     return (
-        <ProtectedRoute>
-            <VendorDetailContent />
-        </ProtectedRoute>
+        <VendorDetailContent />
     );
 }

@@ -7,26 +7,39 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @Controller
 public class FrontendRoutingController {
 
-    @RequestMapping("/vendor/{uuid}")
-    public String vendorProfile() {
+    // Catches Next.js <Link> data payloads.
+    @RequestMapping("/vendor/{uuid:[a-fA-F0-9\\-]+}.txt")
+    public String vendorProfileData() {
+        return "forward:/vendor/template.txt";
+    }
+
+    // Catches the direct browser refresh for the HTML page.
+    @RequestMapping("/vendor/{uuid:[a-fA-F0-9\\-]+}")
+    public String vendorProfileHtml() {
         return "forward:/vendor/template.html";
     }
 
-    // Catch all routes that aren't API calls or static assets (like .css or .js)
     @RequestMapping(value = {
-            "/{path:[^\\.]*}",
-            "/{path:[^\\.]*}/**"
+            "/",
+            "/login",
+            "/dashboard",
+            "/vendors",
+            "/admin"
     })
     public String redirect(HttpServletRequest request) {
         String uri = request.getRequestURI();
 
         // The root route should always serve the main index
-        if (uri.equals("/") || uri.isEmpty()) {
+        if (uri.equals("/") || uri.equals("")) {
             return "forward:/index.html";
         }
 
-        // Next.js static exports create physical .html files for every route
-        // So hitting /dashboard needs to forward to /dashboard.html
+        // Safety check to prevent infinite .html.html loops
+        if (uri.endsWith(".html")) {
+            return "forward:" + uri;
+        }
+
+        // Forward to the static Next.js HTML file
         return "forward:" + uri + ".html";
     }
 }
