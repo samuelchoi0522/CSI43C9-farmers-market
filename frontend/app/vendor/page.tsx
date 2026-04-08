@@ -1,4 +1,5 @@
 import VendorClient from "./VendorClient";
+import { Suspense } from "react";
 
 // The server runs this during the GitHub Actions build
 export function generateStaticParams() {
@@ -7,5 +8,9 @@ export function generateStaticParams() {
 
 // The server passes the generated param to your client component
 export default function VendorPage() {
-  return <VendorClient/>;
+  return (
+    <Suspense fallback={<div className="p-8 text-slate-500">Loading vendor...</div>}>
+      <VendorClient />
+    </Suspense>
+  );
 }

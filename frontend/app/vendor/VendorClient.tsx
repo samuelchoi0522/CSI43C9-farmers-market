@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
     Chart as ChartJS,
@@ -42,7 +42,7 @@ import {
     updateCategoryLabel,
     deleteCategoryLabel,
 } from "@/lib/api/vendorLabels";
-import LabelPickerDialog from "../../components/LabelPickerDialog";
+import LabelPickerDialog from "../components/LabelPickerDialog";
 import { EditVendorDialog } from "@/app/components/EditVendorDialog";
 import { getLabelColors } from "@/lib/labelColors";
 import { SmoothCurrencyValue } from "@/lib/smoothNumbers";
@@ -246,8 +246,8 @@ function aggregateVendorAnalytics(txs: VendorTransaction[]): VendorAnalytics {
 }
 
 function VendorDetailContent() {
-    const pathname = usePathname();
-    const uuid = pathname.split('/').pop() as string;
+    const searchParams = useSearchParams();
+    const uuid = searchParams.get('id') as string;
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [vendor, setVendor] = useState<Vendor | null>(null);
     const [transactions, setTransactions] = useState<VendorTransaction[]>([]);
@@ -320,7 +320,7 @@ function VendorDetailContent() {
     const normalizeLabelName = (name: string) => name.trim().toLowerCase();
 
     useEffect(() => {
-        if (!uuid || uuid === 'template') return;
+        if (!uuid) { return; }
 
         const fetchVendorAndLabels = async () => {
             setLabelsLoading(true);

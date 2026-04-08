@@ -532,7 +532,7 @@ function VendorsContent() {
                                         <tr
                                             key={vendor.id}
                                             className="hover:bg-green-50 transition-colors cursor-pointer"
-                                            onClick={() => router.push(`/vendor/${vendor.id}`)}
+                                            onClick={() => router.push(`/vendor?id=${vendor.id}`)}
                                         >
                                         <td className="px-6 py-4">
                                             <span className="font-semibold">{vendor.vendorName}</span>
@@ -644,7 +644,7 @@ function VendorsContent() {
                                                     className="p-1.5 hover:bg-dashboard-primary/10 hover:text-dashboard-primary text-slate-400"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        router.push(`/vendor/${vendor.id}`);
+                                                        router.push(`/vendor?id=${vendor.id}`);
                                                     }}
                                                     title="View Details"
                                                 >
