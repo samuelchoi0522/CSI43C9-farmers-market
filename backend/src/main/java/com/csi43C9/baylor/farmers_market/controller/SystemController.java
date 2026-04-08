@@ -5,6 +5,9 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
 @RestController
 public class SystemController {
 
@@ -16,8 +19,10 @@ public class SystemController {
 
     @PostMapping("/api/system/shutdown")
     public void shutdown() {
-        // Tells Spring Boot to gracefully terminate the server
-        SpringApplication.exit(context, () -> 0);
-        System.exit(0);
+        // Run shutdown in a background thread so the HTTP request can finish first
+        Executors.newSingleThreadScheduledExecutor().schedule(() -> {
+            SpringApplication.exit(context, () -> 0);
+            System.exit(0);
+        }, 500, TimeUnit.MILLISECONDS);
     }
 }
