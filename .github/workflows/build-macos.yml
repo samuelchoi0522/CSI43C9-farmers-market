@@ -1,9 +1,7 @@
 name: Build macOS App
 
 on:
-  push:
-    branches:
-      - native-build-experiment
+  workflow_dispatch:
 
 permissions:
   contents: write
