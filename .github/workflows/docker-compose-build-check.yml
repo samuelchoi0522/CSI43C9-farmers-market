@@ -2,14 +2,14 @@ name: Docker Compose Build Check
 
 on:
   pull_request:
-    branches-ignore: [ main, native-build-experiment ]
+    branches-ignore: [ main ]
     paths:
       - 'docker/**'
       - 'backend/**'
       - 'frontend/**'
       - '.github/workflows/docker-compose-build-check.yml'
   push:
-    branches-ignore: [ main, native-build-experiment ]
+    branches-ignore: [ main ]
     paths:
       - 'docker/**'
       - 'backend/**'
