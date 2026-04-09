@@ -26,7 +26,11 @@ jobs:
 
       - name: Build Spring Boot Native Image
         working-directory: ./backend
-        run: .\gradlew.bat nativeCompile
+        env:
+          GRADLE_OPTS: "-Djava.io.tmpdir=${{ github.workspace }}\\backend\\build\\tmp"
+        run: |
+          mkdir -Force build\tmp
+          .\gradlew.bat nativeCompile
 
       - name: Prepare Tauri Sidecar
         run: |
