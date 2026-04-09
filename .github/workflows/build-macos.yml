@@ -52,6 +52,7 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEXT_PUBLIC_API_URL: 'http://localhost:8080'
         with:
           projectPath: ./frontend
           # This automatically creates a GitHub Release with your .dmg / .app attached!
