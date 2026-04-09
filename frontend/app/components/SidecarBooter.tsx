@@ -21,6 +21,8 @@ export default function SidecarBooter() {
           try {
             const command = Command.sidecar('binaries/spring-backend');
             const child = await command.spawn();
+
+            command.on('error', (error) => console.error(`🚨 [SIDECAR ERROR]: ${error}`));
             console.log('Spring Boot Sidecar Started with PID:', child.pid);
           } catch (error) {
             console.error('Failed to boot Spring Boot sidecar:', error);
