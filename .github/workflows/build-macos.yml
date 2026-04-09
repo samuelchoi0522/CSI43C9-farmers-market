@@ -7,78 +7,53 @@ on:
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: macos-latest
+
     steps:
-      - name: Checkout code
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Build Frontend
-        working-directory: ./frontend
-        run: |
-            npm ci
-            npm run build
-
-      - name: Copy Frontend to Backend
-        run: |
-          mkdir -p backend/src/main/resources/static
-          cp -r frontend/out/* backend/src/main/resources/static/
-
+      # BUILD THE SPRING BOOT SIDECAR
       - name: Setup GraalVM
         uses: graalvm/setup-graalvm@v1
         with:
           java-version: '25'
           distribution: 'graalvm'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
           cache: 'gradle'
 
-      - name: Make gradlew executable
+      - name: Build Spring Boot Native Image
         working-directory: ./backend
-        run: chmod +x ./gradlew
-
-      - name: Build Native Image
-        working-directory: ./backend
-        run: ./gradlew nativeCompile
-
-      - name: Package Mac .app Bundle
         run: |
-          mkdir -p FarmersMarket.app/Contents/MacOS
-          mkdir -p FarmersMarket.app/Contents/Resources
-          cp backend/build/native/nativeCompile/farmers_market FarmersMarket.app/Contents/MacOS/
-          
-          # Fix: Comments are properly indented so YAML doesn't panic
-          # cp backend/icons/icon.icns FarmersMarket.app/Contents/Resources/
-          
-          # Fix: Safely writing the XML using echo to avoid bash EOF whitespace issues
-          echo '<?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>CFBundleExecutable</key>
-              <string>farmers_market</string>
-              <key>CFBundleIdentifier</key>
-              <string>com.csi43C9.farmersmarket</string>
-              <key>CFBundleName</key>
-              <string>Farmers Market</string>
-              <key>CFBundlePackageType</key>
-              <string>APPL</string>
-              <key>LSMinimumSystemVersion</key>
-              <string>10.15</string>
-              <key>LSUIElement</key>
-              <true/>
-          </dict>
-          </plist>' > FarmersMarket.app/Contents/Info.plist
+          chmod +x gradlew
+          ./gradlew nativeCompile
 
-      - name: Zip the App Bundle
-        run: zip -r FarmersMarket-macOS.zip FarmersMarket.app
+      - name: Prepare Tauri Sidecar
+        run: |
+          mkdir -p frontend/src-tauri/binaries
+          cp backend/build/native/nativeCompile/farmers-market frontend/src-tauri/binaries/spring-backend-aarch64-apple-darwin
+          chmod +x frontend/src-tauri/binaries/spring-backend-aarch64-apple-darwin
 
-      - name: Upload Mac App
-        uses: actions/upload-artifact@v4
+      # BUILD THE FRONTEND & TAURI APP
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          name: farmers-market-mac
-          # Upload the zip file we just created, NOT the raw folder
-          path: FarmersMarket-macOS.zip
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: './frontend/package-lock.json'
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm install
+
+      - name: Build and Bundle Desktop App
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: ./frontend
+          # This automatically creates a GitHub Release with your .dmg / .app attached!
+          tagName: app-v__VERSION__
+          releaseName: "MarketOS macOS Release v__VERSION__"
+          releaseBody: "Automated macOS build."
+          releaseDraft: true
+          prerelease: false

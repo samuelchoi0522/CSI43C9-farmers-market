@@ -8,51 +8,48 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+
     steps:
-      - name: Checkout code
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Build Frontend
-        working-directory: ./frontend
-        run: |
-            npm ci
-            npm run build
-
-      - name: Copy Frontend to Backend
-        run: |
-          if (!(Test-Path -Path "backend\src\main\resources\static")) { New-Item -ItemType Directory -Force -Path "backend\src\main\resources\static" }
-          Copy-Item -Path "frontend\out\*" -Destination "backend\src\main\resources\static" -Recurse -Force
-
+      # BUILD THE SPRING BOOT SIDECAR
       - name: Setup GraalVM
         uses: graalvm/setup-graalvm@v1
         with:
           java-version: '25'
           distribution: 'graalvm'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
           cache: 'gradle'
 
-      - name: Build Native Image
+      - name: Build Spring Boot Native Image
         working-directory: ./backend
-        # Bypasses PowerShell entirely and injects the temp path directly into Java
-        env:
-          GRADLE_OPTS: "-Djava.io.tmpdir=${{ github.workspace }}\\backend\\build\\tmp"
-        run: |
-            mkdir -Force build\tmp
-            .\gradlew.bat nativeCompile
-      # (Optional) Uncomment when the .ico file is ready
-      # - name: Download rcedit
-      #   run: Invoke-WebRequest -Uri "https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe" -OutFile rcedit.exe
-      #
-      # - name: Embed Icon into EXE
-      #   run: .\rcedit.exe backend/build/native/nativeCompile/farmers_market.exe --set-icon backend/icons/icon.ico
+        run: .\gradlew.bat nativeCompile
 
-      - name: Upload Windows EXE
-        uses: actions/upload-artifact@v4
+      - name: Prepare Tauri Sidecar
+        run: |
+          New-Item -ItemType Directory -Force -Path "frontend\src-tauri\binaries"
+          Copy-Item -Path "backend\build\native\nativeCompile\farmers-market.exe" -Destination "frontend\src-tauri\binaries\spring-backend-x86_64-pc-windows-msvc.exe" -Force
+
+      # BUILD THE FRONTEND & TAURI APP
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          name: farmers-market-windows
-          path: backend/build/native/nativeCompile/farmers_market.exe
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm install
+
+      - name: Build and Bundle Desktop App
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: ./frontend
+          tagName: app-v__VERSION__
+          releaseName: "MarketOS Windows Release v__VERSION__"
+          releaseBody: "Automated Windows build."
+          releaseDraft: true
+          prerelease: false

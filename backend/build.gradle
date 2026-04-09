@@ -14,9 +14,8 @@ checkstyle {
 graalvmNative {
     binaries {
         main {
-            // Forces GraalVM to name the file EXACTLY 'farmers_market'
-            // (or 'farmers_market.exe' on Windows) so the CI/CD pipelines can find it!
-            imageName = 'farmers_market'
+            // Forces GraalVM to name the file EXACTLY 'farmers_market
+            imageName = 'farmers-market'
         }
     }
 }
