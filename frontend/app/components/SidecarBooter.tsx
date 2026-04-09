@@ -1,38 +1,67 @@
-// app/components/SidecarBooter.tsx
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Command } from "@tauri-apps/plugin-shell";
 
-export default function SidecarBooter() {
+// We now accept 'children' so this can wrap your entire application
+export default function SidecarBooter({ children }: { children: React.ReactNode }) {
+  const [isReady, setIsReady] = useState(false);
+
   useEffect(() => {
-    // 1. Ensure we are in the browser, not the Next.js build server
     if (typeof window !== "undefined") {
       
-      // In development, we assume Spring Boot is already running in the IDE, so we skip booting the sidecar.
-      if (process.env.NODE_ENV === 'development') {
-        console.log("🛠️ Dev Mode: Bypassing sidecar. Assuming Spring Boot is running in IDE.");
-        return;
-      }
+      // If we are in standard browser dev mode (localhost:3000), skip the sidecar and unlock UI immediately
+      // if (!('__TAURI_INTERNALS__' in window)) {
+      //   setIsReady(true);
+      //   return;
+      // }
 
-      // 2. Safely check if we are running inside the Tauri native window
-      if ('__TAURI_INTERNALS__' in window) {
-        const startBackend = async () => {
-          try {
-            const command = Command.sidecar('binaries/spring-backend');
-            const child = await command.spawn();
+      const startBackend = async () => {
+        console.log("🚀 Starting Spring Boot sidecar...");
+        try {
+          const command = Command.sidecar('binaries/spring-backend');
+          await command.spawn();
+          console.log('✅ Spring Boot process spawned!');
 
-            command.on('error', (error) => console.error(`🚨 [SIDECAR ERROR]: ${error}`));
-            console.log('Spring Boot Sidecar Started with PID:', child.pid);
-          } catch (error) {
-            console.error('Failed to boot Spring Boot sidecar:', error);
-          }
-        };
+          // --- THE WAITING ROOM ---
+          // Ping the backend every 500ms until it responds
+          const pollBackend = async () => {
+            try {
+              // We ping a known endpoint to see if Tomcat is listening yet
+              const res = await fetch('http://127.0.0.1:8080/api/custom-columns/active');
+              if (res.ok) {
+                console.log("🎉 Backend is awake! Unlocking UI.");
+                setIsReady(true);
+              } else {
+                setTimeout(pollBackend, 500);
+              }
+            } catch (e) {
+              // If it fails to fetch, port 8080 is still closed. Try again in half a second.
+              setTimeout(pollBackend, 500);
+            }
+          };
 
-        startBackend();
-      }
+          pollBackend();
+
+        } catch (error) {
+          console.error('❌ Failed to boot Spring Boot sidecar:', error);
+        }
+      };
+
+      startBackend();
     }
   }, []);
 
-  return null; // This component is completely invisible
+  // While Java is booting, trap the user on this loading screen
+  if (!isReady) {
+    return (
+      <div style={{ display: 'flex', height: '100vh', width: '100vw', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', fontFamily: 'sans-serif' }}>
+        <h2 style={{ color: '#333' }}>☕ Waking up MarketOS...</h2>
+        <p style={{ color: '#666' }}>Starting local database sidecar</p>
+      </div>
+    );
+  }
+
+  // Once Java is awake, render the actual React application!
+  return <>{children}</>;
 }

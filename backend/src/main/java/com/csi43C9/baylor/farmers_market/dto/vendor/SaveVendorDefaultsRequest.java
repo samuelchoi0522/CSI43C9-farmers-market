@@ -4,6 +4,8 @@ import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.math.BigDecimal;
 import java.util.UUID;
 
@@ -12,6 +14,7 @@ import java.util.UUID;
  * managing Vendor product category percentage defaults.
  */
 @Data
+@NoArgsConstructor
 public class SaveVendorDefaultsRequest {
 
     /**

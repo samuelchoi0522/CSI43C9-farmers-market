@@ -9,6 +9,7 @@ import com.csi43C9.baylor.farmers_market.service.VendorTransactionService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
+import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,10 +34,11 @@ import java.util.UUID;
  * <p>This controller is protected by JWT authentication as configured in
  * the SecurityConfig class.</p>
  */
-@CrossOrigin(origins = {"tauri://localhost", "https://tauri.localhost", "http://localhost:3000"})
+@CrossOrigin(origins = {"*"})
 @RestController
 @RequestMapping("/api/vendor-transaction")
 @AllArgsConstructor
+@RegisterReflectionForBinding({VendorTransactionFilterRequest.class, SaveVendorTransactionRequest.class, RevenueBreakdown.class})
 public class VendorTransactionController {
 
     private final VendorTransactionService vendorTransactionService;

@@ -35,8 +35,9 @@ export default function RootLayout({
       </head>
       <body className={`${inter.variable} ${fraunces.variable} antialiased`}>
         {/* The invisible booter will safely launch Spring Boot in the background */}
-        <SidecarBooter />
+        <SidecarBooter>
         {children}
+        </SidecarBooter>
       </body>
     </html>
   );

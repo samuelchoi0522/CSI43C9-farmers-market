@@ -3,6 +3,7 @@ package com.csi43C9.baylor.farmers_market.controller;
 import com.csi43C9.baylor.farmers_market.dto.vendor.CategoryLabelDto;
 import com.csi43C9.baylor.farmers_market.service.VendorCategoryService;
 import jakarta.validation.Valid;
+import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -17,9 +18,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-@CrossOrigin(origins = {"tauri://localhost", "https://tauri.localhost", "http://localhost:3000"})
+@CrossOrigin(origins = {"*"})
 @RestController
 @RequestMapping("/api/categories")
+@RegisterReflectionForBinding(CategoryLabelDto.class)
 public class GlobalLabelController {
 
     private final VendorCategoryService service;

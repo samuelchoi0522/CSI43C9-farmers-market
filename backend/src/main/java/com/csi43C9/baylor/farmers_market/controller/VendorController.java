@@ -7,6 +7,7 @@ import com.csi43C9.baylor.farmers_market.service.VendorService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
+import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -28,10 +29,11 @@ import java.util.UUID;
  * * <p>This controller is protected by JWT authentication as configured in
  * the SecurityConfig class.</p>
  */
-@CrossOrigin(origins = {"tauri://localhost", "https://tauri.localhost", "http://localhost:3000"})
+@CrossOrigin(origins = {"*"})
 @RestController
 @RequestMapping("/api/vendor")
 @AllArgsConstructor
+@RegisterReflectionForBinding(SaveVendorRequest.class)
 public class VendorController {
 
     private final VendorService vendorService;
