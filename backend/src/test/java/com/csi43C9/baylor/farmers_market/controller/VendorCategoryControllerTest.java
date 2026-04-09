@@ -2,19 +2,12 @@ package com.csi43C9.baylor.farmers_market.controller;
 
 import com.csi43C9.baylor.farmers_market.dto.vendor.CategoryLabelDto;
 import com.csi43C9.baylor.farmers_market.dto.vendor.VendorLabelRequest;
-import com.csi43C9.baylor.farmers_market.security.SecurityConfig;
-import com.csi43C9.baylor.farmers_market.security.UserDetailsServiceImpl;
-import com.csi43C9.baylor.farmers_market.security.jwt.AuthEntryPointJwt;
-import com.csi43C9.baylor.farmers_market.security.jwt.JwtAuthFilter;
-import com.csi43C9.baylor.farmers_market.security.jwt.JwtUtil;
 import com.csi43C9.baylor.farmers_market.service.VendorCategoryService;
 import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -35,8 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Verifies that the endpoint is secured and correctly processes requests
  * to retrieve, add, and remove vendor category labels.
  */
-@WebMvcTest({VendorLabelController.class}) // <--- ADD BOTH HERE
-@Import({SecurityConfig.class, AuthEntryPointJwt.class, JwtAuthFilter.class})
+@WebMvcTest({VendorLabelController.class})
 class VendorCategoryControllerTest {
     @Autowired
     private MockMvc mockMvc;
@@ -47,19 +39,12 @@ class VendorCategoryControllerTest {
     @MockitoBean
     private VendorCategoryService service;
 
-    @MockitoBean
-    private UserDetailsServiceImpl userDetailsService;
-
-    @MockitoBean
-    private JwtUtil jwtUtil;
-
     /**
      * Verifies that an authenticated user can retrieve a vendor's categories.
      *
      * @throws Exception if mock MVC request fails.
      */
     @Test
-    @WithMockUser
     void getVendorCategoriesReturnsOkWithList() throws Exception {
         UUID vendorId = UUID.randomUUID();
         List<CategoryLabelDto> mockCategories = List.of(
@@ -84,7 +69,6 @@ class VendorCategoryControllerTest {
      * @throws Exception if mock MVC request fails.
      */
     @Test
-    @WithMockUser
     void addCategoriesReturnsCreated() throws Exception {
         UUID vendorId = UUID.randomUUID();
         VendorLabelRequest request = new VendorLabelRequest();
@@ -106,7 +90,6 @@ class VendorCategoryControllerTest {
      * @throws Exception if mock MVC request fails.
      */
     @Test
-    @WithMockUser
     void addCategoriesInvalidRequestReturnsBadRequest() throws Exception {
         UUID vendorId = UUID.randomUUID();
         VendorLabelRequest request = new VendorLabelRequest();
@@ -125,7 +108,6 @@ class VendorCategoryControllerTest {
      * @throws Exception if mock MVC request fails.
      */
     @Test
-    @WithMockUser
     void addCategoriesWithNullIdReturnsBadRequest() throws Exception {
         UUID vendorId = UUID.randomUUID();
         VendorLabelRequest request = new VendorLabelRequest();
@@ -144,7 +126,6 @@ class VendorCategoryControllerTest {
      * @throws Exception if mock MVC request fails.
      */
     @Test
-    @WithMockUser
     void removeCategoryReturnsNoContent() throws Exception {
         UUID vendorId = UUID.randomUUID();
         Long labelId = 5L;

@@ -2,18 +2,11 @@ package com.csi43C9.baylor.farmers_market.controller;
 
 import com.csi43C9.baylor.farmers_market.dto.PagedResponse;
 import com.csi43C9.baylor.farmers_market.dto.custom_column.CustomColumnMetadata;
-import com.csi43C9.baylor.farmers_market.security.SecurityConfig;
-import com.csi43C9.baylor.farmers_market.security.UserDetailsServiceImpl;
-import com.csi43C9.baylor.farmers_market.security.jwt.AuthEntryPointJwt;
-import com.csi43C9.baylor.farmers_market.security.jwt.JwtAuthFilter;
-import com.csi43C9.baylor.farmers_market.security.jwt.JwtUtil;
 import com.csi43C9.baylor.farmers_market.service.CustomColumnService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
@@ -38,7 +31,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Verifies that the endpoints are secured and correctly process column operations.
  */
 @WebMvcTest(CustomColumnController.class)
-@Import({SecurityConfig.class, AuthEntryPointJwt.class, JwtAuthFilter.class})
 class CustomColumnControllerTest {
 
     @Autowired
@@ -50,19 +42,12 @@ class CustomColumnControllerTest {
     @MockitoBean
     private CustomColumnService customColumnService;
 
-    @MockitoBean
-    private UserDetailsServiceImpl userDetailsService;
-
-    @MockitoBean
-    private JwtUtil jwtUtil;
-
     /**
      * Verifies that an authenticated user can successfully create a custom column.
      *
      * @throws Exception if mock MVC request fails.
      */
     @Test
-    @WithMockUser
     void createColumnAuthenticatedReturnsCreated() throws Exception {
         CustomColumnMetadata request = new CustomColumnMetadata(null, "Vehicle Type", "text", false);
         CustomColumnMetadata savedColumn = new CustomColumnMetadata(1L, "Vehicle Type", "text", false);
@@ -83,7 +68,6 @@ class CustomColumnControllerTest {
      * @throws Exception if mock MVC request fails.
      */
     @Test
-    @WithMockUser
     void getColumnByIdReturnsOk() throws Exception {
         Long id = 1L;
         CustomColumnMetadata column = new CustomColumnMetadata(id, "Booth Size", "text", true);
@@ -101,7 +85,6 @@ class CustomColumnControllerTest {
      * @throws Exception if mock MVC request fails.
      */
     @Test
-    @WithMockUser
     void getColumnByIdNotFoundReturns404() throws Exception {
         when(customColumnService.getColumnById(any(Long.class))).thenReturn(Optional.empty());
 
@@ -115,7 +98,6 @@ class CustomColumnControllerTest {
      * @throws Exception if mock MVC request fails.
      */
     @Test
-    @WithMockUser
     void getPagedColumnsReturnsPagedResponse() throws Exception {
         PagedResponse<CustomColumnMetadata> response = new PagedResponse<>(
                 Collections.emptyList(), 0, 10, 0L, 0);
@@ -134,7 +116,6 @@ class CustomColumnControllerTest {
      * @throws Exception if mock MVC request fails.
      */
     @Test
-    @WithMockUser
     void updateColumnNotFoundReturns404() throws Exception {
         Long id = 99L;
         CustomColumnMetadata request = new CustomColumnMetadata(id, "Booth Size", "text", true);
@@ -154,7 +135,6 @@ class CustomColumnControllerTest {
      * @throws Exception if mock MVC request fails.
      */
     @Test
-    @WithMockUser
     void deactivateColumnReturnsNoContent() throws Exception {
         Long id = 1L;
 
@@ -170,7 +150,6 @@ class CustomColumnControllerTest {
      * @throws Exception if mock MVC request fails.
      */
     @Test
-    @WithMockUser
     void reactivateColumnReturnsNoContent() throws Exception {
         Long id = 1L;
 
@@ -186,7 +165,6 @@ class CustomColumnControllerTest {
      * @throws Exception if mock MVC request fails.
      */
     @Test
-    @WithMockUser
     void deleteColumnReturnsNoContent() throws Exception {
         Long id = 1L;
 

@@ -4,8 +4,6 @@ import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import SidebarNavigation from "../components/SidebarNavigation";
 import Button from "../components/Button";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { useAuth } from "@/contexts/AuthContext";
 import { getAllVendorDefaults, VendorDefaults } from "@/lib/api/defaults";
 import { getVendors, Vendor } from "@/lib/api/vendor";
 import { EditVendorDialog } from "../components/EditVendorDialog";
@@ -18,7 +16,6 @@ interface VendorWithDefaults extends Vendor {
 
 function VendorsContent() {
     const router = useRouter();
-    const [showUserMenu, setShowUserMenu] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [showInactive, setShowInactive] = useState(false);
     const [vendors, setVendors] = useState<VendorWithDefaults[]>([]);
@@ -29,8 +26,6 @@ function VendorsContent() {
     const [pageSize] = useState(10);
     const [totalPages, setTotalPages] = useState(1);
     const [totalElements, setTotalElements] = useState(0);
-    const { user, logout } = useAuth();
-    const userName = user?.username || "Admin User";
 
     // Edit Dialog state
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -184,27 +179,6 @@ function VendorsContent() {
 
     const footerResetKey = `${statsResetKey}|p${currentPage}|s${pageSize}|te${totalElements}|sq${searchQuery}|vl${vendors.length}|fv${filteredVendors.length}`;
 
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            const target = event.target as HTMLElement;
-            if (showUserMenu && !target.closest('.user-menu-container')) {
-                setShowUserMenu(false);
-            }
-        };
-
-        if (showUserMenu) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
-
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [showUserMenu]);
-
-    const handleLogout = () => {
-        logout();
-    };
-
     const getStatusBadge = (vendor: VendorWithDefaults) => {
         if (!vendor.isActive) {
             return (
@@ -341,43 +315,6 @@ function VendorsContent() {
                             <span className="material-icons text-lg leading-none">add</span>
                             Add Vendor
                         </Button>
-                        {/* User Menu */}
-                        <div className="relative user-menu-container">
-                            <Button
-                                onClick={() => setShowUserMenu(!showUserMenu)}
-                                variant="ghost"
-                                className="flex items-center gap-2 px-3 cursor-pointer"
-                            >
-                                <div className="w-8 h-8 rounded-full bg-[#10b981] flex items-center justify-center text-white text-sm font-semibold flex-shrink-0 aspect-square">
-                                    {userName.charAt(0).toUpperCase()}
-                                </div>
-                                <span
-                                    className="text-sm font-medium hidden md:block"
-                                    style={{ color: 'rgb(0, 0, 0)' }}
-                                >
-                                    {userName}
-                                </span>
-                                <span className="material-icons text-lg leading-none text-slate-600">
-                                    {showUserMenu ? "expand_less" : "expand_more"}
-                                </span>
-                            </Button>
-                            {showUserMenu && (
-                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-2 z-50">
-                                    <div className="px-4 py-2 border-b border-slate-200">
-                                        <p className="text-sm font-semibold text-slate-900">{userName}</p>
-                                    </div>
-                                    <Button
-                                        onClick={handleLogout}
-                                        variant="ghost"
-                                        size="sm"
-                                        className="w-full flex items-center gap-2 text-red-600 hover:bg-red-50"
-                                    >
-                                        <span className="material-icons text-lg leading-none">logout</span>
-                                        Log Out
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
                     </div>
                 </header>
 
@@ -522,7 +459,7 @@ function VendorsContent() {
                                         <tr
                                             key={vendor.id}
                                             className="hover:bg-green-50 transition-colors cursor-pointer"
-                                            onClick={() => router.push(`/vendor/${vendor.id}`)}
+                                            onClick={() => router.push(`/vendor?id=${vendor.id}`)}
                                         >
                                         <td className="px-6 py-4">
                                             <span className="font-semibold">{vendor.vendorName}</span>
@@ -634,7 +571,7 @@ function VendorsContent() {
                                                     className="p-1.5 hover:bg-dashboard-primary/10 hover:text-dashboard-primary text-slate-400"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        router.push(`/vendor/${vendor.id}`);
+                                                        router.push(`/vendor?id=${vendor.id}`);
                                                     }}
                                                     title="View Details"
                                                 >
@@ -757,8 +694,6 @@ function VendorsContent() {
 
 export default function VendorsPage() {
     return (
-        <ProtectedRoute>
-            <VendorsContent />
-        </ProtectedRoute>
+        <VendorsContent />
     );
 }

@@ -3,6 +3,7 @@ package com.csi43C9.baylor.farmers_market.dto.vendor;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * Data Transfer Object representing the request payload for creating or
@@ -14,6 +15,7 @@ import lombok.Data;
  * </p>
  */
 @Data
+@NoArgsConstructor
 public class SaveVendorRequest {
 
     /**

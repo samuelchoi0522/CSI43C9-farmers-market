@@ -4,8 +4,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Download, FileSpreadsheet, Loader2 } from 'lucide-react';
 import SidebarNavigation from '../components/SidebarNavigation';
 import Button from '../components/Button';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { useAuth } from '@/contexts/AuthContext';
 import { AddVendorDialog } from '../components/AddVendorDialog';
 import VendorTransactionsSheet from '../components/VendorTransactionsSheet';
 import { type VendorTransactionsSheetRowModel as VendorTransactionsSheetRow } from '../components/VendorTransactionsSheetRow';
@@ -22,6 +20,7 @@ import {
 import { getVendors, type Vendor as ApiVendor } from '@/lib/api/vendor';
 import { downloadVendorTransactionsTemplate } from '@/lib/transactionsTemplate';
 import { getActiveCustomColumns, type CustomColumnMetadata } from '@/lib/api/customColumns';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 
 interface Vendor {
   id: string;
@@ -125,11 +124,8 @@ function TransactionsContent() {
   const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
-  const [showUserMenu, setShowUserMenu] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const persistedPayloadsRef = useRef<Record<string, string>>({});
-  const { user, logout } = useAuth();
-  const userName = user?.username || "Admin User";
 
   const getMatchedVendor = useCallback(
     (vendorName: string) =>
@@ -184,21 +180,6 @@ function TransactionsContent() {
     },
     [buildRecord]
   );
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (showUserMenu && !target.closest(".user-menu-container")) {
-        setShowUserMenu(false);
-      }
-    };
-
-    if (showUserMenu) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showUserMenu]);
 
   useEffect(() => {
     let isMounted = true;
@@ -567,40 +548,6 @@ function TransactionsContent() {
               rows={records}
               onRowsChange={setRecords}
             />
-            <div className="relative user-menu-container">
-              <Button
-                onClick={() => setShowUserMenu(!showUserMenu)}
-                variant="ghost"
-                className="flex cursor-pointer items-center gap-2 px-3"
-              >
-                <div className="flex h-8 w-8 aspect-square flex-shrink-0 items-center justify-center rounded-full bg-[#10b981] text-sm font-semibold text-white">
-                  {userName.charAt(0).toUpperCase()}
-                </div>
-                <span className="hidden text-sm font-medium text-slate-900 md:block">{userName}</span>
-                <span className="material-icons text-lg leading-none text-slate-600">
-                  {showUserMenu ? "expand_less" : "expand_more"}
-                </span>
-              </Button>
-              {showUserMenu && (
-                <div className="absolute right-0 z-50 mt-2 w-48 rounded-lg border border-slate-200 bg-white py-2 shadow-lg">
-                  <div className="border-b border-slate-200 px-4 py-2">
-                    <p className="text-sm font-semibold text-slate-900">{userName}</p>
-                  </div>
-                  <Button
-                    onClick={() => {
-                      logout();
-                      setShowUserMenu(false);
-                    }}
-                    variant="ghost"
-                    size="sm"
-                    className="w-full items-center gap-2 text-red-600 hover:bg-red-50"
-                  >
-                    <span className="material-icons text-lg leading-none">logout</span>
-                    Log Out
-                  </Button>
-                </div>
-              )}
-            </div>
           </div>
         </header>
 
@@ -623,8 +570,6 @@ function TransactionsContent() {
 
 export default function TransactionsPage() {
   return (
-    <ProtectedRoute>
       <TransactionsContent />
-    </ProtectedRoute>
   );
 }
