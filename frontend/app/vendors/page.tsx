@@ -16,7 +16,6 @@ interface VendorWithDefaults extends Vendor {
 
 function VendorsContent() {
     const router = useRouter();
-    const [showUserMenu, setShowUserMenu] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [showInactive, setShowInactive] = useState(false);
     const [vendors, setVendors] = useState<VendorWithDefaults[]>([]);
@@ -27,28 +26,10 @@ function VendorsContent() {
     const [pageSize] = useState(10);
     const [totalPages, setTotalPages] = useState(1);
     const [totalElements, setTotalElements] = useState(0);
-    const userName = "Market Manager";
 
     // Edit Dialog state
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
-
-    const handleShutdown = async () => {
-    if (window.confirm("Are you sure you want to shut down MarketOS?")) {
-        try {
-            await fetch('/api/system/shutdown', { method: 'POST' });
-            // Replaces the screen with a safe-to-close message
-            document.body.innerHTML = `
-                <div style="display:flex; height:100vh; align-items:center; justify-content:center; font-family:sans-serif; flex-direction:column; background:#F9FAF2;">
-                    <h1 style="font-size:24px; margin-bottom:8px; color:#1e293b;">MarketOS has been shut down</h1>
-                    <p style="color:#64748b;">You can safely close this window.</p>
-                </div>
-            `;
-        } catch (e) {
-            window.close(); // Fallback
-        }
-    }
-    };
 
     const fetchData = async () => {
         try {
@@ -198,23 +179,6 @@ function VendorsContent() {
 
     const footerResetKey = `${statsResetKey}|p${currentPage}|s${pageSize}|te${totalElements}|sq${searchQuery}|vl${vendors.length}|fv${filteredVendors.length}`;
 
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            const target = event.target as HTMLElement;
-            if (showUserMenu && !target.closest('.user-menu-container')) {
-                setShowUserMenu(false);
-            }
-        };
-
-        if (showUserMenu) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
-
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [showUserMenu]);
-
     const getStatusBadge = (vendor: VendorWithDefaults) => {
         if (!vendor.isActive) {
             return (
@@ -351,43 +315,6 @@ function VendorsContent() {
                             <span className="material-icons text-lg leading-none">add</span>
                             Add Vendor
                         </Button>
-                        {/* User Menu */}
-                        <div className="relative user-menu-container">
-                            <Button
-                                onClick={() => setShowUserMenu(!showUserMenu)}
-                                variant="ghost"
-                                className="flex items-center gap-2 px-3 cursor-pointer"
-                            >
-                                <div className="w-8 h-8 rounded-full bg-[#10b981] flex items-center justify-center text-white text-sm font-semibold flex-shrink-0 aspect-square">
-                                    {userName.charAt(0).toUpperCase()}
-                                </div>
-                                <span
-                                    className="text-sm font-medium hidden md:block"
-                                    style={{ color: 'rgb(0, 0, 0)' }}
-                                >
-                                    {userName}
-                                </span>
-                                <span className="material-icons text-lg leading-none text-slate-600">
-                                    {showUserMenu ? "expand_less" : "expand_more"}
-                                </span>
-                            </Button>
-                            {showUserMenu && (
-                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-2 z-50">
-                                    <div className="px-4 py-2 border-b border-slate-200">
-                                        <p className="text-sm font-semibold text-slate-900">{userName}</p>
-                                    </div>
-                                    <Button
-                                        onClick={handleShutdown}
-                                        variant="ghost"
-                                        size="sm"
-                                        className="w-full flex items-center gap-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                                    >
-                                        <span className="material-icons text-lg leading-none">power_settings_new</span>
-                                        Shut Down App
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
                     </div>
                 </header>
 

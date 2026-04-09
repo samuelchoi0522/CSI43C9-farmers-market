@@ -35,7 +35,6 @@ function formatMarketSaturdayLabel(isoDate: string) {
 }
 
 function DashboardContent() {
-    const [showUserMenu, setShowUserMenu] = useState(false);
     const [vendors, setVendors] = useState<VendorWithDefaults[]>([]);
     const [transactions, setTransactions] = useState<VendorTransaction[]>([]);
     const [defaultsByVendor, setDefaultsByVendor] = useState<Map<string, VendorDefaults>>(new Map());
@@ -46,15 +45,6 @@ function DashboardContent() {
     const [pageSize] = useState(5);
     const [totalPages, setTotalPages] = useState(1);
     const [totalElements, setTotalElements] = useState(0);
-    const userName = "Market Manager";
-
-    const handleShutdown = async () => {
-    if (window.confirm("Are you sure you want to shut down MarketOS?")) {
-        // This closes the native OS window, which tells Tauri to 
-        // instantly kill itself and the Spring Boot sidecar.
-        await getCurrentWindow().close(); 
-    }
-};
 
     const marketSaturday = mostRecentSaturdayDate();
     const metricsResetKey = marketSaturday;
@@ -150,24 +140,6 @@ function DashboardContent() {
 
     const categoryBarColors = ["#10b981", "#3b82f6", "#f59e0b", "#ec4899", "#8b5cf6", "#94a3b8"];
 
-    useEffect(() => {
-        // Close user menu when clicking outside
-        const handleClickOutside = (event: MouseEvent) => {
-            const target = event.target as HTMLElement;
-            if (showUserMenu && !target.closest('.user-menu-container')) {
-                setShowUserMenu(false);
-            }
-        };
-
-        if (showUserMenu) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
-
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [showUserMenu]);
-
 
     useEffect(() => {
         const fetchData = async () => {
@@ -248,45 +220,6 @@ function DashboardContent() {
                         <p className="text-slate-700 dark:text-slate-400 animate-fade-in" style={{ animationDelay: '0.1s' }}>
                             Transaction totals for the most recent Saturday ({marketDayLabel})
                         </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        {/* User Menu */}
-                        <div className="relative user-menu-container">
-                            <Button
-                                onClick={() => setShowUserMenu(!showUserMenu)}
-                                variant="ghost"
-                                className="flex items-center gap-2 px-3 cursor-pointer"
-                            >
-                                <div className="w-8 h-8 rounded-full bg-[#10b981] flex items-center justify-center text-white text-sm font-semibold flex-shrink-0 aspect-square">
-                                    {userName.charAt(0).toUpperCase()}
-                                </div>
-                                <span
-                                    className="text-sm font-medium hidden md:block"
-                                    style={{ color: 'rgb(0, 0, 0)' }}
-                                >
-                                    {userName}
-                                </span>
-                                <span className="material-icons text-lg leading-none text-slate-600">
-                                    {showUserMenu ? "expand_less" : "expand_more"}
-                                </span>
-                            </Button>
-                            {showUserMenu && (
-                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-2 z-50">
-                                    <div className="px-4 py-2 border-b border-slate-200">
-                                        <p className="text-sm font-semibold text-slate-900">{userName}</p>
-                                    </div>
-                                    <Button
-                                    onClick={handleShutdown}
-                                    variant="ghost"
-                                    size="sm"
-                                    className="w-full flex items-center gap-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                                >
-                                    <span className="material-icons text-lg leading-none">power_settings_new</span>
-                                    Shut Down App
-                                </Button>
-                                </div>
-                            )}
-                        </div>
                     </div>
                 </header>
 
