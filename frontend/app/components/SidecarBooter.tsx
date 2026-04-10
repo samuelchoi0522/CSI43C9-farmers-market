@@ -19,6 +19,11 @@ export default function SidecarBooter({ children }: { children: React.ReactNode 
       const startBackend = async () => {
         console.log("🚀 Starting Spring Boot sidecar...");
         try {
+          if (!('__TAURI_INTERNALS__' in window)) {
+            console.warn("⚠️ Not running in Tauri environment. Skipping sidecar boot.");
+            setIsReady(true);
+            return;
+          }
           const command = Command.sidecar('binaries/spring-backend');
           await command.spawn();
           console.log('✅ Spring Boot process spawned!');
