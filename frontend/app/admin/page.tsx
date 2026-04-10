@@ -556,6 +556,7 @@ function AdminContent() {
                     </div>
                 </header>
 
+                {/* --- TABS --- */}
                 <Tabs defaultValue="labels" className="w-full">
                     <TabsList className="mb-6">
                         <TabsTrigger value="labels">Category Labels</TabsTrigger>
