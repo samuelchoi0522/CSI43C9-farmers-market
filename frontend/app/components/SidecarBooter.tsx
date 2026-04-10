@@ -9,14 +9,14 @@ export default function SidecarBooter({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      
-      // If we are in standard browser dev mode (localhost:3000), skip the sidecar and unlock UI immediately
-      // if (!('__TAURI_INTERNALS__' in window)) {
-      //   setIsReady(true);
-      //   return;
-      // }
 
       const startBackend = async () => {
+        // If we are in standard browser dev mode (localhost:3000), skip the sidecar and unlock UI immediately
+        if (!('__TAURI_INTERNALS__' in window)) {
+          setIsReady(true);
+          return;
+        }
+        
         console.log("🚀 Starting Spring Boot sidecar...");
         try {
           const command = Command.sidecar('binaries/spring-backend');
