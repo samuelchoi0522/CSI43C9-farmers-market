@@ -66,12 +66,7 @@ public class VendorRepository extends AbstractJdbcRepository implements MarketRe
                 vendor.getLocation(),
                 vendor.getMiles(),
                 vendor.getProducts(),
-                vendor.getIsActive(),
-                vendor.getIsFarmer(),
-                vendor.getIsProduce(),
-                vendor.getWomanOwned(),
-                vendor.getBipocOwned(),
-                vendor.getVeteranOwned()
+                vendor.getIsActive()
         );
 
         return vendor;
@@ -99,11 +94,6 @@ public class VendorRepository extends AbstractJdbcRepository implements MarketRe
                 vendor.getMiles(),
                 vendor.getProducts(),
                 vendor.getIsActive(),
-                vendor.getIsFarmer(),
-                vendor.getIsProduce(),
-                vendor.getWomanOwned(),
-                vendor.getBipocOwned(),
-                vendor.getVeteranOwned(),
                 UuidUtils.toBytes(vendor.getId())
         );
     }
