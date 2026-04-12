@@ -53,9 +53,9 @@ public class VendorRepository extends AbstractJdbcRepository implements MarketRe
         String sql = """
                 insert into vendors (
                     id, vendor, point_person, email, location, miles, products,
-                    is_active, is_farmer, is_produce, woman_owned, bipoc_owned, veteran_owned
+                    is_active
                 )
-                values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                values (?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         jdbcTemplate.update(sql,
