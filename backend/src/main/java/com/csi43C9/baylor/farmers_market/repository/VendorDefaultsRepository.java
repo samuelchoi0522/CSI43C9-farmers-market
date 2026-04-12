@@ -52,8 +52,7 @@ public class VendorDefaultsRepository extends AbstractJdbcRepository implements 
                 defaults.getPctAgricultural(),
                 defaults.getPctPreparedFood(),
                 defaults.getPctCottageGoods(),
-                defaults.getPctManufactured()
-        );
+                defaults.getPctManufactured());
 
         return defaults;
     }
@@ -73,8 +72,7 @@ public class VendorDefaultsRepository extends AbstractJdbcRepository implements 
                 defaults.getPctPreparedFood(),
                 defaults.getPctCottageGoods(),
                 defaults.getPctManufactured(),
-                UuidUtils.toBytes(defaults.getId())
-        );
+                UuidUtils.toBytes(defaults.getId()));
     }
 
     @Override
@@ -90,6 +88,7 @@ public class VendorDefaultsRepository extends AbstractJdbcRepository implements 
 
     /**
      * Retrieves vendor defaults by vendor UUID.
+     * 
      * @param vendorId The UUID of the vendor.
      */
     public Optional<VendorDefaults> findByVendorId(UUID vendorId) {

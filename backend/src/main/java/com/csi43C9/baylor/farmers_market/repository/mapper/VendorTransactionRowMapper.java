@@ -43,6 +43,11 @@ public class VendorTransactionRowMapper implements RowMapper<VendorTransaction> 
         transaction.setReportedSales(rs.getObject("reported_sales", Double.class));
         transaction.setEstProduceSales(rs.getObject("est_produce_sales", Double.class));
         transaction.setEstNumTransactions(rs.getObject("est_num_transactions", Long.class));
+        transaction.setPctHandmade(rs.getObject("pct_handmade", Double.class));
+        transaction.setPctAgricultural(rs.getObject("pct_agricultural", Double.class));
+        transaction.setPctPreparedFood(rs.getObject("pct_prepared_food", Double.class));
+        transaction.setPctCottageGoods(rs.getObject("pct_cottage_goods", Double.class));
+        transaction.setPctManufactured(rs.getObject("pct_manufactured", Double.class));
 
         String customDataJson = rs.getString("custom_data");
         if (customDataJson != null && !customDataJson.isBlank()) {

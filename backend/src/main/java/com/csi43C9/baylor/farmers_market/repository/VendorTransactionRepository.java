@@ -70,9 +70,11 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
                 insert into vendor_transactions (
                     id, vendor_id, vendor_name, market_date, present, snap, dufb,
                     wdfm_tokens, voucher, reimbursement_due, reported_sales,
-                    est_produce_sales, est_num_transactions, custom_data
+                    est_produce_sales, est_num_transactions,
+                    pct_handmade, pct_agricultural, pct_prepared_food, pct_cottage_goods, pct_manufactured,
+                    custom_data
                 )
-                values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         jdbcTemplate.batchUpdate(sql, transactions, transactions.size(), (ps, transaction) -> {
@@ -89,7 +91,12 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
             ps.setObject(11, transaction.getReportedSales());
             ps.setObject(12, transaction.getEstProduceSales());
             ps.setObject(13, transaction.getEstNumTransactions());
-            ps.setString(14, toJsonString(transaction.getCustomData()));
+            ps.setObject(14, transaction.getPctHandmade());
+            ps.setObject(15, transaction.getPctAgricultural());
+            ps.setObject(16, transaction.getPctPreparedFood());
+            ps.setObject(17, transaction.getPctCottageGoods());
+            ps.setObject(18, transaction.getPctManufactured());
+            ps.setString(19, toJsonString(transaction.getCustomData()));
         });
 
         return transactions;
@@ -103,9 +110,11 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
                 insert into vendor_transactions (
                     id, vendor_id, vendor_name, market_date, present, snap, dufb,
                     wdfm_tokens, voucher, reimbursement_due, reported_sales,
-                    est_produce_sales, est_num_transactions, custom_data
+                    est_produce_sales, est_num_transactions,
+                    pct_handmade, pct_agricultural, pct_prepared_food, pct_cottage_goods, pct_manufactured,
+                    custom_data
                 )
-                values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         jdbcTemplate.update(sql,
@@ -122,6 +131,11 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
                 transaction.getReportedSales(),
                 transaction.getEstProduceSales(),
                 transaction.getEstNumTransactions(),
+                transaction.getPctHandmade(),
+                transaction.getPctAgricultural(),
+                transaction.getPctPreparedFood(),
+                transaction.getPctCottageGoods(),
+                transaction.getPctManufactured(),
                 toJsonString(transaction.getCustomData())
         );
 
@@ -137,7 +151,9 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
                 set vendor_id = ?, vendor_name = ?, market_date = ?, present = ?,
                     snap = ?, dufb = ?, wdfm_tokens = ?, voucher = ?,
                     reimbursement_due = ?, reported_sales = ?, est_produce_sales = ?,
-                    est_num_transactions = ?, custom_data = ?
+                    est_num_transactions = ?, pct_handmade = ?, pct_agricultural = ?,
+                    pct_prepared_food = ?, pct_cottage_goods = ?, pct_manufactured = ?,
+                    custom_data = ?
                 where id = ?
                 """;
 
@@ -154,6 +170,11 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
                 transaction.getReportedSales(),
                 transaction.getEstProduceSales(),
                 transaction.getEstNumTransactions(),
+                transaction.getPctHandmade(),
+                transaction.getPctAgricultural(),
+                transaction.getPctPreparedFood(),
+                transaction.getPctCottageGoods(),
+                transaction.getPctManufactured(),
                 toJsonString(transaction.getCustomData()),
                 UuidUtils.toBytes(transaction.getId())
         );
@@ -332,25 +353,18 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
      */
     public RevenueBreakdown getRevenueBreakdownForDateRange(LocalDate startDate, LocalDate endDate) {
         String sql = """
-                /* Vendor sales for the specified date range */
-                with vendor_sales as (
-                    select vendor_id, sum(reported_sales) as reported_sales
+                /* Vendor transactions for the specified date range */
+                with vendor_revenues as (
+                    select
+                        reported_sales,
+                        reported_sales * coalesce(pct_handmade / 100.0, 0)      as handmade_revenue,
+                        reported_sales * coalesce(pct_agricultural / 100.0, 0)  as agricultural_revenue,
+                        reported_sales * coalesce(pct_prepared_food / 100.0, 0) as prepared_revenue,
+                        reported_sales * coalesce(pct_cottage_goods / 100.0, 0) as cottage_revenue,
+                        reported_sales * coalesce(pct_manufactured / 100.0, 0)  as manufactured_revenue
                     from vendor_transactions
                     where market_date >= ? and market_date <= ?
                       and present = 1
-                    group by vendor_id
-                ),
-                /* Vendor sales multiplied by their default revenue percentages */
-                vendor_revenues as (
-                    select vs.vendor_id,
-                           vs.reported_sales,
-                           vs.reported_sales * coalesce(vd.pct_handmade / 100.0, 0)      as handmade_revenue,
-                           vs.reported_sales * coalesce(vd.pct_agricultural / 100.0, 0)  as agricultural_revenue,
-                           vs.reported_sales * coalesce(vd.pct_prepared_food / 100.0, 0) as prepared_revenue,
-                           vs.reported_sales * coalesce(vd.pct_cottage_goods / 100.0, 0) as cottage_revenue,
-                           vs.reported_sales * coalesce(vd.pct_manufactured / 100.0, 0)  as manufactured_revenue
-                    from vendor_sales vs
-                    left join vendor_defaults vd on vd.vendor_id = vs.vendor_id
                 )
                 /* Sum the revenues by vendor type, converting nulls to zero */
                 select

@@ -33,6 +33,11 @@ create table vendor_transactions
     reported_sales       double,
     est_produce_sales    double,
     est_num_transactions bigint,
+    pct_handmade         double,
+    pct_agricultural     double,
+    pct_prepared_food    double,
+    pct_cottage_goods    double,
+    pct_manufactured     double,
     custom_data          json,
     created_at           timestamp default current_timestamp,
     updated_at           timestamp

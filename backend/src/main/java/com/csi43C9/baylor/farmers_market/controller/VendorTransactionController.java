@@ -8,6 +8,7 @@ import com.csi43C9.baylor.farmers_market.entity.VendorTransaction;
 import com.csi43C9.baylor.farmers_market.service.VendorTransactionService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import lombok.NonNull;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -30,13 +31,16 @@ import java.util.UUID;
 
 /**
  * REST Controller for managing vendor transaction-related operations.
- * <p>This controller is protected by JWT authentication as configured in
- * the SecurityConfig class.</p>
+ * <p>
+ * This controller is protected by JWT authentication as configured in
+ * the SecurityConfig class.
+ * </p>
  */
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/vendor-transaction")
 @AllArgsConstructor
+@Slf4j
 public class VendorTransactionController {
 
     private final VendorTransactionService vendorTransactionService;
@@ -44,26 +48,32 @@ public class VendorTransactionController {
     /**
      * Creates a new vendor transaction in the system.
      *
-     * @param request the {@link SaveVendorTransactionRequest} containing valid transaction details.
-     * @return a {@link ResponseEntity} containing the created {@link VendorTransaction}
-     * and a HTTP 201 Created status.
+     * @param request the {@link SaveVendorTransactionRequest} containing valid
+     *                transaction details.
+     * @return a {@link ResponseEntity} containing the created
+     *         {@link VendorTransaction}
+     *         and a HTTP 201 Created status.
      */
     @PostMapping
     public ResponseEntity<@NonNull VendorTransaction> createVendorTransaction(
             @Valid @RequestBody SaveVendorTransactionRequest request) {
+        log.debug("[API] Create VendorTransaction request: {}", request);
         return new ResponseEntity<>(vendorTransactionService.create(request), HttpStatus.CREATED);
     }
 
     /**
      * Creates multiple vendor transactions in the system.
      *
-     * @param requests the {@link SaveVendorTransactionRequest} list containing valid transaction details.
-     * @return a {@link ResponseEntity} containing the created {@link VendorTransaction} list
-     * and a HTTP 201 Created status.
+     * @param requests the {@link SaveVendorTransactionRequest} list containing
+     *                 valid transaction details.
+     * @return a {@link ResponseEntity} containing the created
+     *         {@link VendorTransaction} list
+     *         and a HTTP 201 Created status.
      */
     @PostMapping("/batch")
     public ResponseEntity<@NonNull List<VendorTransaction>> createVendorTransactions(
             @Valid @RequestBody List<SaveVendorTransactionRequest> requests) {
+        log.debug("[API] Create VendorTransactions batch request: {}", requests);
         return new ResponseEntity<>(vendorTransactionService.createBulk(requests), HttpStatus.CREATED);
     }
 
@@ -72,7 +82,8 @@ public class VendorTransactionController {
      *
      * @param page 0-based page number
      * @param size page size
-     * @return a {@link ResponseEntity} containing a {@link PagedResponse} of {@link VendorTransaction}s
+     * @return a {@link ResponseEntity} containing a {@link PagedResponse} of
+     *         {@link VendorTransaction}s
      */
     @GetMapping
     public ResponseEntity<@NonNull PagedResponse<VendorTransaction>> getAllVendorTransactions(
@@ -83,11 +94,13 @@ public class VendorTransactionController {
     }
 
     /**
-     * Retrieves vendor transactions for one market date or an inclusive market date range.
+     * Retrieves vendor transactions for one market date or an inclusive market date
+     * range.
      * This endpoint is intentionally filter-driven to support future expansion.
+     * 
      * @param filter request filters bound from query parameters
-     * @param page 0-based page number
-     * @param size page size
+     * @param page   0-based page number
+     * @param size   page size
      * @return a paged response of matching vendor transactions
      */
     @GetMapping("/search")
@@ -101,9 +114,10 @@ public class VendorTransactionController {
 
     /**
      * Retrieves vendor transactions for a single vendor.
+     * 
      * @param vendorId the vendor UUID
-     * @param page 0-based page number
-     * @param size page size
+     * @param page     0-based page number
+     * @param size     page size
      * @return a paged response of matching vendor transactions
      */
     @GetMapping("/vendor/{vendorId}")
@@ -119,7 +133,8 @@ public class VendorTransactionController {
      * Retrieves a vendor transaction by its UUID.
      *
      * @param uuid the UUID of the vendor transaction to retrieve.
-     * @return a {@link ResponseEntity} containing the requested {@link VendorTransaction}
+     * @return a {@link ResponseEntity} containing the requested
+     *         {@link VendorTransaction}
      */
     @GetMapping("/{uuid}")
     public ResponseEntity<@NonNull VendorTransaction> getVendorTransaction(@PathVariable UUID uuid) {
@@ -132,13 +147,16 @@ public class VendorTransactionController {
      * Updates an existing vendor transaction in the system.
      *
      * @param uuid    the UUID of the vendor transaction to update.
-     * @param request the {@link SaveVendorTransactionRequest} containing updated transaction details.
-     * @return a {@link ResponseEntity} containing the updated {@link VendorTransaction}
+     * @param request the {@link SaveVendorTransactionRequest} containing updated
+     *                transaction details.
+     * @return a {@link ResponseEntity} containing the updated
+     *         {@link VendorTransaction}
      */
     @PatchMapping("/{uuid}")
     public ResponseEntity<@NonNull VendorTransaction> updateVendorTransaction(
             @PathVariable UUID uuid,
             @Valid @RequestBody SaveVendorTransactionRequest request) {
+        log.debug("[API] Update VendorTransaction {} request: {}", uuid, request);
         return new ResponseEntity<>(vendorTransactionService.update(uuid, request), HttpStatus.OK);
     }
 
@@ -146,7 +164,8 @@ public class VendorTransactionController {
      * Deletes a vendor transaction from the system.
      *
      * @param uuid the UUID of the vendor transaction to delete.
-     * @return a 204 No Content response if the transaction was successfully deleted.
+     * @return a 204 No Content response if the transaction was successfully
+     *         deleted.
      */
     @DeleteMapping("/{uuid}")
     public ResponseEntity<?> deleteVendorTransaction(@PathVariable UUID uuid) {
@@ -156,7 +175,8 @@ public class VendorTransactionController {
 
     /**
      * Retrieves the vendor revenue breakdown for a specific date or date range.
-     * Clients must provide either a single 'date' or both 'startDate' and 'endDate'.
+     * Clients must provide either a single 'date' or both 'startDate' and
+     * 'endDate'.
      *
      * @param date      the specific market date to query (YYYY-MM-DD), optional
      * @param startDate the beginning of the date range (YYYY-MM-DD), optional

@@ -276,6 +276,12 @@ public class Seeder {
                     transaction.setReportedSales(faker.number().randomDouble(2, 100, 1000));
                     transaction.setEstProduceSales(faker.number().randomDouble(2, 50, 500));
                     transaction.setEstNumTransactions((long) faker.number().numberBetween(5, 50));
+                    double[] pctSplit = randomPercentageSplit(5);
+                    transaction.setPctHandmade(pctSplit[0]);
+                    transaction.setPctAgricultural(pctSplit[1]);
+                    transaction.setPctPreparedFood(pctSplit[2]);
+                    transaction.setPctCottageGoods(pctSplit[3]);
+                    transaction.setPctManufactured(pctSplit[4]);
 
                     // Generate dynamic JSON data based on active columns
                     Map<String, Object> customData = new HashMap<>();
@@ -320,6 +326,11 @@ public class Seeder {
                     transaction.setReportedSales(0.0);
                     transaction.setEstProduceSales(0.0);
                     transaction.setEstNumTransactions(0L);
+                    transaction.setPctHandmade(null);
+                    transaction.setPctAgricultural(null);
+                    transaction.setPctPreparedFood(null);
+                    transaction.setPctCottageGoods(null);
+                    transaction.setPctManufactured(null);
                     transaction.setCustomData(Collections.emptyMap());
                 }
                 allTransactions.add(transaction);
@@ -328,6 +339,33 @@ public class Seeder {
 
         transactionRepository.saveAll(allTransactions);
         System.out.println("Done seeding transactions! (" + allTransactions.size() + " records)");
+    }
+
+    private double[] randomPercentageSplit(int buckets) {
+        double[] raw = new double[buckets];
+        double sum = 0.0;
+        for (int i = 0; i < buckets; i++) {
+            raw[i] = faker.number().randomDouble(4, 1, 100);
+            sum += raw[i];
+        }
+
+        double[] pct = new double[buckets];
+        double pctSum = 0.0;
+        for (int i = 0; i < buckets; i++) {
+            pct[i] = BigDecimal.valueOf((raw[i] / sum) * 100.0)
+                .setScale(2, RoundingMode.HALF_UP)
+                .doubleValue();
+            pctSum += pct[i];
+        }
+
+        double diff = BigDecimal.valueOf(100.0 - pctSum)
+            .setScale(2, RoundingMode.HALF_UP)
+            .doubleValue();
+        pct[buckets - 1] = BigDecimal.valueOf(pct[buckets - 1] + diff)
+            .setScale(2, RoundingMode.HALF_UP)
+            .doubleValue();
+
+        return pct;
     }
 
 }

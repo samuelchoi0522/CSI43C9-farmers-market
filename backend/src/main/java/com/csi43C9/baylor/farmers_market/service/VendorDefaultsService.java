@@ -34,6 +34,7 @@ public class VendorDefaultsService {
 
     /**
      * Retrieves vendor defaults by its UUID.
+     *
      * @param uuid the UUID of the vendor defaults to retrieve.
      * @return VendorDefaults
      */
@@ -43,6 +44,7 @@ public class VendorDefaultsService {
 
     /**
      * Retrieves vendor defaults by vendor UUID.
+     *
      * @param vendorId the UUID of the vendor.
      * @return VendorDefaults
      */
@@ -52,7 +54,8 @@ public class VendorDefaultsService {
 
     /**
      * Updates existing vendor defaults based on the provided request DTO.
-     * @param uuid the UUID of the vendor defaults to update.
+     *
+     * @param uuid    the UUID of the vendor defaults to update.
      * @param request the DTO containing updated vendor defaults details.
      * @return the updated VendorDefaults entity.
      */
@@ -64,6 +67,7 @@ public class VendorDefaultsService {
 
     /**
      * Deletes vendor defaults from the system.
+     *
      * @param uuid the UUID of the vendor defaults to delete.
      */
     public void delete(UUID uuid) {
@@ -72,6 +76,7 @@ public class VendorDefaultsService {
 
     /**
      * Returns a paged list of all vendor defaults in the system.
+     *
      * @param page 0-based page number
      * @param size page size
      * @return PagedResponse
@@ -86,8 +91,7 @@ public class VendorDefaultsService {
                 page,
                 size,
                 totalElements,
-                totalPages
-        );
+                totalPages);
     }
 
     /**
@@ -103,12 +107,14 @@ public class VendorDefaultsService {
         total = total.add(Optional.ofNullable(request.getPctManufactured()).orElse(BigDecimal.ZERO));
 
         if (total.compareTo(new BigDecimal("100.00")) != 0) {
-            throw new IllegalArgumentException("The sum of percentages must be exactly 100.00. Current total: " + total);
+            throw new IllegalArgumentException(
+                    "The sum of percentages must be exactly 100.00. Current total: " + total);
         }
     }
 
     /**
-     * Helper class for mapping vendor defaults requests to vendor defaults entities.
+     * Helper class for mapping vendor defaults requests to vendor defaults
+     * entities.
      */
     private static class RequestMapper {
         VendorDefaults mapRequest(SaveVendorDefaultsRequest request) {

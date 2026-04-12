@@ -13,6 +13,11 @@ export interface CreateVendorTransactionRequest {
   reportedSales?: number;
   estProduceSales?: number;
   estNumTransactions?: number;
+  pctHandmade?: number | null;
+  pctAgricultural?: number | null;
+  pctPreparedFood?: number | null;
+  pctCottageGoods?: number | null;
+  pctManufactured?: number | null;
   customData?: Record<string, unknown>;
 }
 
@@ -30,6 +35,11 @@ export interface VendorTransaction {
   reportedSales: number;
   estProduceSales: number;
   estNumTransactions: number;
+  pctHandmade?: number | null;
+  pctAgricultural?: number | null;
+  pctPreparedFood?: number | null;
+  pctCottageGoods?: number | null;
+  pctManufactured?: number | null;
   customData?: Record<string, unknown>;
 }
 
