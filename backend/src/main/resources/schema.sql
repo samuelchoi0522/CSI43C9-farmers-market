@@ -8,11 +8,6 @@ create table if not exists vendors
     miles         int                       null,
     products      varchar(255)              null,
     is_active     tinyint(1) default 1      not null,
-    is_farmer     tinyint(1) default 0      not null,
-    is_produce    tinyint(1) default 0      not null,
-    woman_owned   tinyint(1) default 0      not null,
-    bipoc_owned   tinyint(1) default 0      not null,
-    veteran_owned tinyint(1) default 0      not null,
     created_at    timestamp  default now(),
     updated_at    timestamp on update now() null,
     constraint vendors_vendor_uindex unique (vendor)

@@ -163,10 +163,8 @@ function VendorsContent() {
     const statsResetKey = `${showInactive}`;
 
     const vendorStats = useMemo(() => {
-        const farmers = allVendors.filter((v) => v.isFarmer).length;
-        const produce = allVendors.filter((v) => v.isProduce).length;
         const active = allVendors.filter((v) => v.isActive).length;
-        return { farmers, produce, active };
+        return { active };
     }, [allVendors]);
 
     const totalVendorCount = totalElements > 0 ? totalElements : allVendors.length;
@@ -192,32 +190,6 @@ function VendorsContent() {
                 Active
             </span>
         );
-    };
-
-    const getOwnershipBadges = (vendor: VendorWithDefaults) => {
-        const badges = [];
-        if (vendor.womanOwned) {
-            badges.push(
-                <span key="woman" className="px-2 py-0.5 rounded text-xs font-medium bg-pink-100 text-pink-700">
-                    Woman-Owned
-                </span>
-            );
-        }
-        if (vendor.bipocOwned) {
-            badges.push(
-                <span key="bipoc" className="px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700">
-                    BIPOC-Owned
-                </span>
-            );
-        }
-        if (vendor.veteranOwned) {
-            badges.push(
-                <span key="veteran" className="px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">
-                    Veteran-Owned
-                </span>
-            );
-        }
-        return badges;
     };
 
     const handleExportCSV = () => {
@@ -255,11 +227,6 @@ function VendorsContent() {
                 `"${(vendor.location || "").replace(/"/g, '""')}"`,
                 vendor.miles ?? "",
                 `"${(vendor.products || "").replace(/"/g, '""')}"`,
-                vendor.isFarmer ? "Yes" : "No",
-                vendor.isProduce ? "Yes" : "No",
-                vendor.womanOwned ? "Yes" : "No",
-                vendor.bipocOwned ? "Yes" : "No",
-                vendor.veteranOwned ? "Yes" : "No",
                 vendor.defaults?.pctHandmade ? `${vendor.defaults.pctHandmade}%` : "",
                 vendor.defaults?.pctAgricultural ? `${vendor.defaults.pctAgricultural}%` : "",
                 vendor.defaults?.pctPreparedFood ? `${vendor.defaults.pctPreparedFood}%` : "",
@@ -333,41 +300,6 @@ function VendorsContent() {
                             className="block text-3xl font-bold mt-1 tabular-nums text-slate-900 dark:text-slate-100"
                         />
                     </div>
-
-                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover-lift transition-all duration-200">
-                        <div className="flex items-center justify-between mb-4">
-                            <div
-                                className="text-blue-600 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
-                                style={{ backgroundColor: 'rgba(219, 234, 254, 0.5)' }}
-                            >
-                                <span className="material-icons leading-none">agriculture</span>
-                            </div>
-                        </div>
-                        <p className="text-slate-700 dark:text-slate-400 text-sm font-medium">Farmers</p>
-                        <SmoothIntegerValue
-                            value={vendorStats.farmers}
-                            resetKey={statsResetKey}
-                            className="block text-3xl font-bold mt-1 tabular-nums text-slate-900 dark:text-slate-100"
-                        />
-                    </div>
-
-                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover-lift transition-all duration-200">
-                        <div className="flex items-center justify-between mb-4">
-                            <div
-                                className="text-purple-600 p-2 rounded-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
-                                style={{ backgroundColor: 'rgba(243, 232, 255, 0.5)' }}
-                            >
-                                <span className="material-icons leading-none">eco</span>
-                            </div>
-                        </div>
-                        <p className="text-slate-700 dark:text-slate-400 text-sm font-medium">Produce Vendors</p>
-                        <SmoothIntegerValue
-                            value={vendorStats.produce}
-                            resetKey={statsResetKey}
-                            className="block text-3xl font-bold mt-1 tabular-nums text-slate-900 dark:text-slate-100"
-                        />
-                    </div>
-
                     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover-lift transition-all duration-200">
                         <div className="flex items-center justify-between mb-4">
                             <div
@@ -437,7 +369,6 @@ function VendorsContent() {
                                     <th className="px-6 py-4">Products</th>
                                     <th className="px-6 py-4">Product Defaults</th>
                                     <th className="px-6 py-4">Status</th>
-                                    <th className="px-6 py-4">Ownership</th>
                                     <th className="px-6 py-4 text-right">Actions</th>
                                 </tr>
                             </thead>
@@ -545,15 +476,6 @@ function VendorsContent() {
                                             )}
                                         </td>
                                         <td className="px-6 py-4">{getStatusBadge(vendor)}</td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex flex-wrap gap-1">
-                                                {getOwnershipBadges(vendor).length > 0 ? (
-                                                    getOwnershipBadges(vendor)
-                                                ) : (
-                                                    <span className="text-xs text-slate-500">-</span>
-                                                )}
-                                            </div>
-                                        </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex items-center justify-end gap-2">
                                                 <Button 

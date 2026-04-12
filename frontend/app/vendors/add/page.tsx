@@ -337,12 +337,7 @@ function AddVendorContent() {
                 location: formData.location || undefined,
                 miles: milesNumber,
                 products: productsText || undefined,
-                isFarmer: formData.isFarmer,
-                isProduce: formData.isProduce,
                 isActive: formData.isActive,
-                womanOwned: formData.womanOwned,
-                bipocOwned: formData.bipocOwned,
-                veteranOwned: formData.veteranOwned,
             });
 
             if (!newVendor || !newVendor.id) {
@@ -486,41 +481,6 @@ function AddVendorContent() {
                                                 {formData.productDetails ? formData.productDetails : <span className="text-slate-400 italic">Not provided</span>}
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
-
-                                {/* Classifications Review */}
-                                <div>
-                                    <h4 className="text-sm font-semibold text-slate-700 mb-4">Vendor Classifications</h4>
-                                    <div className="flex flex-wrap gap-3">
-                                        {formData.isFarmer && (
-                                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                                                Farmer
-                                            </span>
-                                        )}
-                                        {formData.isProduce && (
-                                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                                                Produce Vendor
-                                            </span>
-                                        )}
-                                        {formData.womanOwned && (
-                                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-pink-100 text-pink-700">
-                                                Woman-Owned
-                                            </span>
-                                        )}
-                                        {formData.bipocOwned && (
-                                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
-                                                BIPOC-Owned
-                                            </span>
-                                        )}
-                                        {formData.veteranOwned && (
-                                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                                                Veteran-Owned
-                                            </span>
-                                        )}
-                                        {!formData.isFarmer && !formData.isProduce && !formData.womanOwned && !formData.bipocOwned && !formData.veteranOwned && (
-                                            <span className="text-sm text-slate-400 italic">No classifications selected</span>
-                                        )}
                                     </div>
                                 </div>
 
@@ -785,45 +745,6 @@ function AddVendorContent() {
                                             Providing a detailed list helps with market variety balancing.
                                         </p>
                                     </div>
-                                </div>
-                            </div>
-
-                            {/* Vendor Classifications */}
-                            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                                <div className="p-6 border-b border-slate-200">
-                                    <h3 className="font-bold text-lg">Vendor Classifications</h3>
-                                </div>
-                                <div className="p-6 space-y-4">
-                                    {/* Toggle Switch Component */}
-                                    {[
-                                        { key: 'isFarmer', label: 'Is Farmer', description: 'Primary producer of raw goods' },
-                                        { key: 'isProduce', label: 'Is Produce', description: 'Fruits, vegetables, or nuts' },
-                                        { key: 'womanOwned', label: 'Woman Owned', description: 'At least 51% ownership' },
-                                        { key: 'bipocOwned', label: 'BIPOC Owned', description: 'Minority enterprise status' },
-                                        { key: 'veteranOwned', label: 'Veteran Owned', description: 'Owner served in armed forces' },
-                                    ].map(({ key, label, description }) => (
-                                        <div key={key} className="flex items-center justify-between py-2">
-                                            <div className="flex-1">
-                                                <p className="text-sm font-medium text-slate-700">{label}</p>
-                                                <p className="text-xs text-slate-500 mt-0.5">{description}</p>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => handleToggle(key as keyof VendorFormData)}
-                                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-dashboard-primary focus:ring-offset-2 ${
-                                                    formData[key as keyof VendorFormData]
-                                                        ? 'bg-dashboard-primary'
-                                                        : 'bg-slate-300'
-                                                }`}
-                                            >
-                                                <span
-                                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                                        formData[key as keyof VendorFormData] ? 'translate-x-6' : 'translate-x-1'
-                                                    }`}
-                                                />
-                                            </button>
-                                        </div>
-                                    ))}
                                 </div>
                             </div>
 
