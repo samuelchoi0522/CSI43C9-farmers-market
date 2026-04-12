@@ -100,7 +100,6 @@ public class VendorTransactionController {
      * Retrieves vendor transactions for one market date or an inclusive market date
      * range.
      * This endpoint is intentionally filter-driven to support future expansion.
-     * 
      * @param filter request filters bound from query parameters
      * @param page   0-based page number
      * @param size   page size
@@ -117,7 +116,6 @@ public class VendorTransactionController {
 
     /**
      * Retrieves vendor transactions for a single vendor.
-     * 
      * @param vendorId the vendor UUID
      * @param page     0-based page number
      * @param size     page size

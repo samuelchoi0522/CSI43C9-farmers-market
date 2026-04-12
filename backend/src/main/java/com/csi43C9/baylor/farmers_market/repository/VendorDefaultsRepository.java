@@ -88,7 +88,6 @@ public class VendorDefaultsRepository extends AbstractJdbcRepository implements 
 
     /**
      * Retrieves vendor defaults by vendor UUID.
-     * 
      * @param vendorId The UUID of the vendor.
      */
     public Optional<VendorDefaults> findByVendorId(UUID vendorId) {
