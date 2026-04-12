@@ -1,6 +1,7 @@
 package com.csi43C9.baylor.farmers_market.dto.vendor_transaction;
 
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDate;
@@ -11,6 +12,7 @@ import java.util.UUID;
  * Designed to be extended with additional filter fields over time.
  */
 @Data
+@NoArgsConstructor
 public class VendorTransactionFilterRequest {
 
     /**

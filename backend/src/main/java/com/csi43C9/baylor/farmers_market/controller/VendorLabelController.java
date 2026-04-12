@@ -4,9 +4,9 @@ import com.csi43C9.baylor.farmers_market.dto.vendor.CategoryLabelDto;
 import com.csi43C9.baylor.farmers_market.dto.vendor.VendorLabelRequest;
 import com.csi43C9.baylor.farmers_market.service.VendorCategoryService;
 import jakarta.validation.Valid;
+import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,10 +23,10 @@ import java.util.UUID;
  * REST Controller for managing the general categories (labels) associated with a specific vendor.
  * Maps to the `vendor_category_labels` and `category_labels` tables.
  */
-@CrossOrigin(origins = "*", maxAge = 3600)
+@CrossOrigin(origins = {"*"})
 @RestController
 @RequestMapping("/api/vendors/{vendorId}/categories")
-@PreAuthorize("isAuthenticated()")
+@RegisterReflectionForBinding(VendorLabelRequest.class)
 public class VendorLabelController {
 
     private final VendorCategoryService service;

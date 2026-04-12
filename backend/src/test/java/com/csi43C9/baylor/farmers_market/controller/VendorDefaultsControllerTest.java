@@ -3,18 +3,11 @@ package com.csi43C9.baylor.farmers_market.controller;
 import com.csi43C9.baylor.farmers_market.dto.PagedResponse;
 import com.csi43C9.baylor.farmers_market.dto.vendor.SaveVendorDefaultsRequest;
 import com.csi43C9.baylor.farmers_market.entity.VendorDefaults;
-import com.csi43C9.baylor.farmers_market.security.SecurityConfig;
-import com.csi43C9.baylor.farmers_market.security.UserDetailsServiceImpl;
-import com.csi43C9.baylor.farmers_market.security.jwt.AuthEntryPointJwt;
-import com.csi43C9.baylor.farmers_market.security.jwt.JwtAuthFilter;
-import com.csi43C9.baylor.farmers_market.security.jwt.JwtUtil;
 import com.csi43C9.baylor.farmers_market.service.VendorDefaultsService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
@@ -38,7 +31,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Integration tests for {@link VendorDefaultsController}.
  */
 @WebMvcTest(VendorDefaultsController.class)
-@Import({SecurityConfig.class, AuthEntryPointJwt.class, JwtAuthFilter.class})
 class VendorDefaultsControllerTest {
 
     @Autowired
@@ -50,14 +42,7 @@ class VendorDefaultsControllerTest {
     @MockitoBean
     private VendorDefaultsService vendorDefaultsService;
 
-    @MockitoBean
-    private UserDetailsServiceImpl userDetailsService;
-
-    @MockitoBean
-    private JwtUtil jwtUtil;
-
     @Test
-    @WithMockUser
     void createVendorDefaultsAuthenticatedReturnsCreated() throws Exception {
         SaveVendorDefaultsRequest request = new SaveVendorDefaultsRequest();
         request.setVendorId(UUID.randomUUID());
@@ -81,7 +66,6 @@ class VendorDefaultsControllerTest {
     }
 
     @Test
-    @WithMockUser
     void createVendorDefaultsInvalidRequestReturnsBadRequest() throws Exception {
         SaveVendorDefaultsRequest request = new SaveVendorDefaultsRequest();
         // Missing vendorId should trigger @NotNull
@@ -93,7 +77,6 @@ class VendorDefaultsControllerTest {
     }
 
     @Test
-    @WithMockUser
     void getVendorDefaultsByIdReturnsOk() throws Exception {
         UUID id = UUID.randomUUID();
         VendorDefaults defaults = new VendorDefaults();
@@ -107,7 +90,6 @@ class VendorDefaultsControllerTest {
     }
 
     @Test
-    @WithMockUser
     void getVendorDefaultsByVendorIdReturnsOk() throws Exception {
         UUID vendorId = UUID.randomUUID();
         VendorDefaults defaults = new VendorDefaults();
@@ -121,7 +103,6 @@ class VendorDefaultsControllerTest {
     }
 
     @Test
-    @WithMockUser
     void getAllVendorDefaultsReturnsPagedResponse() throws Exception {
         PagedResponse<VendorDefaults> response = new PagedResponse<>(
                 Collections.emptyList(), 0, 10, 0L, 0);
@@ -134,7 +115,6 @@ class VendorDefaultsControllerTest {
     }
 
     @Test
-    @WithMockUser
     void updateVendorDefaultsReturnsOk() throws Exception {
         UUID id = UUID.randomUUID();
         SaveVendorDefaultsRequest request = new SaveVendorDefaultsRequest();
@@ -155,7 +135,6 @@ class VendorDefaultsControllerTest {
     }
 
     @Test
-    @WithMockUser
     void deleteVendorDefaultsReturnsNoContent() throws Exception {
         UUID id = UUID.randomUUID();
 

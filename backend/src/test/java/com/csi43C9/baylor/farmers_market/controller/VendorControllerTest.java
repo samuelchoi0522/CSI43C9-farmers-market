@@ -3,18 +3,11 @@ package com.csi43C9.baylor.farmers_market.controller;
 import com.csi43C9.baylor.farmers_market.dto.PagedResponse;
 import com.csi43C9.baylor.farmers_market.dto.vendor.SaveVendorRequest;
 import com.csi43C9.baylor.farmers_market.entity.Vendor;
-import com.csi43C9.baylor.farmers_market.security.SecurityConfig;
-import com.csi43C9.baylor.farmers_market.security.UserDetailsServiceImpl;
-import com.csi43C9.baylor.farmers_market.security.jwt.AuthEntryPointJwt;
-import com.csi43C9.baylor.farmers_market.security.jwt.JwtAuthFilter;
-import com.csi43C9.baylor.farmers_market.security.jwt.JwtUtil;
 import com.csi43C9.baylor.farmers_market.service.VendorService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
@@ -38,7 +31,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * using {@link MockMvc} to simulate the web layer.
  */
 @WebMvcTest(VendorController.class)
-@Import({SecurityConfig.class, AuthEntryPointJwt.class, JwtAuthFilter.class})
 class VendorControllerTest {
 
     @Autowired
@@ -50,12 +42,6 @@ class VendorControllerTest {
     @MockitoBean
     private VendorService vendorService;
 
-    @MockitoBean
-    private UserDetailsServiceImpl userDetailsService;
-
-    @MockitoBean
-    private JwtUtil jwtUtil;
-
     /**
      * Verifies that an authenticated user can successfully create a vendor.
      * Checks for a 201 Created status and the presence of the generated ID.
@@ -63,7 +49,6 @@ class VendorControllerTest {
      * @throws Exception if mock MVC request fails.
      */
     @Test
-    @WithMockUser
     void createVendorAuthenticatedReturnsCreated() throws Exception {
         SaveVendorRequest request = new SaveVendorRequest();
         request.setVendorName("Test Vendor");
@@ -91,7 +76,6 @@ class VendorControllerTest {
      * @throws Exception if mock MVC request fails.
      */
     @Test
-    @WithMockUser
     void createVendorInvalidRequestReturnsBadRequest() throws Exception {
         SaveVendorRequest request = new SaveVendorRequest();
         request.setVendorName(""); // Should trigger @NotBlank
@@ -107,7 +91,6 @@ class VendorControllerTest {
      * @throws Exception if mock MVC request fails.
      */
     @Test
-    @WithMockUser
     void getVendorByIdReturnsOk() throws Exception {
         UUID id = UUID.randomUUID();
         Vendor vendor = new Vendor();
@@ -126,7 +109,6 @@ class VendorControllerTest {
      * @throws Exception if mock MVC request fails.
      */
     @Test
-    @WithMockUser
     void getVendorByIdNotFoundReturns404() throws Exception {
         when(vendorService.get(any(UUID.class))).thenReturn(Optional.empty());
 
@@ -139,7 +121,6 @@ class VendorControllerTest {
      * @throws Exception if mock MVC request fails.
      */
     @Test
-    @WithMockUser
     void getAllVendorsReturnsPagedResponse() throws Exception {
         PagedResponse<Vendor> response = new PagedResponse<>(
                 Collections.emptyList(), 0, 10, 0L, 0);
@@ -157,7 +138,6 @@ class VendorControllerTest {
      * @throws Exception if mock MVC request fails.
      */
     @Test
-    @WithMockUser
     void deleteVendorReturnsNoContent() throws Exception {
         UUID id = UUID.randomUUID();
 
