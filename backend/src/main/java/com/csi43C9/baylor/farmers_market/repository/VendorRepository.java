@@ -80,9 +80,7 @@ public class VendorRepository extends AbstractJdbcRepository implements MarketRe
         String sql = """
                 update vendors
                 set vendor = ?, point_person = ?, email = ?, location = ?,
-                    miles = ?, products = ?, is_active = ?, is_farmer = ?,
-                    is_produce = ?, woman_owned = ?, bipoc_owned = ?,
-                    veteran_owned = ?
+                    miles = ?, products = ?, is_active = ?
                 where id = ?
                 """;
 

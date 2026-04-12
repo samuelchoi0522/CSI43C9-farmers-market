@@ -8,11 +8,6 @@ create table if not exists vendors
     miles         int                       null,
     products      varchar(255)              null,
     is_active     boolean default 1      null,
-    is_farmer     boolean default 0      null,
-    is_produce    boolean default 0      null,
-    woman_owned   boolean default 0      null,
-    bipoc_owned   boolean default 0      null,
-    veteran_owned boolean default 0      null,
     created_at    timestamp  default now(),
     updated_at    timestamp on update now() null
 );
