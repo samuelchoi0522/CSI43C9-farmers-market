@@ -5,8 +5,6 @@ import { useRouter } from "next/navigation";
 import SidebarNavigation from "../../components/SidebarNavigation";
 import Button from "../../components/Button";
 import LabelPickerDialog from "../../components/LabelPickerDialog";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { useAuth } from "@/contexts/AuthContext";
 import { createVendor, createVendorDefaults } from "@/lib/api";
 import {
     CategoryLabel,
@@ -41,13 +39,10 @@ interface VendorFormData {
 
 function AddVendorContent() {
     const router = useRouter();
-    const [showUserMenu, setShowUserMenu] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [animatedPercentage, setAnimatedPercentage] = useState(0);
     const [showOverview, setShowOverview] = useState(false);
-    const { user, logout } = useAuth();
-    const userName = user?.username || "Admin User";
     const animationFrameRef = useRef<number | null>(null);
 
     const [allLabels, setAllLabels] = useState<CategoryLabel[]>([]);
@@ -200,23 +195,6 @@ function AddVendorContent() {
         fetchLabels();
     }, []);
 
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            const target = event.target as HTMLElement;
-            if (showUserMenu && !target.closest('.user-menu-container')) {
-                setShowUserMenu(false);
-            }
-        };
-
-        if (showUserMenu) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
-
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [showUserMenu]);
-
     const handleInputChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
     ) => {
@@ -359,12 +337,7 @@ function AddVendorContent() {
                 location: formData.location || undefined,
                 miles: milesNumber,
                 products: productsText || undefined,
-                isFarmer: formData.isFarmer,
-                isProduce: formData.isProduce,
                 isActive: formData.isActive,
-                womanOwned: formData.womanOwned,
-                bipocOwned: formData.bipocOwned,
-                veteranOwned: formData.veteranOwned,
             });
 
             if (!newVendor || !newVendor.id) {
@@ -397,10 +370,6 @@ function AddVendorContent() {
         }
     };
 
-    const handleLogout = () => {
-        logout();
-    };
-
     type PercentageKeys = 'pctHandmade' | 'pctAgricultural' | 'pctPreparedFood' | 'pctCottageGoods' | 'pctManufactured';
     interface PercentageField {
         key: PercentageKeys;
@@ -426,43 +395,6 @@ function AddVendorContent() {
                         <p className="text-slate-700 animate-fade-in" style={{ animationDelay: '0.1s' }}>
                             Register a new vendor in the farmers market system
                         </p>
-                    </div>
-                    {/* User Menu */}
-                    <div className="relative user-menu-container">
-                        <Button
-                            onClick={() => setShowUserMenu(!showUserMenu)}
-                            variant="ghost"
-                            className="flex items-center gap-2 px-3 cursor-pointer"
-                        >
-                            <div className="w-8 h-8 rounded-full bg-dashboard-primary flex items-center justify-center text-white text-sm font-semibold shrink-0 aspect-square">
-                                {userName.charAt(0).toUpperCase()}
-                            </div>
-                            <span
-                                className="text-sm font-medium hidden md:block"
-                                style={{ color: 'rgb(0, 0, 0)' }}
-                            >
-                                {userName}
-                            </span>
-                            <span className="material-icons text-lg leading-none text-slate-600">
-                                {showUserMenu ? "expand_less" : "expand_more"}
-                            </span>
-                        </Button>
-                        {showUserMenu && (
-                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-2 z-50">
-                                <div className="px-4 py-2 border-b border-slate-200">
-                                    <p className="text-sm font-semibold text-slate-900">{userName}</p>
-                                </div>
-                                <Button
-                                    onClick={handleLogout}
-                                    variant="ghost"
-                                    size="sm"
-                                    className="w-full flex items-center gap-2 text-red-600 hover:bg-red-50"
-                                >
-                                    <span className="material-icons text-lg leading-none">logout</span>
-                                    Log Out
-                                </Button>
-                            </div>
-                        )}
                     </div>
                 </header>
 
@@ -549,41 +481,6 @@ function AddVendorContent() {
                                                 {formData.productDetails ? formData.productDetails : <span className="text-slate-400 italic">Not provided</span>}
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
-
-                                {/* Classifications Review */}
-                                <div>
-                                    <h4 className="text-sm font-semibold text-slate-700 mb-4">Vendor Classifications</h4>
-                                    <div className="flex flex-wrap gap-3">
-                                        {formData.isFarmer && (
-                                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                                                Farmer
-                                            </span>
-                                        )}
-                                        {formData.isProduce && (
-                                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                                                Produce Vendor
-                                            </span>
-                                        )}
-                                        {formData.womanOwned && (
-                                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-pink-100 text-pink-700">
-                                                Woman-Owned
-                                            </span>
-                                        )}
-                                        {formData.bipocOwned && (
-                                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
-                                                BIPOC-Owned
-                                            </span>
-                                        )}
-                                        {formData.veteranOwned && (
-                                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                                                Veteran-Owned
-                                            </span>
-                                        )}
-                                        {!formData.isFarmer && !formData.isProduce && !formData.womanOwned && !formData.bipocOwned && !formData.veteranOwned && (
-                                            <span className="text-sm text-slate-400 italic">No classifications selected</span>
-                                        )}
                                     </div>
                                 </div>
 
@@ -851,45 +748,6 @@ function AddVendorContent() {
                                 </div>
                             </div>
 
-                            {/* Vendor Classifications */}
-                            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                                <div className="p-6 border-b border-slate-200">
-                                    <h3 className="font-bold text-lg">Vendor Classifications</h3>
-                                </div>
-                                <div className="p-6 space-y-4">
-                                    {/* Toggle Switch Component */}
-                                    {[
-                                        { key: 'isFarmer', label: 'Is Farmer', description: 'Primary producer of raw goods' },
-                                        { key: 'isProduce', label: 'Is Produce', description: 'Fruits, vegetables, or nuts' },
-                                        { key: 'womanOwned', label: 'Woman Owned', description: 'At least 51% ownership' },
-                                        { key: 'bipocOwned', label: 'BIPOC Owned', description: 'Minority enterprise status' },
-                                        { key: 'veteranOwned', label: 'Veteran Owned', description: 'Owner served in armed forces' },
-                                    ].map(({ key, label, description }) => (
-                                        <div key={key} className="flex items-center justify-between py-2">
-                                            <div className="flex-1">
-                                                <p className="text-sm font-medium text-slate-700">{label}</p>
-                                                <p className="text-xs text-slate-500 mt-0.5">{description}</p>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => handleToggle(key as keyof VendorFormData)}
-                                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-dashboard-primary focus:ring-offset-2 ${
-                                                    formData[key as keyof VendorFormData]
-                                                        ? 'bg-dashboard-primary'
-                                                        : 'bg-slate-300'
-                                                }`}
-                                            >
-                                                <span
-                                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                                        formData[key as keyof VendorFormData] ? 'translate-x-6' : 'translate-x-1'
-                                                    }`}
-                                                />
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
                             {/* Vendor Labels */}
                             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                                 <div className="p-6 border-b border-slate-200 flex items-center justify-between">
@@ -1102,8 +960,6 @@ function AddVendorContent() {
 
 export default function AddVendorPage() {
     return (
-        <ProtectedRoute>
-            <AddVendorContent />
-        </ProtectedRoute>
+        <AddVendorContent />
     );
 }

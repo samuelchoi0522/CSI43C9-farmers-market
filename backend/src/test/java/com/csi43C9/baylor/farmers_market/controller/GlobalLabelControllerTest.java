@@ -1,18 +1,11 @@
 package com.csi43C9.baylor.farmers_market.controller;
 
 import com.csi43C9.baylor.farmers_market.dto.vendor.CategoryLabelDto;
-import com.csi43C9.baylor.farmers_market.security.SecurityConfig;
-import com.csi43C9.baylor.farmers_market.security.UserDetailsServiceImpl;
-import com.csi43C9.baylor.farmers_market.security.jwt.AuthEntryPointJwt;
-import com.csi43C9.baylor.farmers_market.security.jwt.JwtAuthFilter;
-import com.csi43C9.baylor.farmers_market.security.jwt.JwtUtil;
 import com.csi43C9.baylor.farmers_market.service.VendorCategoryService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
@@ -33,7 +26,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Verifies that the system-wide category labels can be managed correctly.
  */
 @WebMvcTest(GlobalLabelController.class)
-@Import({SecurityConfig.class, AuthEntryPointJwt.class, JwtAuthFilter.class})
 class GlobalLabelControllerTest {
 
     @Autowired
@@ -45,18 +37,11 @@ class GlobalLabelControllerTest {
     @MockitoBean
     private VendorCategoryService service;
 
-    @MockitoBean
-    private UserDetailsServiceImpl userDetailsService;
-
-    @MockitoBean
-    private JwtUtil jwtUtil;
-
     /**
      * Verifies that an authenticated user can create a new global category label.
      * @throws Exception if mock MVC request fails.
      */
     @Test
-    @WithMockUser
     void createCategoryLabelReturnsCreated() throws Exception {
         CategoryLabelDto requestDto = new CategoryLabelDto(null, "New Label", "#10b981");
         CategoryLabelDto savedDto = new CategoryLabelDto(1L, "New Label", "#10b981");
@@ -77,7 +62,6 @@ class GlobalLabelControllerTest {
      * @throws Exception if mock MVC request fails.
      */
     @Test
-    @WithMockUser
     void getAllLabelsReturnsOk() throws Exception {
         List<CategoryLabelDto> mockLabels = List.of(
                 new CategoryLabelDto(1L, "Produce", "#10b981"),
@@ -98,7 +82,6 @@ class GlobalLabelControllerTest {
      * @throws Exception if mock MVC request fails.
      */
     @Test
-    @WithMockUser
     void deleteLabelReturnsNoContent() throws Exception {
         mockMvc.perform(delete("/api/categories/{labelId}", 1L))
                 .andExpect(status().isNoContent());
@@ -111,7 +94,6 @@ class GlobalLabelControllerTest {
      * @throws Exception if mock MVC request fails.
      */
     @Test
-    @WithMockUser
     void updateLabelReturnsOk() throws Exception {
         CategoryLabelDto requestDto = new CategoryLabelDto(null, "Updated Label", "#1d4ed8");
         CategoryLabelDto updatedDto = new CategoryLabelDto(1L, "Updated Label", "#1d4ed8");

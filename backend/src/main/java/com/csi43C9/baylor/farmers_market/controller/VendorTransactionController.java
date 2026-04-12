@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.NonNull;
+import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -36,10 +37,12 @@ import java.util.UUID;
  * the SecurityConfig class.
  * </p>
  */
-@CrossOrigin(origins = "*", maxAge = 3600)
+@CrossOrigin(origins = { "*" })
 @RestController
 @RequestMapping("/api/vendor-transaction")
 @AllArgsConstructor
+@RegisterReflectionForBinding({ VendorTransactionFilterRequest.class, SaveVendorTransactionRequest.class,
+        RevenueBreakdown.class })
 @Slf4j
 public class VendorTransactionController {
 

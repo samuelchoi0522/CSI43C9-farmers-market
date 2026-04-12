@@ -7,6 +7,7 @@ import com.csi43C9.baylor.farmers_market.service.VendorDefaultsService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
+import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -24,10 +25,11 @@ import java.util.UUID;
 /**
  * REST Controller for managing vendor defaults-related operations.
  */
-@CrossOrigin(origins = "*", maxAge = 3600)
+@CrossOrigin(origins = {"*"})
 @RestController
 @RequestMapping("/api/defaults")
 @AllArgsConstructor
+@RegisterReflectionForBinding(SaveVendorDefaultsRequest.class)
 public class VendorDefaultsController {
 
     private final VendorDefaultsService vendorDefaultsService;

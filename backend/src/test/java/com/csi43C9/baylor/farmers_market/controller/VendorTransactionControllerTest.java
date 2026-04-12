@@ -3,17 +3,10 @@ package com.csi43C9.baylor.farmers_market.controller;
 import com.csi43C9.baylor.farmers_market.dto.PagedResponse;
 import com.csi43C9.baylor.farmers_market.dto.vendor_transaction.VendorTransactionFilterRequest;
 import com.csi43C9.baylor.farmers_market.entity.VendorTransaction;
-import com.csi43C9.baylor.farmers_market.security.SecurityConfig;
-import com.csi43C9.baylor.farmers_market.security.UserDetailsServiceImpl;
-import com.csi43C9.baylor.farmers_market.security.jwt.AuthEntryPointJwt;
-import com.csi43C9.baylor.farmers_market.security.jwt.JwtAuthFilter;
-import com.csi43C9.baylor.farmers_market.security.jwt.JwtUtil;
 import com.csi43C9.baylor.farmers_market.service.VendorTransactionService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -32,7 +25,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(VendorTransactionController.class)
-@Import({SecurityConfig.class, AuthEntryPointJwt.class, JwtAuthFilter.class})
 class VendorTransactionControllerTest {
 
     @Autowired
@@ -41,14 +33,7 @@ class VendorTransactionControllerTest {
     @MockitoBean
     private VendorTransactionService vendorTransactionService;
 
-    @MockitoBean
-    private UserDetailsServiceImpl userDetailsService;
-
-    @MockitoBean
-    private JwtUtil jwtUtil;
-
     @Test
-    @WithMockUser
     void getFilteredTransactionsBySingleDateReturnsPagedResponse() throws Exception {
         VendorTransaction transaction = new VendorTransaction();
         transaction.setId(UUID.randomUUID());
@@ -67,7 +52,6 @@ class VendorTransactionControllerTest {
     }
 
     @Test
-    @WithMockUser
     void getFilteredTransactionsByVendorIdReturnsPagedResponse() throws Exception {
         UUID vendorId = UUID.randomUUID();
         VendorTransaction transaction = new VendorTransaction();
@@ -87,7 +71,6 @@ class VendorTransactionControllerTest {
     }
 
     @Test
-    @WithMockUser
     void getTransactionsByVendorIdReturnsPagedResponse() throws Exception {
         UUID vendorId = UUID.randomUUID();
         VendorTransaction transaction = new VendorTransaction();
@@ -105,7 +88,6 @@ class VendorTransactionControllerTest {
     }
 
     @Test
-    @WithMockUser
     void getVendorTransactionByIdNotFoundReturns404() throws Exception {
         when(vendorTransactionService.get(any(UUID.class))).thenReturn(Optional.empty());
 
@@ -114,7 +96,6 @@ class VendorTransactionControllerTest {
     }
 
     @Test
-    @WithMockUser
     void deleteVendorTransactionReturnsNoContent() throws Exception {
         UUID id = UUID.randomUUID();
 

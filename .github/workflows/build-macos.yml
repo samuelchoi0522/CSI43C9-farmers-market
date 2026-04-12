@@ -1,0 +1,61 @@
+name: Build macOS App
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # BUILD THE SPRING BOOT SIDECAR
+      - name: Setup GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '25'
+          distribution: 'graalvm'
+          cache: 'gradle'
+
+      - name: Build Spring Boot Native Image
+        working-directory: ./backend
+        run: |
+          chmod +x gradlew
+          ./gradlew nativeCompile
+
+      - name: Prepare Tauri Sidecar
+        run: |
+          mkdir -p frontend/src-tauri/binaries
+          cp backend/build/native/nativeCompile/farmers-market frontend/src-tauri/binaries/spring-backend-aarch64-apple-darwin
+          chmod +x frontend/src-tauri/binaries/spring-backend-aarch64-apple-darwin
+
+      # BUILD THE FRONTEND & TAURI APP
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: './frontend/package-lock.json'
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm install
+
+      - name: Build and Bundle Desktop App
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEXT_PUBLIC_API_URL: 'http://localhost:8080'
+        with:
+          projectPath: ./frontend
+          # This automatically creates a GitHub Release with your .dmg / .app attached!
+          tagName: app-v__VERSION__
+          releaseName: "MarketOS macOS Release v__VERSION__"
+          releaseBody: "Automated macOS build."
+          releaseDraft: true
+          prerelease: false

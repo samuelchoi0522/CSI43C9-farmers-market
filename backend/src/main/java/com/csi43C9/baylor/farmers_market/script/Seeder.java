@@ -3,12 +3,10 @@ package com.csi43C9.baylor.farmers_market.script;
 import com.csi43C9.baylor.farmers_market.FarmersMarketApplication;
 import com.csi43C9.baylor.farmers_market.dto.custom_column.CustomColumnMetadata;
 import com.csi43C9.baylor.farmers_market.dto.vendor.CategoryLabelDto;
-import com.csi43C9.baylor.farmers_market.entity.User;
 import com.csi43C9.baylor.farmers_market.entity.Vendor;
 import com.csi43C9.baylor.farmers_market.entity.VendorTransaction;
 import com.csi43C9.baylor.farmers_market.entity.VendorDefaults;
 import com.csi43C9.baylor.farmers_market.repository.CustomColumnRepository;
-import com.csi43C9.baylor.farmers_market.repository.UserRepository;
 import com.csi43C9.baylor.farmers_market.repository.VendorCategoryRepository;
 import com.csi43C9.baylor.farmers_market.repository.VendorDefaultsRepository;
 import com.csi43C9.baylor.farmers_market.repository.VendorRepository;
@@ -17,7 +15,6 @@ import io.github.cdimascio.dotenv.Dotenv;
 import net.datafaker.Faker;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -38,11 +35,11 @@ import java.util.stream.IntStream;
  */
 public class Seeder {
     private final Faker faker = new Faker();
-    private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
     // Change this number to change the number of vendors seeded
     private static final int VENDOR_COUNT = 20;
 
     public static void main(String[] args) {
+        FarmersMarketApplication.setupApplicationDataDirectory();
         // Load environment variables from .env file
         Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
         dotenv.entries().forEach(e -> System.setProperty(e.getKey(), e.getValue()));
@@ -57,7 +54,6 @@ public class Seeder {
         try (ConfigurableApplicationContext context = app.run(args)) {
             // Retrieve the repositories
             VendorRepository vendorRepository = context.getBean(VendorRepository.class);
-            UserRepository userRepository = context.getBean(UserRepository.class);
             VendorTransactionRepository transactionRepository = context.getBean(VendorTransactionRepository.class);
             VendorDefaultsRepository vendorDefaultsRepository = context.getBean(VendorDefaultsRepository.class);
             CustomColumnRepository customColumnRepository = context.getBean(CustomColumnRepository.class);
@@ -65,7 +61,6 @@ public class Seeder {
 
             // Comment out the seeds you don't want to run
             Seeder seeder = new Seeder();
-            seeder.populateUser(userRepository);
             seeder.populateVendors(vendorRepository);
             seeder.populateCategoryLabels(vendorCategoryRepository, vendorRepository);
             seeder.populateCustomColumns(customColumnRepository);
@@ -130,11 +125,6 @@ public class Seeder {
             v.setEmail(faker.internet().emailAddress());
             v.setLocation(faker.address().fullAddress());
             v.setMiles(faker.number().randomDigit());
-            v.setIsFarmer(faker.bool().bool());
-            v.setIsProduce(faker.bool().bool());
-            v.setWomanOwned(faker.bool().bool());
-            v.setBipocOwned(faker.bool().bool());
-            v.setVeteranOwned(faker.bool().bool());
 
             v.setIsActive(true);
             vendorRepository.save(v);
@@ -183,16 +173,6 @@ public class Seeder {
             defaultsRepository.save(defaults);
         }
         System.out.println("Done seeding vendor defaults!");
-    }
-
-    /**
-     * Seeds the database with user test data.
-     */
-    private void populateUser(UserRepository userRepository) {
-        User u = new User();
-        u.setEmail("test@test.com");
-        u.setPasswordHash(encoder.encode("password"));
-        userRepository.save(u);
     }
 
     /**

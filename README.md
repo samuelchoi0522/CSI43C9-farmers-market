@@ -1,274 +1,213 @@
-# CSI43C9 Farmers Market
+CSI43C9 Farmers Market
+======================
 
-A full-stack application for managing farmers market vendors and transactions.
+A full-stack desktop application for managing farmers market vendors and transactions.
 
-## Prerequisites
+Built with a **Next.js** frontend wrapped in **Tauri v2**, powered by a **Spring Boot** backend running invisibly as a highly optimized **GraalVM** native sidecar.
 
-- **Java 25** - [Installation Guide](https://adoptium.net/)
-- **Node.js 20+** - [Download](https://nodejs.org/)
-- **Docker & Docker Compose** - [Install](https://docs.docker.com/get-docker/)
+Architecture Overview
+---------------------
 
-## Local Setup
+*   **Frontend:** Next.js (React) rendered natively via Tauri (WebKit/WebView2).
 
-### 1. Database Setup
+*   **Backend Sidecar:** Spring Boot 3 API compiled ahead-of-time (AOT) to a native OS executable.
 
-```bash
-# Navigate to docker directory
-cd docker
+*   **Database:** Embedded H2 database dynamically created in the user's OS application support directory (e.g., ~/Library/Application Support/MarketOS on Mac).
 
-# Copy environment file (if needed)
-cp .env.example .env  # Edit with your database credentials
 
-# Start the database
-docker-compose -f local.docker-compose.yml up -d
+Prerequisites
+-------------
 
-# The database will be available at:
-# Host: localhost
-# Port: 3307
-# Database: farmers_market_db (or as configured in .env)
-mariadb -h localhost -P 3307 -u root -p
-USE farmers_market_db;
+*   **GraalVM JDK 25** – Standard OpenJDK will _not_ work for packaging the desktop app. You must use a GraalVM distribution with native-image support (e.g., via [SDKMAN!](https://sdkman.io/)).
+
+*   **Node.js 20+** – [Download](https://nodejs.org/)
+
+*   **Rust & Cargo** – Required for Tauri. [Installation Guide](https://rustup.rs/)
+
+*   **Docker & Python** – Required only for running the legacy data import scripts.
+
+
+Local Development Workflow
+--------------------------
+
+Because the backend takes several minutes to compile into a native binary, standard development is done using the **"Two-Terminal" workflow** with the standard Java Virtual Machine (JVM).
+
+### 1\. Environment Variables
+
+Create a .env.local file in the frontend/ directory.
+
+> **Note:** You must use 127.0.0.1 instead of localhost to bypass macOS WebKit IPv6 routing issues.
+
+```
+NEXT_PUBLIC_API_URL=http://127.0.0.1:8080
 ```
 
-### Importing Data
+### 2\. Run the Full Stack
 
-**Environment Variables:**
+**Terminal 1: Spring Boot Backend**
+<br>Runs the backend dynamically with hot-reloading on Port 8080.
 
-All database connection settings are configured via environment variables:
-
-- `DB_HOST` - Database host/IP (default: localhost)
-- `DB_PORT` - Database port (default: 3307)
-- `DB_NAME` - Database name (default: farmers_market_db)
-- `DB_USER` - Database username (required)
-- `DB_PASSWORD` - Database password (required)
-
-**Run Import Scripts:**
-
-```bash
-# Navigate to importing directory
-cd importing
-
-# Install libraries
-pip install -r requirements.txt
-
-# Import vendor profiles
-python import_vendors.py </path/to/excel_sheet>
-
-# Import vendor transactions
-python import_transactions.py </path/to/folder_with_excel_sheets/>
 ```
-
-### 2. Backend Setup
-
-```bash
-# Navigate to backend directory
-cd backend
-
-# Set environment variables (optional, defaults are in application.properties)
-export SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3307/farmers_market_db
-export SPRING_DATASOURCE_USERNAME=root
-export SPRING_DATASOURCE_PASSWORD=your_password
-export FARMERS_MARKET_JWT_SECRET=your-secret-key-here
-# Run the application
-./gradlew bootRun
-
-# Or build and run
-./gradlew build
-java -jar build/libs/farmers-market-0.0.1-SNAPSHOT.jar
-```
-
-The backend will start on `http://localhost:8080` (default Spring Boot port).
-
-**Verify backend is running:**
-```bash
-curl http://localhost:8080/api/auth/hello
-```
-
-### 3. Frontend Setup
-
-```bash
-# Navigate to frontend directory
-cd frontend
-
-# Install dependencies
-npm install
-
-# Run development server
-npm run dev
-```
-
-The frontend will start on `http://localhost:3000` (default Next.js port).
-
-**Build for production:**
-```bash
-npm run build
-npm start
-```
-
-## Running the Full Stack
-
-### Terminal 1: Database
-```bash
-cd docker
-docker-compose -f local.docker-compose.yml up
-```
-
-### Terminal 2: Backend
-```bash
-cd backend
+cd backend  
 ./gradlew bootRun
 ```
 
-### Terminal 3: Frontend
-```bash
+**Terminal 2: Next.js + Tauri Frontend**
+<br>Spins up the Next.js UI and launches the native desktop window. The UI is configured to intelligently bypass launching the sidecar if it detects standard development mode.
+
+```
+cd frontend  
+npx tauri dev
+```
+
+_(Alternatively, run npm run dev to test the UI entirely in a standard web browser)._
+
+Packaging the Desktop Application
+---------------------------------
+
+To build the final distributable installer (e.g., .dmg, .exe), you must compile the Spring Boot backend into a native binary and feed it to Tauri.
+
+### 1\. Compile the Native Java Sidecar
+
+Uses GraalVM to compile the Spring Boot application into an ultra-fast, standalone executable.
+
+```
+cd backend  
+./gradlew nativeCompile
+```
+
+### 2\. Move and Rename the Binary
+
+Tauri requires sidecars to be placed in the src-tauri/binaries folder and appended with the target OS architecture (e.g., -aarch64-apple-darwin for Mac M-series).
+
+**Example for Apple Silicon (Mac):**
+
+```
+mkdir -p frontend/src-tauri/binaries  
+cp backend/build/native/nativeCompile/farmers-market frontend/src-tauri/binaries/spring-backend-aarch64-apple-darwin  
+# Ensure macOS allows it to execute  
+chmod +x frontend/src-tauri/binaries/spring-backend-aarch64-apple-darwin
+```
+
+### 3\. Build the Installer
+
+```
 cd frontend
-npm run dev
+npx tauri build
 ```
 
-## Environment Variables
+The final installer will be generated in frontend/src-tauri/target/release/bundle/.
 
-### Backend (`backend/src/main/resources/application.properties`)
-
-The backend uses environment variables with fallback defaults:
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `SPRING_DATASOURCE_URL` | `jdbc:mysql://localhost:3306/farmers_market_db` | Database connection URL |
-| `SPRING_DATASOURCE_USERNAME` | `root` | Database username |
-| `SPRING_DATASOURCE_PASSWORD` | (empty) | Database password |
-| `FARMERS_MARKET_JWT_SECRET` | `defaultJwtSecretKey...` | JWT signing secret |
-
-### Frontend
-
-Create a `.env.local` file in the `frontend/` directory:
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8080
-```
-
-## Testing
+Testing & Code Quality
+----------------------
 
 ### Backend Tests
-```bash
-cd backend
+
+```
+cd backend  
 ./gradlew test
 ```
 
 ### Code Style Check
-```bash
+
+Java generated code must follow **Checkstyle 10.21.4**.
+
+```
 cd backend
 ./gradlew checkstyleMain checkstyleTest
 ```
 
 ### Frontend Linting
-```bash
-cd frontend
-npm run lint
+
+```
+cd frontend  npm run lint
 ```
 
-## SSH into Server with Tailscale
+Data Importing (Optional)
+-------------------------
 
-### Prerequisites
-- Tailscale account and client installed on your local machine
-- Server has Tailscale installed and connected to your Tailscale network
+If you need to bulk-import historical data into your environment:
+
+```
+# Navigate to importing directory  
+cd importing  
+# Install libraries  
+pip install -r requirements.txt  
+# Import vendor profiles  
+python import_vendors.py   
+# Import vendor transactions  
+python import_transactions.py`
+```
+
+SSH into Server with Tailscale
+------------------------------
+
+Used for remote database/web deployments or accessing a remote MySQL instance.
 
 ### Setup Steps
 
-1. **Install Tailscale on your local machine** (if not already installed):
-   ```bash
-   # macOS
-   brew install tailscale
-   
-   # Or download from https://tailscale.com/download
-   ```
+1.  Bash# macOSbrew install tailscale
 
-2. **Connect to Tailscale network**:
-   ```bash
-   tailscale up
-   ```
-   Follow the prompts to authenticate with your Tailscale account.
+2.  Bashtailscale up
 
-3. **Find the server's Tailscale IP**:
-   - Log into [Tailscale Admin Console](https://login.tailscale.com/admin/machines)
-   - Find your server in the list
-   - Note the Tailscale IP address (e.g., `100.x.x.x`)
+3.  **Find the server's Tailscale IP:** Log into the Tailscale Admin Console and note the IP (e.g., 100.x.x.x).
 
-4. **SSH into the server**:
-   ```bash
-   # Using Tailscale IP
-   ssh user@100.x.x.x
-   
-   # Or if you've set up a hostname in Tailscale
-   ssh user@your-server-hostname
-   ```
+4.  Bashssh user@100.x.x.x
 
-5. **Verify Tailscale connection**:
-   ```bash
-   # On the server
-   tailscale status
-   ```
 
 ### Troubleshooting
 
-- **Can't connect via Tailscale IP:**
-  - Verify both machines are connected: `tailscale status`
-  - Check firewall rules on the server
-  - Ensure Tailscale is running: `sudo systemctl status tailscale` (Linux)
+*   **Can't connect via Tailscale IP:** Verify both machines are connected (tailscale status). Check server firewall rules.
 
-- **Permission denied:**
-  - Ensure your Tailscale account has access to the server
-  - Check SSH key authentication is set up
+*   **Connection timeout:** Verify Tailscale is active: tailscale ping 100.x.x.x
 
-- **Connection timeout:**
-  - Verify Tailscale is active: `tailscale ping 100.x.x.x`
-  - Check network connectivity
+*   On the servertailscale funnel --bg 8080
 
-### Alternative: Using Tailscale Funnel (for temporary access)
 
-If you need to expose services temporarily:
-```bash
-# On the server
-tailscale funnel --bg 8080
-```
-
-## Project Structure
+Project Structure
+-----------------
 
 ```
 CSI43C9-farmers-market/
 ├── backend/              # Spring Boot backend
-│   ├── src/
-│   │   ├── main/
-│   │   │   ├── java/     # Java source code
-│   │   │   └── resources/
-│   │   │       ├── application.properties
-│   │   │       └── db/    # Database schema
-│   │   └── test/          # Test files
-│   └── build.gradle       # Gradle build configuration
+│   ├── src/main/java/    # Java source code (JDBC, Javadoc, Checkstyle 10.21.4)
+│   └── build.gradle      # Gradle build & GraalVM configuration
 ├── frontend/             # Next.js frontend
-│   ├── app/              # Next.js app directory
+│   ├── app/              # React components and pages
+│   ├── src-tauri/        # Rust wrapper and OS configurations
+│   │   ├── binaries/     # Compiled GraalVM sidecars go here!
+│   │   ├── capabilities/ # Tauri v2 security permissions
+│   │   └── tauri.conf.json
 │   └── package.json
-├── docker/               # Docker configurations
-│   ├── local.docker-compose.yml
-│   └── *.Dockerfile
+├── importing/            # Python scripts for Excel data migration
+├── docker/               # Legacy Docker configurations
 └── .github/              # GitHub Actions workflows
-    └── workflows/
-        ├── codestyle.yml
-        └── build_and_deploy.yml
+└── workflows/
+├── codestyle.yml
+└── build-macos.yml
 ```
 
-## Contributing
+Contributing
+------------
 
-1. Create a feature branch: `git checkout -b feature/your-feature`
-2. Make your changes
-3. Run code style checks: `./gradlew checkstyleMain checkstyleTest`
-4. Commit your changes: `git commit -m "Add your feature"`
-5. Push to the branch: `git push origin feature/your-feature`
-6. Open a Pull Request
+1.  Create a feature branch: git checkout -b feature/your-feature
 
-**Note:** All PRs require:
-- ✅ Checkstyle to pass
-- ✅ At least 1 code owner review
+2.  **Coding Standards:**
 
-## License
+    *   Use Objects.isNull() and Objects.nonNull() (avoid == null).
 
-[Add your license here]
+    *   Java files **must** end with a newline.
 
+    *   Use Javadoc for all methods.
+
+    *   Use camelCase for JUnit test names.
+
+    *   No wildcard imports.
+
+3.  Run code style checks: ./gradlew checkstyleMain checkstyleTest
+
+4.  Commit your changes: git commit -m "Add your feature"
+
+5.  Push to the branch: git push origin feature/your-feature
+
+6.  Open a Pull Request.

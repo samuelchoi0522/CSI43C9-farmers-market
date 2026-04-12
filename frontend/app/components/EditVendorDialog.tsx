@@ -45,11 +45,6 @@ interface VendorFormData {
     miles: string;
     products: string;
     isActive: boolean;
-    isFarmer: boolean;
-    isProduce: boolean;
-    womanOwned: boolean;
-    bipocOwned: boolean;
-    veteranOwned: boolean;
     pctHandmade: string;
     pctAgricultural: string;
     pctPreparedFood: string;
@@ -78,11 +73,6 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
         miles: vendor.miles?.toString() || "0",
         products: vendor.products || "",
         isActive: vendor.isActive ?? true,
-        isFarmer: vendor.isFarmer ?? false,
-        isProduce: vendor.isProduce ?? false,
-        womanOwned: vendor.womanOwned ?? false,
-        bipocOwned: vendor.bipocOwned ?? false,
-        veteranOwned: vendor.veteranOwned ?? false,
         pctHandmade: "0",
         pctAgricultural: "0",
         pctPreparedFood: "0",
@@ -238,12 +228,7 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
                 location: formData.location || undefined,
                 miles: milesNumber,
                 products: formData.products || undefined,
-                isFarmer: formData.isFarmer,
-                isProduce: formData.isProduce,
                 isActive: formData.isActive,
-                womanOwned: formData.womanOwned,
-                bipocOwned: formData.bipocOwned,
-                veteranOwned: formData.veteranOwned,
             });
 
             if (hasNonZeroPercentage) {
@@ -308,12 +293,7 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
                 location: formData.location || undefined,
                 miles: milesNumber,
                 products: formData.products || undefined,
-                isFarmer: formData.isFarmer,
-                isProduce: formData.isProduce,
                 isActive: true,
-                womanOwned: formData.womanOwned,
-                bipocOwned: formData.bipocOwned,
-                veteranOwned: formData.veteranOwned,
             });
             onSuccess();
             onOpenChange(false);

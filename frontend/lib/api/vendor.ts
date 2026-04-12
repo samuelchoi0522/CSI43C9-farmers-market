@@ -7,12 +7,7 @@ export interface CreateVendorRequest {
   location?: string;
   miles?: number;
   products?: string;
-  isFarmer: boolean;
-  isProduce: boolean;
   isActive: boolean;
-  womanOwned: boolean;
-  bipocOwned: boolean;
-  veteranOwned: boolean;
 }
 
 export interface Vendor {
@@ -23,12 +18,7 @@ export interface Vendor {
   location?: string;
   miles?: number;
   products?: string;
-  isFarmer: boolean;
-  isProduce: boolean;
   isActive: boolean;
-  womanOwned: boolean;
-  bipocOwned: boolean;
-  veteranOwned: boolean;
 }
 
 /**

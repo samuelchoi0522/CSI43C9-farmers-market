@@ -3,6 +3,7 @@ package com.csi43C9.baylor.farmers_market.dto.vendor_transaction;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.util.Map;
@@ -13,6 +14,7 @@ import java.util.UUID;
  * managing a Vendor Transaction within the Farmers Market system.
  */
 @Data
+@NoArgsConstructor
 public class SaveVendorTransactionRequest {
 
     /**

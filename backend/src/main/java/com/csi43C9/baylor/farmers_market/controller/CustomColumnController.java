@@ -2,6 +2,7 @@ package com.csi43C9.baylor.farmers_market.controller;
 import com.csi43C9.baylor.farmers_market.dto.PagedResponse;
 import com.csi43C9.baylor.farmers_market.dto.custom_column.CustomColumnMetadata;
 import com.csi43C9.baylor.farmers_market.service.CustomColumnService;
+import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -22,9 +23,10 @@ import java.util.Optional;
 /**
  * REST controller for managing CustomColumnMetadata.
  */
-@CrossOrigin(origins = "*", maxAge = 3600)
+@CrossOrigin(origins = {"*"})
 @RestController
 @RequestMapping("/api/custom-columns")
+@RegisterReflectionForBinding(CustomColumnMetadata.class)
 public class CustomColumnController {
 
     private final CustomColumnService customColumnService;

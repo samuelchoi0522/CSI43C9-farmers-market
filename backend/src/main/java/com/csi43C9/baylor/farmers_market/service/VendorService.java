@@ -99,11 +99,6 @@ public class VendorService {
 
             // Safely unbox: null becomes false (except for isActive which defaults to true)
             vendor.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
-            vendor.setIsFarmer(Boolean.TRUE.equals(request.getIsFarmer()));
-            vendor.setIsProduce(Boolean.TRUE.equals(request.getIsProduce()));
-            vendor.setWomanOwned(Boolean.TRUE.equals(request.getWomanOwned()));
-            vendor.setBipocOwned(Boolean.TRUE.equals(request.getBipocOwned()));
-            vendor.setVeteranOwned(Boolean.TRUE.equals(request.getVeteranOwned()));
             return vendor;
         }
 
