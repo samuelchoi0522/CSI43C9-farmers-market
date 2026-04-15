@@ -15,6 +15,7 @@ import io.github.cdimascio.dotenv.Dotenv;
 import net.datafaker.Faker;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.dao.DuplicateKeyException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -66,8 +67,9 @@ public class Seeder {
             seeder.populateCustomColumns(customColumnRepository);
             seeder.populateVendorDefaults(vendorRepository, vendorDefaultsRepository);
             seeder.populateVendorTransactions(vendorRepository, transactionRepository, customColumnRepository);
-        } catch (Exception _) {
+        } catch (Exception e) {
             // Catch the silent exit exception
+            System.out.println(e);
         }
     }
 
@@ -127,7 +129,13 @@ public class Seeder {
             v.setMiles(faker.number().randomDigit());
 
             v.setIsActive(true);
-            vendorRepository.save(v);
+
+            // LAZY FIX!
+            try {
+                vendorRepository.save(v);
+            } catch (DuplicateKeyException dk) {
+                i--;
+            }
         }
         System.out.println("Done seeding vendors!");
     }
