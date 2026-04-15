@@ -27,7 +27,7 @@ import {
   TREND_REPORTED_SMOOTH_MS,
   useSmoothNumber,
 } from "@/lib/smoothNumbers";
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import { downloadFinancialReportPdf } from "@/lib/reportPdf";
 
 type VendorLabelReportRow = {
   name: string;
@@ -144,7 +144,7 @@ function LeaderboardListRow({ row, resetKey }: { row: LeaderboardListRowData; re
             {formatCurrency(smoothSales)}
           </p>
           <p className="text-xs text-slate-500 dark:text-slate-400" style={{ fontFeatureSettings: '"tnum"' }}>
-            {Math.round(smoothTx)} txn{row.transactionCount !== 1 ? "s" : ""}
+            {Math.round(smoothTx)} trans
           </p>
         </div>
       </div>
@@ -231,6 +231,7 @@ function ReportsContent() {
     Map<string, { id: number; name: string; color?: string | null }[]>
   >(new Map());
   const [loading, setLoading] = useState(true);
+  const [exportingPdf, setExportingPdf] = useState(false);
   const [labelsLoading, setLabelsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /** When true, vendor label chart/table show every label; when false, only names in `vendorLabelWhitelist`. */
@@ -796,8 +797,78 @@ function ReportsContent() {
     return [...transactions].sort((a, b) => b.marketDate.localeCompare(a.marketDate));
   }, [transactions]);
 
-  const handleExportPdf = () => {
-    window.print();
+  const handleExportPdf = async () => {
+    if (loading) return;
+    setExportingPdf(true);
+    try {
+      const headline = reportHeadline;
+      const base = {
+        startDate,
+        endDate,
+        reportTitle: headline.title,
+        reportSubtitle: headline.subtitle,
+      };
+      switch (reportType) {
+        case "comprehensive":
+          await downloadFinancialReportPdf({
+            reportType: "comprehensive",
+            ...base,
+            comprehensive: {
+              totalReported: comprehensive.totalReported,
+              totalReimbursement: comprehensive.totalReimbursement,
+              tokenVolume: comprehensive.tokenVolume,
+              paymentShare: comprehensive.paymentShare,
+            },
+            sortedTxForTable,
+          });
+          break;
+        case "category":
+          await downloadFinancialReportPdf({
+            reportType: "category",
+            ...base,
+            categoryRows,
+          });
+          break;
+        case "vendorLabel":
+          await downloadFinancialReportPdf({
+            reportType: "vendorLabel",
+            ...base,
+            vendorLabelRows,
+          });
+          break;
+        case "leaderboard":
+          await downloadFinancialReportPdf({
+            reportType: "leaderboard",
+            ...base,
+            vendorLeaderboard,
+          });
+          break;
+        case "vendor":
+          await downloadFinancialReportPdf({
+            reportType: "vendor",
+            ...base,
+            selectedVendorRow,
+            vendorReportRows,
+          });
+          break;
+        case "token":
+          await downloadFinancialReportPdf({
+            reportType: "token",
+            ...base,
+            tokenRows,
+            tokenTotal,
+            sortedTxForTable,
+          });
+          break;
+        default:
+          break;
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Could not generate the PDF. Please try again.");
+    } finally {
+      setExportingPdf(false);
+    }
   };
 
   return (
@@ -847,7 +918,6 @@ function ReportsContent() {
           </div>
           <div className="flex flex-wrap items-center gap-3 shrink-0 print:hidden">
             <div className="flex items-center gap-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 shadow-sm">
-              <span className="material-icons text-slate-400 text-sm leading-none">calendar_month</span>
               <label className="sr-only" htmlFor="report-start">
                 Start date
               </label>
@@ -875,9 +945,12 @@ function ReportsContent() {
               variant="primary"
               className="flex items-center gap-2 shadow-md"
               onClick={handleExportPdf}
+              disabled={loading || exportingPdf}
             >
-              <span className="material-icons text-lg leading-none">download</span>
-              Export PDF
+              <span className="material-icons text-lg leading-none">
+                {exportingPdf ? "hourglass_empty" : "download"}
+              </span>
+              {exportingPdf ? "Generating PDF…" : "Export PDF"}
             </Button>
           </div>
         </section>
@@ -1451,7 +1524,7 @@ function ReportsContent() {
                         <th className="px-6 py-3 text-right">Reported</th>
                         <th className="px-6 py-3 text-right">Reimbursement</th>
                         <th className="px-6 py-3 text-right">Tokens</th>
-                        <th className="px-6 py-3 text-right">Txns</th>
+                        <th className="px-6 py-3 text-right">Trans</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-700">

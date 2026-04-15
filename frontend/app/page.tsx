@@ -14,7 +14,7 @@ import {
     mostRecentSaturdayRange,
 } from "@/lib/dashboardAggregates";
 import { SmoothCurrencyValue, SmoothIntegerValue } from "@/lib/smoothNumbers";
-import { getCurrentWindow } from '@tauri-apps/api/window';
+import { fetchAllDefaultsFromApi, fetchAllVendorsFromApi } from "@/lib/vendorDirectoryFetch";
 
 interface VendorWithDefaults extends Vendor {
     defaults?: VendorDefaults;
@@ -36,6 +36,8 @@ function formatMarketSaturdayLabel(isoDate: string) {
 
 function DashboardContent() {
     const [vendors, setVendors] = useState<VendorWithDefaults[]>([]);
+    const [allVendors, setAllVendors] = useState<VendorWithDefaults[]>([]);
+    const [allVendorsLoading, setAllVendorsLoading] = useState(true);
     const [transactions, setTransactions] = useState<VendorTransaction[]>([]);
     const [defaultsByVendor, setDefaultsByVendor] = useState<Map<string, VendorDefaults>>(new Map());
     const [loading, setLoading] = useState(true);
@@ -97,6 +99,8 @@ function DashboardContent() {
             .sort((a, b) => b.revenue - a.revenue);
     }, [transactions, defaultsByVendor]);
 
+    const vendorsForAlerts = allVendors.length > 0 ? allVendors : vendors;
+
     const dashboardAlerts = useMemo(() => {
         const alerts: { tone: "amber" | "slate"; title: string; detail: string }[] = [];
         if (transactions.length === 0 && !txError) {
@@ -106,7 +110,9 @@ function DashboardContent() {
                 detail: `No vendor transaction rows for ${marketDayLabel}. Data will appear once transactions are recorded for that Saturday.`,
             });
         }
-        const inactiveWithTx = vendors.filter((v) => !v.isActive && (vendorTxTotals.get(v.id)?.reported ?? 0) > 0);
+        const inactiveWithTx = vendorsForAlerts.filter(
+            (v) => !v.isActive && (vendorTxTotals.get(v.id)?.reported ?? 0) > 0,
+        );
         for (const v of inactiveWithTx.slice(0, 2)) {
             alerts.push({
                 tone: "amber",
@@ -114,24 +120,48 @@ function DashboardContent() {
                 detail: "This vendor has reported sales on this market day but is marked inactive.",
             });
         }
-        const activeNoSales = vendors.filter(
+        const activeNoSales = vendorsForAlerts.filter(
             (v) => v.isActive && (vendorTxTotals.get(v.id)?.reported ?? 0) === 0,
         );
         for (const v of activeNoSales.slice(0, 3)) {
             alerts.push({
                 tone: "slate",
                 title: `No sales recorded: ${v.vendorName}`,
-                detail: "Active vendor with no reported sales on this market day (on this page).",
+                detail: "Active vendor with no reported sales on this market day.",
             });
         }
         return alerts.slice(0, 5);
-    }, [transactions.length, txError, marketDayLabel, vendors, vendorTxTotals]);
+    }, [transactions.length, txError, marketDayLabel, vendorsForAlerts, vendorTxTotals]);
 
     const filteredVendors = useMemo(() => {
+        if (searchQuery.trim() === "") {
+            return vendors;
+        }
         const q = searchQuery.trim().toLowerCase();
-        if (!q) return vendors;
-        return vendors.filter((v) => v.vendorName.toLowerCase().includes(q));
-    }, [vendors, searchQuery]);
+        return allVendors.filter(
+            (v) =>
+                v.vendorName?.toLowerCase().includes(q) ||
+                v.pointPerson?.toLowerCase().includes(q) ||
+                v.email?.toLowerCase().includes(q) ||
+                v.location?.toLowerCase().includes(q) ||
+                v.products?.toLowerCase().includes(q),
+        );
+    }, [searchQuery, vendors, allVendors]);
+
+    const displayedVendors = useMemo(() => {
+        if (searchQuery.trim() === "") {
+            return filteredVendors;
+        }
+        const start = currentPage * pageSize;
+        return filteredVendors.slice(start, start + pageSize);
+    }, [searchQuery, filteredVendors, currentPage, pageSize]);
+
+    const effectiveTotalPages = useMemo(() => {
+        if (searchQuery.trim() === "") {
+            return totalPages;
+        }
+        return Math.max(1, Math.ceil(filteredVendors.length / pageSize));
+    }, [searchQuery, totalPages, filteredVendors.length, pageSize]);
 
     const categoryRevenueTotal = useMemo(
         () => categoryChartData.reduce((s, r) => s + r.revenue, 0),
@@ -207,6 +237,51 @@ function DashboardContent() {
 
         fetchData();
     }, [currentPage, pageSize, marketSaturday]);
+
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            setAllVendorsLoading(true);
+            try {
+                const [vendorsList, defaultsList] = await Promise.all([
+                    fetchAllVendorsFromApi(false),
+                    fetchAllDefaultsFromApi(),
+                ]);
+                if (cancelled) {
+                    return;
+                }
+                const merged = vendorsList.map((v) => ({
+                    ...v,
+                    defaults: defaultsList.find((d) => d.vendorId === v.id),
+                }));
+                setAllVendors(merged);
+            } catch (e) {
+                console.error("Error loading full vendor list for dashboard search:", e);
+            } finally {
+                if (!cancelled) {
+                    setAllVendorsLoading(false);
+                }
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [marketSaturday]);
+
+    useEffect(() => {
+        setCurrentPage(0);
+    }, [searchQuery]);
+
+    useEffect(() => {
+        if (searchQuery.trim() === "") {
+            return;
+        }
+        const maxPage = Math.max(0, Math.ceil(filteredVendors.length / pageSize) - 1);
+        setCurrentPage((p) => Math.min(p, maxPage));
+    }, [filteredVendors.length, searchQuery, pageSize]);
+
+    const tableLoading =
+        loading || (searchQuery.trim() !== "" && allVendorsLoading);
 
     return (
         <div className="bg-slate-50 text-slate-900 min-h-screen flex transition-colors duration-300">
@@ -284,7 +359,7 @@ function DashboardContent() {
                             <SmoothIntegerValue
                                 value={marketDayTotals.transactionRows}
                                 resetKey={metricsResetKey}
-                                className="font-semibold text-slate-600 dark:text-slate-300"
+                                className="font-semibold text-inherit"
                             />
                             <span>transaction rows</span>
                         </p>
@@ -328,26 +403,26 @@ function DashboardContent() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
-                                {loading ? (
+                                {tableLoading ? (
                                     <tr>
                                         <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
                                             Loading vendors...
                                         </td>
                                     </tr>
-                                ) : vendors.length === 0 ? (
+                                ) : vendors.length === 0 && searchQuery.trim() === "" ? (
                                     <tr>
                                         <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
                                             No vendors found
                                         </td>
                                     </tr>
-                                ) : filteredVendors.length === 0 ? (
+                                ) : displayedVendors.length === 0 ? (
                                     <tr>
                                         <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
                                             No vendors match your search.
                                         </td>
                                     </tr>
                                 ) : (
-                                    filteredVendors.map((vendor) => (
+                                    displayedVendors.map((vendor) => (
                                         <tr
                                             key={vendor.id}
                                             className="hover:bg-green-50 transition-colors"
@@ -421,8 +496,13 @@ function DashboardContent() {
                         <span className="text-sm text-slate-700 dark:text-slate-500">
                             {searchQuery.trim() ? (
                                 <>
-                                    {filteredVendors.length} match{filteredVendors.length !== 1 ? "es" : ""} on this page
-                                    {filteredVendors.length < vendors.length ? ` (of ${vendors.length} shown)` : null}
+                                    Showing{" "}
+                                    {filteredVendors.length === 0
+                                        ? 0
+                                        : currentPage * pageSize + 1}{" "}
+                                    to{" "}
+                                    {Math.min((currentPage + 1) * pageSize, filteredVendors.length)} of{" "}
+                                    {filteredVendors.length} matching vendors
                                 </>
                             ) : (
                                 <>
@@ -437,19 +517,18 @@ function DashboardContent() {
                                 size="sm" 
                                 className="p-1 px-3" 
                                 disabled={currentPage === 0}
-                                onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+                                onClick={() => setCurrentPage((prev) => Math.max(0, prev - 1))}
                             >
                                 Previous
                             </Button>
-                            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                                // Show page numbers around current page
-                                let pageNum;
-                                if (totalPages <= 5) {
+                            {Array.from({ length: Math.min(effectiveTotalPages, 5) }, (_, i) => {
+                                let pageNum: number;
+                                if (effectiveTotalPages <= 5) {
                                     pageNum = i;
                                 } else if (currentPage < 3) {
                                     pageNum = i;
-                                } else if (currentPage > totalPages - 4) {
-                                    pageNum = totalPages - 5 + i;
+                                } else if (currentPage > effectiveTotalPages - 4) {
+                                    pageNum = effectiveTotalPages - 5 + i;
                                 } else {
                                     pageNum = currentPage - 2 + i;
                                 }
@@ -469,8 +548,12 @@ function DashboardContent() {
                                 variant="outline" 
                                 size="sm" 
                                 className="p-1 px-3"
-                                disabled={currentPage >= totalPages - 1}
-                                onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
+                                disabled={currentPage >= effectiveTotalPages - 1}
+                                onClick={() =>
+                                    setCurrentPage((prev) =>
+                                        Math.min(effectiveTotalPages - 1, prev + 1),
+                                    )
+                                }
                             >
                                 Next
                             </Button>
@@ -530,12 +613,12 @@ function DashboardContent() {
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
                         <h4 className="font-bold mb-1 text-slate-900 dark:text-slate-100">At a glance</h4>
                         <p className="text-xs text-slate-600 dark:text-slate-400 mb-4">
-                            Derived from this market day&apos;s transactions and the vendors on this page.
+                            Derived from this market day&apos;s transactions and your vendor directory.
                         </p>
                         <div className="space-y-4">
                             {dashboardAlerts.length === 0 ? (
                                 <p className="text-sm text-slate-600 dark:text-slate-400">
-                                    Nothing flagged for vendors on this page.
+                                    Nothing flagged for your vendors.
                                 </p>
                             ) : (
                                 dashboardAlerts.map((a, idx) => (
