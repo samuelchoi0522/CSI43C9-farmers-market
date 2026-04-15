@@ -11,6 +11,8 @@ export type FinancialReportType =
   | "vendor"
   | "token";
 
+type PdfChartImage = { title: string; dataUrl: string };
+
 const MARGIN_MM = 14;
 const ACCENT: [number, number, number] = [16, 185, 129];
 const MUTED: [number, number, number] = [100, 116, 139];
@@ -135,6 +137,7 @@ export type DownloadFinancialReportPdfArgs =
         paymentShare: { name: string; pct: number }[];
       };
       sortedTxForTable: VendorTransaction[];
+      chartImages?: PdfChartImage[];
     }
   | {
       reportType: "category";
@@ -143,6 +146,7 @@ export type DownloadFinancialReportPdfArgs =
       reportTitle: string;
       reportSubtitle: string;
       categoryRows: { name: string; value: number }[];
+      chartImages?: PdfChartImage[];
     }
   | {
       reportType: "vendorLabel";
@@ -151,6 +155,7 @@ export type DownloadFinancialReportPdfArgs =
       reportTitle: string;
       reportSubtitle: string;
       vendorLabelRows: { name: string; value: number }[];
+      chartImages?: PdfChartImage[];
     }
   | {
       reportType: "leaderboard";
@@ -164,6 +169,7 @@ export type DownloadFinancialReportPdfArgs =
         totalSales: number;
         transactionCount: number;
       }[];
+      chartImages?: PdfChartImage[];
     }
   | {
       reportType: "vendor";
@@ -186,6 +192,7 @@ export type DownloadFinancialReportPdfArgs =
         tokenVolume: number;
         transactionCount: number;
       }[];
+      chartImages?: PdfChartImage[];
     }
   | {
       reportType: "token";
@@ -196,6 +203,7 @@ export type DownloadFinancialReportPdfArgs =
       tokenRows: { name: string; amount: number }[];
       tokenTotal: number;
       sortedTxForTable: VendorTransaction[];
+      chartImages?: PdfChartImage[];
     };
 
 export async function downloadFinancialReportPdf(args: DownloadFinancialReportPdfArgs): Promise<void> {
@@ -218,8 +226,58 @@ export async function downloadFinancialReportPdf(args: DownloadFinancialReportPd
     return startY + 6;
   };
 
+  const ensureSpace = (neededHeight: number, currentY: number) => {
+    const pageH = doc.internal.pageSize.getHeight();
+    const maxY = pageH - 18;
+    if (currentY + neededHeight > maxY) {
+      doc.addPage();
+      return addBrandedHeader(doc, {
+        reportTitle: args.reportTitle,
+        reportSubtitle: args.reportSubtitle,
+        rangeLabel,
+        logo,
+      });
+    }
+    return currentY;
+  };
+
+  const addChartImages = (startY: number, images: PdfChartImage[] | undefined) => {
+    if (!images || images.length === 0) return startY;
+    let nextY = startY;
+    const pageW = doc.internal.pageSize.getWidth();
+    const maxChartW = pageW - 2 * MARGIN_MM;
+    const maxChartH = 74;
+
+    nextY = addSectionTitle("Charts", nextY);
+
+    for (const image of images) {
+      nextY = ensureSpace(10 + maxChartH, nextY);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(15, 23, 42);
+      doc.text(image.title, MARGIN_MM, nextY);
+      nextY += 3;
+
+      const props = doc.getImageProperties(image.dataUrl);
+      const ratio = props.width / Math.max(1, props.height);
+      let drawW = maxChartW;
+      let drawH = drawW / Math.max(0.1, ratio);
+      if (drawH > maxChartH) {
+        drawH = maxChartH;
+        drawW = drawH * ratio;
+      }
+      const x = MARGIN_MM + (maxChartW - drawW) / 2;
+      const yPos = nextY + 2;
+      doc.addImage(image.dataUrl, "PNG", x, yPos, drawW, drawH);
+      nextY = yPos + drawH + 7;
+    }
+
+    return nextY;
+  };
+
   switch (args.reportType) {
     case "comprehensive": {
+      y = addChartImages(y, args.chartImages);
       y = addSectionTitle("Summary", y);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
@@ -260,6 +318,7 @@ export async function downloadFinancialReportPdf(args: DownloadFinancialReportPd
       break;
     }
     case "category": {
+      y = addChartImages(y, args.chartImages);
       y = addSectionTitle("Allocated reported sales by category", y);
       autoTable(doc, {
         ...tableDefaults,
@@ -273,6 +332,7 @@ export async function downloadFinancialReportPdf(args: DownloadFinancialReportPd
       break;
     }
     case "vendorLabel": {
+      y = addChartImages(y, args.chartImages);
       y = addSectionTitle("Allocated reported sales by label", y);
       autoTable(doc, {
         ...tableDefaults,
@@ -286,6 +346,7 @@ export async function downloadFinancialReportPdf(args: DownloadFinancialReportPd
       break;
     }
     case "leaderboard": {
+      y = addChartImages(y, args.chartImages);
       y = addSectionTitle("Vendor sales ranking", y);
       autoTable(doc, {
         ...tableDefaults,
@@ -304,6 +365,7 @@ export async function downloadFinancialReportPdf(args: DownloadFinancialReportPd
       break;
     }
     case "vendor": {
+      y = addChartImages(y, args.chartImages);
       if (args.selectedVendorRow) {
         y = addSectionTitle(`Selected vendor: ${args.selectedVendorRow.vendorName}`, y);
         doc.setFont("helvetica", "normal");
@@ -338,6 +400,7 @@ export async function downloadFinancialReportPdf(args: DownloadFinancialReportPd
       break;
     }
     case "token": {
+      y = addChartImages(y, args.chartImages);
       y = addSectionTitle("Program totals", y);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
@@ -381,7 +444,14 @@ export async function downloadFinancialReportPdf(args: DownloadFinancialReportPd
   addFooters(doc);
 
   const safeType = args.reportType;
-  const filename = `MarketOS-report-${safeType}-${args.startDate}-to-${args.endDate}.pdf`.replace(/[^\w.\-]+/g, "_");
+  const vendorNamePart =
+    args.reportType === "vendor" && args.selectedVendorRow?.vendorName
+      ? `-${args.selectedVendorRow.vendorName}`
+      : "";
+  const filename = `MarketOS-report-${safeType}${vendorNamePart}-${args.startDate}-to-${args.endDate}.pdf`.replace(
+    /[^\w.\-]+/g,
+    "_",
+  );
   doc.save(filename);
 }
 
@@ -410,6 +480,7 @@ export type DownloadVendorProfilePdfArgs = {
     marketTokens: number;
   };
   transactions: VendorTransaction[];
+  chartImages?: PdfChartImage[];
 };
 
 export async function downloadVendorProfilePdf(args: DownloadVendorProfilePdfArgs): Promise<void> {
@@ -450,6 +521,57 @@ export async function downloadVendorProfilePdf(args: DownloadVendorProfilePdfArg
     doc.text(title, MARGIN_MM, startY);
     return startY + 6;
   };
+
+  const ensureSpace = (neededHeight: number, currentY: number) => {
+    const pageH = doc.internal.pageSize.getHeight();
+    const maxY = pageH - 18;
+    if (currentY + neededHeight > maxY) {
+      doc.addPage();
+      return addBrandedHeader(doc, {
+        reportTitle: "Vendor profile report",
+        reportSubtitle: args.vendorName,
+        rangeLabel,
+        logo,
+      });
+    }
+    return currentY;
+  };
+
+  const addChartImages = (startY: number, images: PdfChartImage[] | undefined) => {
+    if (!images || images.length === 0) return startY;
+    let nextY = startY;
+    const pageW = doc.internal.pageSize.getWidth();
+    const maxChartW = pageW - 2 * MARGIN_MM;
+    const maxChartH = 74;
+
+    nextY = addSectionTitle("Charts", nextY);
+
+    for (const image of images) {
+      nextY = ensureSpace(10 + maxChartH, nextY);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(15, 23, 42);
+      doc.text(image.title, MARGIN_MM, nextY);
+      nextY += 3;
+
+      const props = doc.getImageProperties(image.dataUrl);
+      const ratio = props.width / Math.max(1, props.height);
+      let drawW = maxChartW;
+      let drawH = drawW / Math.max(0.1, ratio);
+      if (drawH > maxChartH) {
+        drawH = maxChartH;
+        drawW = drawH * ratio;
+      }
+      const x = MARGIN_MM + (maxChartW - drawW) / 2;
+      const yPos = nextY + 2;
+      doc.addImage(image.dataUrl, "PNG", x, yPos, drawW, drawH);
+      nextY = yPos + drawH + 7;
+    }
+
+    return nextY;
+  };
+
+  y = addChartImages(y, args.chartImages);
 
   y = addSectionTitle("Summary (all-time)", y);
   doc.setFont("helvetica", "normal");

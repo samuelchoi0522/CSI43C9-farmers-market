@@ -262,6 +262,7 @@ function VendorDetailContent() {
     const [exportingPdf, setExportingPdf] = useState(false);
     const [sessionSearch, setSessionSearch] = useState("");
     const [showAllSessions, setShowAllSessions] = useState(false);
+    const salesTrendChartRef = useRef<HTMLDivElement | null>(null);
 
     const analytics = useMemo(() => aggregateVendorAnalytics(transactions), [transactions]);
 
@@ -337,6 +338,43 @@ function VendorDetailContent() {
     }, [syncTrendFocusToLatest]);
 
     const normalizeLabelName = (name: string) => name.trim().toLowerCase();
+
+    const chartSvgToPngDataUrl = useCallback(async (container: HTMLDivElement | null): Promise<string | null> => {
+        if (!container) return null;
+        const svg = container.querySelector("svg");
+        if (!svg) return null;
+
+        const rect = container.getBoundingClientRect();
+        const width = Math.max(1, Math.round(rect.width));
+        const height = Math.max(1, Math.round(rect.height));
+        const clonedSvg = svg.cloneNode(true) as SVGSVGElement;
+        clonedSvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+        clonedSvg.setAttribute("width", String(width));
+        clonedSvg.setAttribute("height", String(height));
+        clonedSvg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+
+        const serialized = new XMLSerializer().serializeToString(clonedSvg);
+        const svgBase64 = window.btoa(unescape(encodeURIComponent(serialized)));
+        const svgDataUrl = `data:image/svg+xml;base64,${svgBase64}`;
+
+        const image = new Image();
+        image.crossOrigin = "anonymous";
+        await new Promise<void>((resolve, reject) => {
+            image.onload = () => resolve();
+            image.onerror = () => reject(new Error("chart image load failed"));
+            image.src = svgDataUrl;
+        });
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return null;
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(image, 0, 0, width, height);
+        return canvas.toDataURL("image/png", 0.92);
+    }, []);
 
     useEffect(() => {
         if (!uuid) { return; }
@@ -501,6 +539,7 @@ function VendorDetailContent() {
                                     if (!vendor) return;
                                     setExportingPdf(true);
                                     try {
+                                        const trendChartImage = await chartSvgToPngDataUrl(salesTrendChartRef.current);
                                         await downloadVendorProfilePdf({
                                             vendorName: vendor.vendorName,
                                             vendorStatus: vendor.isActive ? "Active" : "Inactive",
@@ -516,6 +555,9 @@ function VendorDetailContent() {
                                             snapTotal: analytics.snapTotal,
                                             paymentBreakdown: analytics.paymentBreakdown,
                                             transactions,
+                                            chartImages: trendChartImage
+                                                ? [{ title: "Reported sales by market date", dataUrl: trendChartImage }]
+                                                : [],
                                         });
                                     } catch (e) {
                                         console.error(e);
@@ -590,7 +632,7 @@ function VendorDetailContent() {
                                             ) : null}
                                         </p>
                                     </div>
-                                    <div className="h-56 sm:h-64 -mx-1">
+                                    <div ref={salesTrendChartRef} className="h-56 sm:h-64 -mx-1">
                                         <ResponsiveContainer width="100%" height="100%">
                                             <AreaChart
                                                 data={analytics.salesTrend}

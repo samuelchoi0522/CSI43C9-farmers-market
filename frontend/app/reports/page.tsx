@@ -238,6 +238,13 @@ function ReportsContent() {
   const [showAllVendorLabels, setShowAllVendorLabels] = useState(true);
   const [vendorLabelWhitelist, setVendorLabelWhitelist] = useState<Set<string>>(new Set());
   const [selectedVendorId, setSelectedVendorId] = useState<string>("");
+  const comprehensiveTrendChartRef = useRef<HTMLDivElement | null>(null);
+  const categoryAllocatedChartRef = useRef<HTMLDivElement | null>(null);
+  const categoryTrendChartRef = useRef<HTMLDivElement | null>(null);
+  const vendorTrendChartRef = useRef<HTMLDivElement | null>(null);
+  const vendorTotalsChartRef = useRef<HTMLDivElement | null>(null);
+  const vendorLabelChartRef = useRef<HTMLDivElement | null>(null);
+  const tokenChartRef = useRef<HTMLDivElement | null>(null);
 
   const dateRangeKey = useMemo(() => `${startDate}|${endDate}`, [startDate, endDate]);
 
@@ -797,6 +804,43 @@ function ReportsContent() {
     return [...transactions].sort((a, b) => b.marketDate.localeCompare(a.marketDate));
   }, [transactions]);
 
+  const chartSvgToPngDataUrl = useCallback(async (container: HTMLDivElement | null): Promise<string | null> => {
+    if (!container) return null;
+    const svg = container.querySelector("svg");
+    if (!svg) return null;
+
+    const rect = container.getBoundingClientRect();
+    const width = Math.max(1, Math.round(rect.width));
+    const height = Math.max(1, Math.round(rect.height));
+    const clonedSvg = svg.cloneNode(true) as SVGSVGElement;
+    clonedSvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    clonedSvg.setAttribute("width", String(width));
+    clonedSvg.setAttribute("height", String(height));
+    clonedSvg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+
+    const serialized = new XMLSerializer().serializeToString(clonedSvg);
+    const svgBase64 = window.btoa(unescape(encodeURIComponent(serialized)));
+    const svgDataUrl = `data:image/svg+xml;base64,${svgBase64}`;
+
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error("chart image load failed"));
+      image.src = svgDataUrl;
+    });
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
+    ctx.drawImage(image, 0, 0, width, height);
+    return canvas.toDataURL("image/png", 0.92);
+  }, []);
+
   const handleExportPdf = async () => {
     if (loading) return;
     setExportingPdf(true);
@@ -810,6 +854,8 @@ function ReportsContent() {
       };
       switch (reportType) {
         case "comprehensive":
+          {
+            const trendChart = await chartSvgToPngDataUrl(comprehensiveTrendChartRef.current);
           await downloadFinancialReportPdf({
             reportType: "comprehensive",
             ...base,
@@ -820,21 +866,41 @@ function ReportsContent() {
               paymentShare: comprehensive.paymentShare,
             },
             sortedTxForTable,
+            chartImages: trendChart
+              ? [{ title: "Reported sales by market date", dataUrl: trendChart }]
+              : [],
           });
+          }
           break;
         case "category":
+          {
+            const [allocatedChart, trendChart] = await Promise.all([
+              chartSvgToPngDataUrl(categoryAllocatedChartRef.current),
+              chartSvgToPngDataUrl(categoryTrendChartRef.current),
+            ]);
           await downloadFinancialReportPdf({
             reportType: "category",
             ...base,
             categoryRows,
+            chartImages: [
+              allocatedChart ? { title: "Allocated reported sales", dataUrl: allocatedChart } : null,
+              trendChart ? { title: "Category trends by market date", dataUrl: trendChart } : null,
+            ].filter((v): v is { title: string; dataUrl: string } => v != null),
           });
+          }
           break;
         case "vendorLabel":
+          {
+            const labelChart = await chartSvgToPngDataUrl(vendorLabelChartRef.current);
           await downloadFinancialReportPdf({
             reportType: "vendorLabel",
             ...base,
             vendorLabelRows,
+            chartImages: labelChart
+              ? [{ title: "Allocated reported sales by label", dataUrl: labelChart }]
+              : [],
           });
+          }
           break;
         case "leaderboard":
           await downloadFinancialReportPdf({
@@ -844,21 +910,37 @@ function ReportsContent() {
           });
           break;
         case "vendor":
+          {
+            const [trendChart, totalsChart] = await Promise.all([
+              chartSvgToPngDataUrl(vendorTrendChartRef.current),
+              chartSvgToPngDataUrl(vendorTotalsChartRef.current),
+            ]);
           await downloadFinancialReportPdf({
             reportType: "vendor",
             ...base,
             selectedVendorRow,
             vendorReportRows,
+            chartImages: [
+              trendChart ? { title: "Reported sales by market date", dataUrl: trendChart } : null,
+              totalsChart ? { title: "Reported sales by vendor", dataUrl: totalsChart } : null,
+            ].filter((v): v is { title: string; dataUrl: string } => v != null),
           });
+          }
           break;
         case "token":
+          {
+            const tokenTotalsChart = await chartSvgToPngDataUrl(tokenChartRef.current);
           await downloadFinancialReportPdf({
             reportType: "token",
             ...base,
             tokenRows,
             tokenTotal,
             sortedTxForTable,
+            chartImages: tokenTotalsChart
+              ? [{ title: "Combined token programs", dataUrl: tokenTotalsChart }]
+              : [],
           });
+          }
           break;
         default:
           break;
@@ -1047,7 +1129,7 @@ function ReportsContent() {
                             ) : null}
                           </p>
                         </div>
-                        <div className="h-56 sm:h-64 -mx-1">
+                        <div ref={comprehensiveTrendChartRef} className="h-56 sm:h-64 -mx-1">
                           <ResponsiveContainer width="100%" height="100%">
                             <AreaChart
                               data={comprehensive.trend}
@@ -1187,7 +1269,7 @@ function ReportsContent() {
                   {categoryRows.length === 0 ? (
                     <p className="text-sm text-slate-600 dark:text-slate-400">No data for this range.</p>
                   ) : (
-                    <div className="h-72">
+                    <div ref={categoryAllocatedChartRef} className="h-72">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={categoryRows} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
                           <CartesianGrid strokeDasharray="4 4" stroke="#e2e8f0" className="dark:stroke-slate-600" />
@@ -1221,7 +1303,7 @@ function ReportsContent() {
                   {categoryTrend.length === 0 ? (
                     <p className="p-8 text-sm text-slate-600 dark:text-slate-400 text-center">No data for this range.</p>
                   ) : (
-                    <div className="h-80">
+                    <div ref={categoryTrendChartRef} className="h-80">
                       <ResponsiveContainer width="100%" height="100%">
                         <AreaChart
                           data={categoryTrend}
@@ -1379,7 +1461,7 @@ function ReportsContent() {
                           </p>
                         </div>
 
-                        <div className="h-56 sm:h-64 -mx-1">
+                        <div ref={vendorTrendChartRef} className="h-56 sm:h-64 -mx-1">
                           <ResponsiveContainer width="100%" height="100%">
                             <AreaChart
                               data={vendorTrend}
@@ -1484,7 +1566,7 @@ function ReportsContent() {
                   {vendorBarChartRows.length === 0 ? (
                     <p className="text-sm text-slate-600 dark:text-slate-400">No vendor data for this range.</p>
                   ) : (
-                    <div className="h-72">
+                    <div ref={vendorTotalsChartRef} className="h-72">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={vendorBarChartRows} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
                           <CartesianGrid strokeDasharray="4 4" stroke="#e2e8f0" className="dark:stroke-slate-600" />
@@ -1654,7 +1736,7 @@ function ReportsContent() {
                       No labels selected. Turn on &quot;Show all labels&quot; or choose at least one label above.
                     </p>
                   ) : (
-                    <div className="h-72">
+                    <div ref={vendorLabelChartRef} className="h-72">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={vendorLabelRows} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
                           <CartesianGrid strokeDasharray="4 4" stroke="#e2e8f0" className="dark:stroke-slate-600" />
@@ -1790,7 +1872,7 @@ function ReportsContent() {
                     className="block text-3xl font-bold tabular-nums text-slate-900 dark:text-slate-100"
                   />
                   {tokenTotal > 0 && (
-                    <div className="h-72 mt-8">
+                    <div ref={tokenChartRef} className="h-72 mt-8">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={tokenRows} layout="vertical" margin={{ top: 8, right: 24, left: 8, bottom: 8 }}>
                           <CartesianGrid strokeDasharray="4 4" stroke="#e2e8f0" className="dark:stroke-slate-600" />
