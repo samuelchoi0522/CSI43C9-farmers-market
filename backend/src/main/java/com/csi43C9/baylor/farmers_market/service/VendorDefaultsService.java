@@ -106,6 +106,12 @@ public class VendorDefaultsService {
         total = total.add(Optional.ofNullable(request.getPctCottageGoods()).orElse(BigDecimal.ZERO));
         total = total.add(Optional.ofNullable(request.getPctManufactured()).orElse(BigDecimal.ZERO));
 
+        // Allow vendor defaults that only specify average sale (or intentionally omit
+        // category defaults) by skipping validation when the total is 0.00.
+        if (total.compareTo(BigDecimal.ZERO) == 0) {
+            return;
+        }
+
         if (total.compareTo(new BigDecimal("100.00")) != 0) {
             throw new IllegalArgumentException(
                     "The sum of percentages must be exactly 100.00. Current total: " + total);

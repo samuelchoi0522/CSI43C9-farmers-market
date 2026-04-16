@@ -227,7 +227,6 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
         setIsSubmitting(true);
         try {
             const milesNumber = formData.miles ? parseInt(formData.miles, 10) : undefined;
-            const avgSaleAmountNumber = parseFloat(formData.avgSaleAmount || "0");
 
             await updateVendor(vendor.id, {
                 vendorName: formData.vendorName,
@@ -235,7 +234,6 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
                 email: formData.email || undefined,
                 location: formData.location || undefined,
                 miles: milesNumber, // This is already handled to be undefined if empty string
-                // @ts-ignore - The API expects number, but formData stores string. Conversion below.
                 products: formData.products || undefined,
                 isActive: formData.isActive,
             });
@@ -245,12 +243,12 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
             if (hasAnyDefaults) {
                 const defaultsPayload = { // Convert string percentages to numbers for the API
                     vendorId: vendor.id,
-                    pctHandmade: parseFloat(formData.pctHandmade || "0"),
-                    pctAgricultural: parseFloat(formData.pctAgricultural || "0"),
-                    pctPreparedFood: parseFloat(formData.pctPreparedFood || "0"),
-                    pctCottageGoods: parseFloat(formData.pctCottageGoods || "0"),
-                    pctManufactured: parseFloat(formData.pctManufactured || "0"),
-                    avgSaleAmount: avgSaleAmountNumber,
+                    pctHandmade: formData.pctHandmade,
+                    pctAgricultural: formData.pctAgricultural,
+                    pctPreparedFood: formData.pctPreparedFood,
+                    pctCottageGoods: formData.pctCottageGoods,
+                    pctManufactured: formData.pctManufactured ,
+                    avgSaleAmount: formData.avgSaleAmount,
                 };
 
                 if (existingDefaults) {

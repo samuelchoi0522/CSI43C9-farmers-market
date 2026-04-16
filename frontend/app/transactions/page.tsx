@@ -319,16 +319,15 @@ function TransactionsContent() {
           ? defaultsResponse
           : defaultsResponse?.data ?? defaultsResponse?.content ?? [];
         const defaultsByVendorId = new Map(defaultsList.map((defaults) => [defaults.vendorId, defaults]));
-        // Attach vendor defaults to the vendor objects. The API `VendorDefaults`
-        // type does not include `avgSaleAmount`; we add a synthetic `avgSaleAmount`
-        // key here with a default of "0" so callers can safely parse it. If you
-        // want a real average-sale value, extend the API to provide it.
-        const vendorWithDefaults: VendorWithDefaults[] = vendorList.map((vendor) => ({
-          ...vendor,
-          defaults: defaultsByVendorId.has(vendor.id)
-            ? { ...defaultsByVendorId.get(vendor.id)!, avgSaleAmount: "0" }
-            : undefined,
-        }));
+        // Attach vendor defaults to the vendor objects. Ensure `avgSaleAmount` is
+        // always present so callers can safely parse it.
+        const vendorWithDefaults: VendorWithDefaults[] = vendorList.map((vendor) => {
+          const defaults = defaultsByVendorId.get(vendor.id);
+          return {
+            ...vendor,
+            defaults: defaults ? { ...defaults, avgSaleAmount: defaults.avgSaleAmount ?? "0" } : undefined,
+          };
+        });
 
         setAllVendors(
           vendorList

@@ -62,4 +62,16 @@ public class SaveVendorDefaultsRequest {
      * Default average sale amount.
      */
     private Double avgSale;
+
+    /**
+     * Backwards/forwards compatible JSON alias used by the frontend.
+     * The backend persists this value in {@code avgSale}.
+     */
+    public Double getAvgSaleAmount() {
+        return avgSale;
+    }
+
+    public void setAvgSaleAmount(Double avgSaleAmount) {
+        this.avgSale = avgSaleAmount;
+    }
 }
