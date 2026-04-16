@@ -330,7 +330,7 @@ export default function VendorTransactionsSheet({
       }),
       VendorTransactionsSheetColumn({
         field: 'defaults',
-        headerName: 'Item Percentages',
+        headerName: 'Sales Percentages',
         width: 120,
         align: 'center',
         headerAlign: 'center',
