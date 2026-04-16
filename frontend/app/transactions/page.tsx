@@ -3,7 +3,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Download, FileSpreadsheet, Loader2 } from 'lucide-react';
 import SidebarNavigation from '../components/SidebarNavigation';
-import Button from '../components/Button';
 import { AddVendorDialog } from '../components/AddVendorDialog';
 import VendorTransactionsSheet from '../components/VendorTransactionsSheet';
 import { type VendorTransactionsSheetRowModel as VendorTransactionsSheetRow } from '../components/VendorTransactionsSheetRow';
@@ -18,9 +17,8 @@ import {
   type VendorTransaction,
 } from '@/lib/api/transactions';
 import { getVendors, type Vendor as ApiVendor } from '@/lib/api/vendor';
-import { downloadVendorTransactionsTemplate } from '@/lib/transactionsTemplate';
+import { downloadVendorTransactionsTemplate, exportVendorTransactionsSpreadsheet } from '@/lib/transactionsTemplate';
 import { getActiveCustomColumns, type CustomColumnMetadata } from '@/lib/api/customColumns';
-import { getCurrentWindow } from '@tauri-apps/api/window';
 
 interface Vendor {
   id: string;
@@ -122,6 +120,7 @@ function TransactionsContent() {
   const [vendorsLoading, setVendorsLoading] = useState(true);
   const [isImporting, setIsImporting] = useState(false);
   const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -190,12 +189,14 @@ function TransactionsContent() {
       try {
         const [vendorResponse, columnsResponse] = await Promise.all([
           getVendors(0, 1000, true),
-          getActiveCustomColumns()
+          getActiveCustomColumns(),
         ]);
 
         if (!isMounted) return;
 
-        const vendorList: ApiVendor[] = Array.isArray(vendorResponse) ? vendorResponse : vendorResponse?.data ?? [];
+        const vendorList: ApiVendor[] = Array.isArray(vendorResponse)
+          ? vendorResponse
+          : vendorResponse?.data ?? vendorResponse?.content ?? [];
 
         setAllVendors(
           vendorList
@@ -276,6 +277,34 @@ function TransactionsContent() {
       toast.error('Unable to download template. Please try again.');
     } finally {
       setIsDownloadingTemplate(false);
+    }
+  };
+
+  const handleExportExcel = async () => {
+    setIsExporting(true);
+    try {
+      const exportRows = records.map((row) => {
+        return {
+          vendor_name: row.vendor_name,
+          present: row.present,
+          snap: row.snap,
+          dufb: row.dufb,
+          wdfm_tokens: row.wdfm_tokens,
+          voucher: row.voucher,
+          reported_sales: row.reported_sales,
+          est_produce_sales: row.est_produce_sales,
+          est_num_transactions: row.est_num_transactions,
+          customData: row.customData,
+        };
+      });
+
+      await exportVendorTransactionsSpreadsheet(currentMarketDate, exportRows, customColumns);
+      toast.success('Exported transactions to Excel.');
+    } catch (error) {
+      console.error('Failed to export transactions:', error);
+      toast.error('Unable to export. Please try again.');
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -557,10 +586,12 @@ function TransactionsContent() {
           rows={records}
           isLoading={isLoadingTransactions}
           isSaving={isSaving}
+          isExporting={isExporting}
           invalidCount={invalidCount}
           normalizeRow={buildRecord}
           onRowsChange={(nextRows) => setRecords(normalizeRows(nextRows))}
           onSave={handleSaveToBackend}
+          onExportExcel={handleExportExcel}
           customColumns={customColumns}
         />
       </main>

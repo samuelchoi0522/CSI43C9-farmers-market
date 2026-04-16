@@ -8,7 +8,7 @@ import {
   GridToolbarContainer,
   GridToolbarQuickFilter,
 } from '@mui/x-data-grid';
-import { AlertCircle, Loader2, Trash2, Upload } from 'lucide-react';
+import { AlertCircle, FileDown, Loader2, Trash2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import Button from './Button';
 import MarketDatePicker from './MarketDatePicker';
@@ -30,10 +30,12 @@ interface VendorTransactionsSheetProps {
   rows: VendorTransactionsSheetRow[];
   isLoading: boolean;
   isSaving: boolean;
+  isExporting?: boolean;
   invalidCount: number;
   normalizeRow: (row: VendorTransactionsSheetRow) => VendorTransactionsSheetRow;
   onRowsChange: (rows: VendorTransactionsSheetRow[]) => void;
   onSave: () => void;
+  onExportExcel: () => void;
   customColumns?: CustomColumnMetadata[];
 }
 
@@ -43,10 +45,12 @@ export default function VendorTransactionsSheet({
   rows,
   isLoading,
   isSaving,
+  isExporting = false,
   invalidCount,
   normalizeRow,
   onRowsChange,
   onSave,
+  onExportExcel,
   customColumns = [],
 }: VendorTransactionsSheetProps) {
   const [rowSelectionModel, setRowSelectionModel] = useState<GridRowSelectionModel>({ type: 'include', ids: new Set() });
@@ -189,7 +193,7 @@ export default function VendorTransactionsSheet({
         field: 'est_num_transactions',
         headerName: 'Trans.',
         type: 'number',
-        editable: true,
+        editable: false,
         width: 100,
         align: 'center',
         headerAlign: 'center',
@@ -346,7 +350,25 @@ export default function VendorTransactionsSheet({
         </Box>
       </div>
 
-      <div className="mt-8 flex justify-center">
+      <div className="mt-8 flex justify-center gap-4">
+        <Button
+          variant="outline"
+          onClick={onExportExcel}
+          disabled={isExporting || rows.length === 0}
+          className="flex items-center gap-3 rounded-xl px-8 py-4 text-base font-semibold shadow-sm transition-all hover:scale-105"
+        >
+          {isExporting ? (
+            <>
+              <Loader2 size={20} className="animate-spin" />
+              Exporting...
+            </>
+          ) : (
+            <>
+              <FileDown size={20} />
+              Export to Excel
+            </>
+          )}
+        </Button>
         <Button
           variant="primary"
           onClick={onSave}
