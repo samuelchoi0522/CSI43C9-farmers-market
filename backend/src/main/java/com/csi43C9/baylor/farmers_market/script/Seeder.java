@@ -266,7 +266,6 @@ public class Seeder {
                     transaction.setVoucher(faker.number().randomDouble(2, 0, 100));
                     transaction.setReportedSales(faker.number().randomDouble(2, 100, 1000));
                     transaction.setEstProduceSales(faker.number().randomDouble(2, 50, 500));
-                    transaction.setEstNumTransactions((long) faker.number().numberBetween(5, 50));
                     double[] pctSplit = randomPercentageSplit(5);
                     transaction.setPctHandmade(pctSplit[0]);
                     transaction.setPctAgricultural(pctSplit[1]);

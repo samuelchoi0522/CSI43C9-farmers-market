@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Box } from '@mui/material';
 import {
   DataGrid,
@@ -60,7 +60,7 @@ export default function VendorTransactionsSheet({
   customColumns = [],
 }: VendorTransactionsSheetProps) {
   const [rowSelectionModel, setRowSelectionModel] = useState<GridRowSelectionModel>({ type: 'include', ids: new Set() });
-  const handleApplyDefaults = (rowId: string, data: {
+  const handleApplyDefaults = useCallback((rowId: string, data: {
     pctHandmade: number;
     pctAgricultural: number;
     pctPreparedFood: number;
@@ -89,23 +89,21 @@ export default function VendorTransactionsSheet({
 
     onRowsChange(rows.map((row) => (row.id === rowId ? updatedRow : row)));
     toast.success(`Applied defaults for ${updatedRow.vendor_name}.`);
-  };
-  const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  const isPersistedTransactionId = (value: string) => UUID_PATTERN.test(value);
+  }, [normalizeRow, onRowsChange, rows]);
 
-  const isDefaultsRequired = (row: VendorTransactionsSheetRow) => {
+  const isDefaultsRequired = useCallback((row: VendorTransactionsSheetRow) => {
     const vendor = vendorsWithDefaults.find(
       (item) =>
         item.id === row.vendor_id ||
         item.vendorName?.toLowerCase() === row.vendor_name.trim().toLowerCase()
     );
     return Boolean(vendor?.defaults);
-  };
+  }, [vendorsWithDefaults]);
 
   // Helper: returns true only when all five percentage fields are absent (null/undefined)
   // Used when deciding whether to auto-apply vendor defaults (we intentionally
   // only auto-apply when the row has no percentage data at all).
-  const arePercentagesMissing = (row: VendorTransactionsSheetRow) => {
+  const arePercentagesMissing = useCallback((row: VendorTransactionsSheetRow) => {
     return (
       row.pct_handmade == null &&
       row.pct_agricultural == null &&
@@ -113,7 +111,7 @@ export default function VendorTransactionsSheet({
       row.pct_cottage_goods == null &&
       row.pct_manufactured == null
     );
-  };
+  }, []);
 
   // Custom handler for marking defaults red with enhanced validation.
   // Rules:
@@ -121,7 +119,7 @@ export default function VendorTransactionsSheet({
   // - If all percentages are missing → invalid (red).
   // - If some percentages are set and some are null → invalid (incomplete).
   // - If all five percentages are set, validate they sum to ~100 (tolerance 0.01).
-  const shouldMarkDefaultsRed = (row: VendorTransactionsSheetRow) => {
+  const shouldMarkDefaultsRed = useCallback((row: VendorTransactionsSheetRow) => {
     // First check if vendor requires defaults
     if (!isDefaultsRequired(row)) return false;
 
@@ -151,7 +149,7 @@ export default function VendorTransactionsSheet({
     }
 
     return false;
-  };
+  }, [arePercentagesMissing, isDefaultsRequired]);
   const selectedRowIds = useMemo(() => {
     if (rowSelectionModel.type === 'exclude') {
       return rows
@@ -364,11 +362,23 @@ export default function VendorTransactionsSheet({
         field: 'est_num_transactions',
         headerName: 'Trans.',
         type: 'number',
-        editable: true,
+        editable: false,
         width: 100,
         align: 'center',
         headerAlign: 'center',
-        renderEditCell: vendorTransactionsSheetEditors.numeric,
+        valueGetter: (_value, row) => {
+          const vendor = vendorsWithDefaults.find(
+            (item) =>
+              item.id === row.vendor_id ||
+              item.vendorName?.toLowerCase() === row.vendor_name.trim().toLowerCase()
+          );
+          const avgSaleAmount = parseFloat(vendor?.defaults?.avgSaleAmount || '0');
+          if (!Number.isFinite(avgSaleAmount) || avgSaleAmount <= 0) return null;
+
+          const sales = row.reported_sales || 0;
+          return Math.round(sales / avgSaleAmount);
+        },
+        valueFormatter: (value) => (value == null ? '' : String(value)),
       }),
       ...customColumns
         .filter((col) => col.id !== undefined)
@@ -414,7 +424,7 @@ export default function VendorTransactionsSheet({
           });
         }),
     ],
-    [customColumns, vendorsWithDefaults, handleApplyDefaults]
+    [customColumns, vendorsWithDefaults, handleApplyDefaults, shouldMarkDefaultsRed]
   );
 
   const Toolbar = () => (
