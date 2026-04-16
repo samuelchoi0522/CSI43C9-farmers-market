@@ -53,11 +53,6 @@ public class SaveVendorRequest {
     private String products;
 
     /**
-     * Average sale amount.
-     */
-    private Double avgSale;
-
-    /**
      * Flag indicating if the vendor is active at the market.
      */
     private Boolean isActive;

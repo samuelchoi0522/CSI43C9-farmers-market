@@ -96,7 +96,6 @@ public class VendorService {
             vendor.setLocation(request.getLocation());
             vendor.setMiles(request.getMiles());
             vendor.setProducts(request.getProducts());
-            vendor.setAvgSale(request.getAvgSale());
 
             // Safely unbox: null becomes false (except for isActive which defaults to true)
             vendor.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);

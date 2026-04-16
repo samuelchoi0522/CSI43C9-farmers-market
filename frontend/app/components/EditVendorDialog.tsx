@@ -98,6 +98,12 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
                             pctCottageGoods: defaults.pctCottageGoods || "0",
                             pctManufactured: defaults.pctManufactured || "0",
                             avgSaleAmount: defaults.avgSaleAmount || "0",
+                            pctHandmade: String(defaults.pctHandmade ?? "0"),
+                            pctAgricultural: String(defaults.pctAgricultural ?? "0"),
+                            pctPreparedFood: String(defaults.pctPreparedFood ?? "0"),
+                            pctCottageGoods: String(defaults.pctCottageGoods ?? "0"),
+                            pctManufactured: String(defaults.pctManufactured ?? "0"),
+                            avgSaleAmount: String(defaults.avgSaleAmount ?? "0"),
                         }));
                     }
                 } catch (error) {
@@ -227,13 +233,15 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
         setIsSubmitting(true);
         try {
             const milesNumber = formData.miles ? parseInt(formData.miles, 10) : undefined;
+            const avgSaleAmountNumber = parseFloat(formData.avgSaleAmount || "0");
 
             await updateVendor(vendor.id, {
                 vendorName: formData.vendorName,
                 pointPerson: formData.pointPerson || undefined,
                 email: formData.email || undefined,
                 location: formData.location || undefined,
-                miles: milesNumber,
+                miles: milesNumber, // This is already handled to be undefined if empty string
+                // @ts-ignore - The API expects number, but formData stores string. Conversion below.
                 products: formData.products || undefined,
                 isActive: formData.isActive,
             });
@@ -241,14 +249,14 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
             const hasAnyDefaults = hasNonZeroPercentage || parseFloat(formData.avgSaleAmount || "0") > 0;
 
             if (hasAnyDefaults) {
-                const defaultsPayload = {
+                const defaultsPayload = { // Convert string percentages to numbers for the API
                     vendorId: vendor.id,
-                    pctHandmade: formData.pctHandmade,
-                    pctAgricultural: formData.pctAgricultural,
-                    pctPreparedFood: formData.pctPreparedFood,
-                    pctCottageGoods: formData.pctCottageGoods,
-                    pctManufactured: formData.pctManufactured,
-                    avgSaleAmount: formData.avgSaleAmount,
+                    pctHandmade: parseFloat(formData.pctHandmade || "0"),
+                    pctAgricultural: parseFloat(formData.pctAgricultural || "0"),
+                    pctPreparedFood: parseFloat(formData.pctPreparedFood || "0"),
+                    pctCottageGoods: parseFloat(formData.pctCottageGoods || "0"),
+                    pctManufactured: parseFloat(formData.pctManufactured || "0"),
+                    avgSaleAmount: avgSaleAmountNumber,
                 };
 
                 if (existingDefaults) {

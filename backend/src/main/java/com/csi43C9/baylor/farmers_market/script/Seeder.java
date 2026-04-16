@@ -127,7 +127,6 @@ public class Seeder {
             v.setEmail(faker.internet().emailAddress());
             v.setLocation(faker.address().fullAddress());
             v.setMiles(faker.number().randomDigit());
-            v.setAvgSale(faker.number().randomDouble(2, 0, 30));
 
             v.setIsActive(true);
 

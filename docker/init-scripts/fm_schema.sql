@@ -7,7 +7,6 @@ create table if not exists vendors
     location      varchar(255)              null,
     miles         int                       null,
     products      varchar(255)              null,
-    avg_sale      double                    null,
     is_active     tinyint(1) default 1      not null,
     is_farmer     tinyint(1) default 0      not null,
     is_produce    tinyint(1) default 0      not null,
