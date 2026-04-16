@@ -271,14 +271,6 @@ public class Seeder {
                     transaction.setPctCottageGoods(pctSplit[3]);
                     transaction.setPctManufactured(pctSplit[4]);
 
-                    if (transaction.getEstNumTransactions() > 0) {
-                        transaction.setAvgSale(BigDecimal.valueOf(transaction.getReportedSales() / transaction.getEstNumTransactions())
-                                .setScale(2, RoundingMode.HALF_UP)
-                                .doubleValue());
-                    } else {
-                        transaction.setAvgSale(0.0);
-                    }
-
                     // Generate dynamic JSON data based on active columns
                     Map<String, Object> customData = new HashMap<>();
                     for (CustomColumnMetadata column : activeColumns) {
@@ -327,7 +319,6 @@ public class Seeder {
                     transaction.setPctPreparedFood(null);
                     transaction.setPctCottageGoods(null);
                     transaction.setPctManufactured(null);
-                    transaction.setAvgSale(0.0);
                     transaction.setCustomData(Collections.emptyMap());
                 }
                 allTransactions.add(transaction);

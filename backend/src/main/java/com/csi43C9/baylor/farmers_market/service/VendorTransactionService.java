@@ -358,7 +358,6 @@ public class VendorTransactionService {
             transaction.setPctPreparedFood(request.getPctPreparedFood());
             transaction.setPctCottageGoods(request.getPctCottageGoods());
             transaction.setPctManufactured(request.getPctManufactured());
-            transaction.setAvgSale(request.getAvgSale());
             transaction.setCustomData(request.getCustomData());
             return transaction;
         }

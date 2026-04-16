@@ -7,6 +7,7 @@ create table if not exists vendors
     location      varchar(255)              null,
     miles         int                       null,
     products      varchar(255)              null,
+    avg_sale      double                    null,
     is_active     boolean default 1      null,
     created_at    timestamp  default now(),
     updated_at    timestamp on update now() null
@@ -31,7 +32,6 @@ create table if not exists vendor_transactions
     pct_prepared_food    double,
     pct_cottage_goods    double,
     pct_manufactured     double,
-    avg_sale             double,
     custom_data          text                      null,
     created_at           timestamp  default now(),
     updated_at           timestamp on update now() null
