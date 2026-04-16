@@ -46,7 +46,7 @@ import LabelPickerDialog from "../components/LabelPickerDialog";
 import { EditVendorDialog } from "@/app/components/EditVendorDialog";
 import { getLabelColors } from "@/lib/labelColors";
 import { SmoothCurrencyValue } from "@/lib/smoothNumbers";
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import { downloadVendorProfilePdf } from "@/lib/reportPdf";
 
 // Register Chart.js components
 ChartJS.register(
@@ -153,7 +153,7 @@ function aggregateVendorAnalytics(txs: VendorTransaction[]): VendorAnalytics {
 
     const sorted = [...txs].sort((a, b) => b.marketDate.localeCompare(a.marketDate));
 
-    const marketHistory: MarketSession[] = sorted.slice(0, 100).map((t) => ({
+    const marketHistory: MarketSession[] = sorted.map((t) => ({
         id: t.id,
         marketDate: formatMarketTableDate(t.marketDate),
         present: t.present,
@@ -259,8 +259,29 @@ function VendorDetailContent() {
     const [labelError, setLabelError] = useState<string | null>(null);
     const [isLabelDialogOpen, setIsLabelDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [exportingPdf, setExportingPdf] = useState(false);
+    const [sessionSearch, setSessionSearch] = useState("");
+    const [showAllSessions, setShowAllSessions] = useState(false);
+    const salesTrendChartRef = useRef<HTMLDivElement | null>(null);
 
     const analytics = useMemo(() => aggregateVendorAnalytics(transactions), [transactions]);
+
+    const SESSIONS_PREVIEW = 25;
+    const filteredMarketSessions = useMemo(() => {
+        const q = sessionSearch.trim().toLowerCase();
+        if (!q) {
+            return analytics.marketHistory;
+        }
+        return analytics.marketHistory.filter((s) => s.marketDate.toLowerCase().includes(q));
+    }, [analytics.marketHistory, sessionSearch]);
+
+    const hasMoreSessionsThanPreview = filteredMarketSessions.length > SESSIONS_PREVIEW;
+    const displayedMarketSessions = useMemo(() => {
+        if (!hasMoreSessionsThanPreview || showAllSessions) {
+            return filteredMarketSessions;
+        }
+        return filteredMarketSessions.slice(0, SESSIONS_PREVIEW);
+    }, [filteredMarketSessions, hasMoreSessionsThanPreview, showAllSessions]);
 
     type TrendFocusState = { current: TrendPoint };
     const [trendFocus, setTrendFocus] = useState<TrendFocusState | null>(null);
@@ -318,6 +339,43 @@ function VendorDetailContent() {
 
     const normalizeLabelName = (name: string) => name.trim().toLowerCase();
 
+    const chartSvgToPngDataUrl = useCallback(async (container: HTMLDivElement | null): Promise<string | null> => {
+        if (!container) return null;
+        const svg = container.querySelector("svg");
+        if (!svg) return null;
+
+        const rect = container.getBoundingClientRect();
+        const width = Math.max(1, Math.round(rect.width));
+        const height = Math.max(1, Math.round(rect.height));
+        const clonedSvg = svg.cloneNode(true) as SVGSVGElement;
+        clonedSvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+        clonedSvg.setAttribute("width", String(width));
+        clonedSvg.setAttribute("height", String(height));
+        clonedSvg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+
+        const serialized = new XMLSerializer().serializeToString(clonedSvg);
+        const svgBase64 = window.btoa(unescape(encodeURIComponent(serialized)));
+        const svgDataUrl = `data:image/svg+xml;base64,${svgBase64}`;
+
+        const image = new Image();
+        image.crossOrigin = "anonymous";
+        await new Promise<void>((resolve, reject) => {
+            image.onload = () => resolve();
+            image.onerror = () => reject(new Error("chart image load failed"));
+            image.src = svgDataUrl;
+        });
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return null;
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(image, 0, 0, width, height);
+        return canvas.toDataURL("image/png", 0.92);
+    }, []);
+
     useEffect(() => {
         if (!uuid) { return; }
 
@@ -355,8 +413,6 @@ function VendorDetailContent() {
 
         fetchVendorAndLabels();
     }, [uuid]);
-
-    const userName = "Market Manager";
 
     const formatCurrency = (value: number | null) => {
         if (value === null) return "-";
@@ -478,13 +534,43 @@ function VendorDetailContent() {
                             <Button
                                 variant="outline"
                                 className="flex items-center gap-2"
-                                onClick={() => {
-                                    // Export report functionality
-                                    console.log("Export report");
+                                disabled={exportingPdf}
+                                onClick={async () => {
+                                    if (!vendor) return;
+                                    setExportingPdf(true);
+                                    try {
+                                        const trendChartImage = await chartSvgToPngDataUrl(salesTrendChartRef.current);
+                                        await downloadVendorProfilePdf({
+                                            vendorName: vendor.vendorName,
+                                            vendorStatus: vendor.isActive ? "Active" : "Inactive",
+                                            contactLine: vendor.pointPerson
+                                                ? `Contact: ${vendor.pointPerson}`
+                                                : "",
+                                            productsLine: vendor.products
+                                                ? `Products: ${vendor.products}`
+                                                : "",
+                                            attendanceRate: analytics.attendanceRate,
+                                            avgDailySales: analytics.avgDailySales,
+                                            topSellingMonth: analytics.topSellingMonth,
+                                            snapTotal: analytics.snapTotal,
+                                            paymentBreakdown: analytics.paymentBreakdown,
+                                            transactions,
+                                            chartImages: trendChartImage
+                                                ? [{ title: "Reported sales by market date", dataUrl: trendChartImage }]
+                                                : [],
+                                        });
+                                    } catch (e) {
+                                        console.error(e);
+                                        alert("Could not generate the PDF. Please try again.");
+                                    } finally {
+                                        setExportingPdf(false);
+                                    }
                                 }}
                             >
-                                <span className="material-icons text-xl">download</span>
-                                Export Report
+                                <span className="material-icons text-xl">
+                                    {exportingPdf ? "hourglass_empty" : "download"}
+                                </span>
+                                {exportingPdf ? "Generating PDF…" : "Export Report"}
                             </Button>
                             <Button
                                 variant="primary"
@@ -546,7 +632,7 @@ function VendorDetailContent() {
                                             ) : null}
                                         </p>
                                     </div>
-                                    <div className="h-56 sm:h-64 -mx-1">
+                                    <div ref={salesTrendChartRef} className="h-56 sm:h-64 -mx-1">
                                         <ResponsiveContainer width="100%" height="100%">
                                             <AreaChart
                                                 data={analytics.salesTrend}
@@ -802,7 +888,13 @@ function VendorDetailContent() {
                                     <input
                                         className="pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm w-64 text-slate-700 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:ring-[#10b981] focus:border-[#10b981] transition-colors duration-300"
                                         placeholder="Search sessions..."
-                                        type="text"
+                                        type="search"
+                                        value={sessionSearch}
+                                        onChange={(e) => {
+                                            setSessionSearch(e.target.value);
+                                            setShowAllSessions(false);
+                                        }}
+                                        aria-label="Search market sessions"
                                     />
                             </div>
                         </div>
@@ -833,9 +925,16 @@ function VendorDetailContent() {
                                                 No market days on file for this vendor.
                                             </td>
                                         </tr>
+                                    ) : filteredMarketSessions.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={8} className="px-6 py-8 text-center text-slate-500 text-sm">
+                                                No sessions match your search.
+                                            </td>
+                                        </tr>
                                     ) : null}
                                     {!txError &&
-                                        analytics.marketHistory.map((session) => (
+                                        filteredMarketSessions.length > 0 &&
+                                        displayedMarketSessions.map((session) => (
                                         <tr
                                             key={session.id}
                                             className="hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
@@ -877,11 +976,24 @@ function VendorDetailContent() {
                                 </tbody>
                             </table>
                         </div>
-                        <div className="p-4 bg-slate-50 flex justify-center">
-                            <button className="text-sm font-bold text-[#10b981] hover:underline">
-                                View All Sessions
-                            </button>
-                        </div>
+                        {!txError && analytics.marketHistory.length > 0 ? (
+                            <div className="p-4 bg-slate-50 dark:bg-slate-900/40 flex flex-col items-center gap-2 border-t border-slate-100 dark:border-slate-800">
+                                {hasMoreSessionsThanPreview ? (
+                                    <button
+                                        type="button"
+                                        className="text-sm font-bold text-[#10b981] hover:underline"
+                                        onClick={() => setShowAllSessions((v) => !v)}
+                                    >
+                                        {showAllSessions ? "Show fewer sessions" : "View all sessions"}
+                                    </button>
+                                ) : (
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                                        All {filteredMarketSessions.length} matching session
+                                        {filteredMarketSessions.length !== 1 ? "s" : ""} shown
+                                    </p>
+                                )}
+                            </div>
+                        ) : null}
                     </div>
                 </div>
             </main>
