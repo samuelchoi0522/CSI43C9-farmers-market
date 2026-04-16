@@ -177,6 +177,7 @@ public class Seeder {
                     .pctPreparedFood(new BigDecimal(shuffledParts.get(2)).setScale(2, RoundingMode.HALF_UP))
                     .pctCottageGoods(new BigDecimal(shuffledParts.get(3)).setScale(2, RoundingMode.HALF_UP))
                     .pctManufactured(new BigDecimal(shuffledParts.get(4)).setScale(2, RoundingMode.HALF_UP))
+                    .avgSale(faker.number().randomDouble(2, 0, 40))
                     .build();
 
             defaultsRepository.save(defaults);

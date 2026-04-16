@@ -60,7 +60,8 @@ create table if not exists vendor_defaults
     pct_agricultural  DECIMAL(5, 2)     not null default 0.00,
     pct_prepared_food DECIMAL(5, 2)     not null default 0.00,
     pct_cottage_goods DECIMAL(5, 2)     not null default 0.00,
-    pct_manufactured  DECIMAL(5, 2)     not null default 0.00
+    pct_manufactured  DECIMAL(5, 2)     not null default 0.00,
+    avg_sale          double                    null
 );
 
 create table if not exists category_labels

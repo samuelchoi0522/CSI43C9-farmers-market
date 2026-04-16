@@ -65,6 +65,7 @@ create table if not exists vendor_defaults
     pct_prepared_food DECIMAL(5, 2)     not null default 0.00,
     pct_cottage_goods DECIMAL(5, 2)     not null default 0.00,
     pct_manufactured  DECIMAL(5, 2)     not null default 0.00,
+    avg_sale          double                    null,
     constraint fk_vendor foreign key (vendor_id) references vendors (id) on delete cascade,
     constraint check_core_total check (
         (

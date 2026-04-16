@@ -98,12 +98,6 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
                             pctCottageGoods: defaults.pctCottageGoods || "0",
                             pctManufactured: defaults.pctManufactured || "0",
                             avgSaleAmount: defaults.avgSaleAmount || "0",
-                            pctHandmade: String(defaults.pctHandmade ?? "0"),
-                            pctAgricultural: String(defaults.pctAgricultural ?? "0"),
-                            pctPreparedFood: String(defaults.pctPreparedFood ?? "0"),
-                            pctCottageGoods: String(defaults.pctCottageGoods ?? "0"),
-                            pctManufactured: String(defaults.pctManufactured ?? "0"),
-                            avgSaleAmount: String(defaults.avgSaleAmount ?? "0"),
                         }));
                     }
                 } catch (error) {
