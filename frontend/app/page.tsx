@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import SidebarNavigation from "./components/SidebarNavigation";
-import CategoryRevenueChart from "./components/CategoryRevenueChart";
+import CategorySalesChart from "./components/CategorySalesChart";
 import Button from "./components/Button";
 import { getAllVendorDefaults, VendorDefaults } from "@/lib/api/defaults";
 import { getVendors, Vendor } from "@/lib/api/vendor";
@@ -92,11 +92,11 @@ function DashboardContent() {
             }
         }
         return Object.entries(agg)
-            .map(([category, revenue]) => ({
+            .map(([category, sales]) => ({
                 category,
-                revenue: Math.round(revenue * 100) / 100,
+                sales: Math.round(sales * 100) / 100,
             }))
-            .sort((a, b) => b.revenue - a.revenue);
+            .sort((a, b) => b.sales - a.sales);
     }, [transactions, defaultsByVendor]);
 
     const vendorsForAlerts = allVendors.length > 0 ? allVendors : vendors;
@@ -163,8 +163,8 @@ function DashboardContent() {
         return Math.max(1, Math.ceil(filteredVendors.length / pageSize));
     }, [searchQuery, totalPages, filteredVendors.length, pageSize]);
 
-    const categoryRevenueTotal = useMemo(
-        () => categoryChartData.reduce((s, r) => s + r.revenue, 0),
+    const categorySalesTotal = useMemo(
+        () => categoryChartData.reduce((s, r) => s + r.sales, 0),
         [categoryChartData],
     );
 
@@ -366,7 +366,7 @@ function DashboardContent() {
                     </div>
                 </div>
 
-                <CategoryRevenueChart data={categoryChartData} />
+                <CategorySalesChart data={categoryChartData} />
 
                 {/* Vendor Tracking Table */}
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-slide-up" style={{ animationDelay: '0.2s' }}>
@@ -564,7 +564,7 @@ function DashboardContent() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                        <h4 className="font-bold mb-1 text-slate-900 dark:text-slate-100">Allocated revenue by category</h4>
+                        <h4 className="font-bold mb-1 text-slate-900 dark:text-slate-100">Allocated sales by category</h4>
                         <p className="text-xs text-slate-600 dark:text-slate-400 mb-4">
                             Same allocation rules as Reports → Category (vendor defaults %).
                         </p>
@@ -574,12 +574,12 @@ function DashboardContent() {
                             <div className="space-y-4">
                                 {categoryChartData.map((row, i) => {
                                     const pct =
-                                        categoryRevenueTotal > 0
-                                            ? Math.round((row.revenue / categoryRevenueTotal) * 1000) / 10
+                                        categorySalesTotal > 0
+                                            ? Math.round((row.sales / categorySalesTotal) * 1000) / 10
                                             : 0;
                                     const barPct =
-                                        categoryRevenueTotal > 0
-                                            ? Math.min(100, (row.revenue / categoryRevenueTotal) * 100)
+                                        categorySalesTotal > 0
+                                            ? Math.min(100, (row.sales / categorySalesTotal) * 100)
                                             : 0;
                                     return (
                                         <div key={row.category}>
@@ -587,7 +587,7 @@ function DashboardContent() {
                                                 <span>{row.category}</span>
                                                 <span className="font-bold tabular-nums inline-flex items-baseline gap-1 flex-wrap justify-end">
                                                     <SmoothCurrencyValue
-                                                        value={row.revenue}
+                                                        value={row.sales}
                                                         resetKey={`${metricsResetKey}|${row.category}`}
                                                         className="font-bold tabular-nums text-slate-900 dark:text-slate-100"
                                                     />

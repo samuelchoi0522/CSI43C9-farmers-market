@@ -769,13 +769,13 @@ function ReportsContent() {
         };
       case "category":
         return {
-          title: "Revenue by product category",
+          title: "Sales by product category",
           subtitle:
             "Reported sales allocated using each vendor’s default category percentages (agricultural, prepared food, handmade, cottage goods, manufactured).",
         };
       case "vendorLabel":
         return {
-          title: "Revenue by vendor label",
+          title: "Sales by vendor label",
           subtitle:
             "Reported sales allocated to labels assigned to each vendor. When a vendor has multiple labels, sales are split evenly across them. Filter which labels appear in the chart and table.",
         };
