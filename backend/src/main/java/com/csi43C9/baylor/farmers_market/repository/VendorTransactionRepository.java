@@ -72,9 +72,9 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
                     wdfm_tokens, voucher, reimbursement_due, reported_sales,
                     est_produce_sales, est_num_transactions,
                     pct_handmade, pct_agricultural, pct_prepared_food, pct_cottage_goods, pct_manufactured,
-                    custom_data
+                    avg_sale, custom_data
                 )
-                values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         jdbcTemplate.batchUpdate(sql, transactions, transactions.size(), (ps, transaction) -> {
@@ -96,7 +96,8 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
             ps.setObject(16, transaction.getPctPreparedFood());
             ps.setObject(17, transaction.getPctCottageGoods());
             ps.setObject(18, transaction.getPctManufactured());
-            ps.setString(19, toJsonString(transaction.getCustomData()));
+            ps.setObject(19, transaction.getAvgSale());
+            ps.setString(20, toJsonString(transaction.getCustomData()));
         });
 
         return transactions;
@@ -112,9 +113,9 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
                     wdfm_tokens, voucher, reimbursement_due, reported_sales,
                     est_produce_sales, est_num_transactions,
                     pct_handmade, pct_agricultural, pct_prepared_food, pct_cottage_goods, pct_manufactured,
-                    custom_data
+                    avg_sale, custom_data
                 )
-                values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         jdbcTemplate.update(sql,
@@ -136,6 +137,7 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
                 transaction.getPctPreparedFood(),
                 transaction.getPctCottageGoods(),
                 transaction.getPctManufactured(),
+                transaction.getAvgSale(),
                 toJsonString(transaction.getCustomData())
         );
 
@@ -153,7 +155,7 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
                     reimbursement_due = ?, reported_sales = ?, est_produce_sales = ?,
                     est_num_transactions = ?, pct_handmade = ?, pct_agricultural = ?,
                     pct_prepared_food = ?, pct_cottage_goods = ?, pct_manufactured = ?,
-                    custom_data = ?
+                    avg_sale = ?, custom_data = ?
                 where id = ?
                 """;
 
@@ -175,6 +177,7 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
                 transaction.getPctPreparedFood(),
                 transaction.getPctCottageGoods(),
                 transaction.getPctManufactured(),
+                transaction.getAvgSale(),
                 toJsonString(transaction.getCustomData()),
                 UuidUtils.toBytes(transaction.getId())
         );
