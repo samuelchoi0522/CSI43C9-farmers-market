@@ -127,6 +127,7 @@ public class Seeder {
             v.setEmail(faker.internet().emailAddress());
             v.setLocation(faker.address().fullAddress());
             v.setMiles(faker.number().randomDigit());
+            v.setAvgSale(faker.number().randomDouble(2, 50, 500));
 
             v.setIsActive(true);
 
@@ -143,7 +144,8 @@ public class Seeder {
     /**
      * Seeds the database with default product category percentages for vendors.
      */
-    private void populateVendorDefaults(VendorRepository vendorRepository, VendorDefaultsRepository defaultsRepository) {
+    private void populateVendorDefaults(VendorRepository vendorRepository,
+            VendorDefaultsRepository defaultsRepository) {
         List<Vendor> allVendors = vendorRepository.findAll();
         System.out.println("Seeding defaults for " + allVendors.size() + " vendors...");
 
@@ -186,7 +188,8 @@ public class Seeder {
     /**
      * Seeds the database with category labels and associates them with vendors.
      */
-    private void populateCategoryLabels(VendorCategoryRepository categoryRepository, VendorRepository vendorRepository) {
+    private void populateCategoryLabels(VendorCategoryRepository categoryRepository,
+            VendorRepository vendorRepository) {
         System.out.println("Seeding category labels...");
 
         List<CategoryLabelDto> existingLabels = categoryRepository.findAllLabels();
@@ -303,8 +306,7 @@ public class Seeder {
                             transaction.getSnap() +
                                     transaction.getDufb() +
                                     transaction.getWdfmTokens() +
-                                    transaction.getVoucher()
-                    );
+                                    transaction.getVoucher());
                 } else {
                     transaction.setSnap(0.0);
                     transaction.setDufb(0.0);
@@ -341,17 +343,17 @@ public class Seeder {
         double pctSum = 0.0;
         for (int i = 0; i < buckets; i++) {
             pct[i] = BigDecimal.valueOf((raw[i] / sum) * 100.0)
-                .setScale(2, RoundingMode.HALF_UP)
-                .doubleValue();
+                    .setScale(2, RoundingMode.HALF_UP)
+                    .doubleValue();
             pctSum += pct[i];
         }
 
         double diff = BigDecimal.valueOf(100.0 - pctSum)
-            .setScale(2, RoundingMode.HALF_UP)
-            .doubleValue();
+                .setScale(2, RoundingMode.HALF_UP)
+                .doubleValue();
         pct[buckets - 1] = BigDecimal.valueOf(pct[buckets - 1] + diff)
-            .setScale(2, RoundingMode.HALF_UP)
-            .doubleValue();
+                .setScale(2, RoundingMode.HALF_UP)
+                .doubleValue();
 
         return pct;
     }

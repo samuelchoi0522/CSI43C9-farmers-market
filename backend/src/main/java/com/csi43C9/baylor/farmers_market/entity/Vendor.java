@@ -37,6 +37,9 @@ public class Vendor implements IdentifiableUuid {
     /** Descriptions of products sold by the vendor. */
     private String products;
 
+    /** Average sale amount. */
+    private Double avgSale;
+
     /** Whether the vendor is active at the market. */
     @Builder.Default
     private Boolean isActive = true;

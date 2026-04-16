@@ -21,6 +21,7 @@ public class VendorRowMapper implements RowMapper<Vendor> {
         vendor.setLocation(rs.getString("location"));
         vendor.setMiles(rs.getObject("miles", Integer.class));
         vendor.setProducts(rs.getString("products"));
+        vendor.setAvgSale(rs.getObject("avg_sale", Double.class));
         vendor.setIsActive(rs.getBoolean("is_active"));
         return vendor;
     }

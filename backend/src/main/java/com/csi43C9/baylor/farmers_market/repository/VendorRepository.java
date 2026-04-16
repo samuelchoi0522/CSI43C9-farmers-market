@@ -53,9 +53,9 @@ public class VendorRepository extends AbstractJdbcRepository implements MarketRe
         String sql = """
                 insert into vendors (
                     id, vendor, point_person, email, location, miles, products,
-                    is_active
+                    avg_sale, is_active
                 )
-                values (?, ?, ?, ?, ?, ?, ?, ?)
+                values (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         jdbcTemplate.update(sql,
@@ -66,6 +66,7 @@ public class VendorRepository extends AbstractJdbcRepository implements MarketRe
                 vendor.getLocation(),
                 vendor.getMiles(),
                 vendor.getProducts(),
+                vendor.getAvgSale(),
                 vendor.getIsActive()
         );
 
@@ -80,7 +81,7 @@ public class VendorRepository extends AbstractJdbcRepository implements MarketRe
         String sql = """
                 update vendors
                 set vendor = ?, point_person = ?, email = ?, location = ?,
-                    miles = ?, products = ?, is_active = ?
+                    miles = ?, products = ?, avg_sale = ?, is_active = ?
                 where id = ?
                 """;
 
@@ -91,6 +92,7 @@ public class VendorRepository extends AbstractJdbcRepository implements MarketRe
                 vendor.getLocation(),
                 vendor.getMiles(),
                 vendor.getProducts(),
+                vendor.getAvgSale(),
                 vendor.getIsActive(),
                 UuidUtils.toBytes(vendor.getId())
         );
