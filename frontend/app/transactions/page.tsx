@@ -3,7 +3,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Download, FileSpreadsheet, Loader2 } from 'lucide-react';
 import SidebarNavigation from '../components/SidebarNavigation';
-import Button from '../components/Button';
 import { AddVendorDialog } from '../components/AddVendorDialog';
 import VendorTransactionsSheet from '../components/VendorTransactionsSheet';
 import { type VendorTransactionsSheetRowModel as VendorTransactionsSheetRow } from '../components/VendorTransactionsSheetRow';
@@ -20,7 +19,7 @@ import {
 import { getVendors, type Vendor as ApiVendor } from '@/lib/api/vendor';
 import { downloadVendorTransactionsTemplate } from '@/lib/transactionsTemplate';
 import { getActiveCustomColumns, type CustomColumnMetadata } from '@/lib/api/customColumns';
-import { getCurrentWindow } from '@tauri-apps/api/window';
+import { mostRecentSaturdayDate } from '@/lib/dashboardAggregates';
 
 interface Vendor {
   id: string;
@@ -29,15 +28,6 @@ interface Vendor {
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const TRANSACTION_ID_HEADERS = new Set(['vendor transaction id', 'transaction id', 'uuid']);
-
-const getMostRecentSaturday = () => {
-  const date = new Date();
-  const day = date.getDay();
-  const diff = (day + 1) % 7;
-  const saturday = new Date(date);
-  saturday.setDate(date.getDate() - diff);
-  return saturday.toISOString().split("T")[0];
-};
 
 const parseNumericValue = (value: unknown) => {
   if (value === "" || value === null || value === undefined) return 0;
@@ -114,7 +104,7 @@ const buildPersistedPayloadSnapshot = (rows: VendorTransactionsSheetRow[]) =>
   );
 
 function TransactionsContent() {
-  const [currentMarketDate, setCurrentMarketDate] = useState(getMostRecentSaturday());
+  const [currentMarketDate, setCurrentMarketDate] = useState(() => mostRecentSaturdayDate());
   const [records, setRecords] = useState<VendorTransactionsSheetRow[]>([]);
   const [allVendors, setAllVendors] = useState<Vendor[]>([]);
   const [activeVendors, setActiveVendors] = useState<ApiVendor[]>([]);
