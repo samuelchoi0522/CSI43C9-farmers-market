@@ -42,16 +42,46 @@ export interface VendorTransactionSearchParams {
   [key: string]: string | number | boolean | undefined;
 }
 
+const calculateReimbursementDue = ({
+  snap = 0,
+  dufb = 0,
+  wdfmTokens = 0,
+  voucher = 0,
+}: Pick<VendorTransaction, 'snap' | 'dufb' | 'wdfmTokens' | 'voucher'>) =>
+  snap + dufb + wdfmTokens + voucher;
+
+const hydrateVendorTransaction = (transaction: VendorTransaction): VendorTransaction => ({
+  ...transaction,
+  reimbursementDue: calculateReimbursementDue(transaction),
+});
+
+const hydrateVendorTransactionListResponse = (
+  response: PagedResponse<VendorTransaction>
+): PagedResponse<VendorTransaction> => ({
+  ...response,
+  data: response.data.map(hydrateVendorTransaction),
+});
+
+const stripCalculatedFields = (
+  request: CreateVendorTransactionRequest
+): Omit<CreateVendorTransactionRequest, 'reimbursementDue'> => {
+  const requestWithoutCalculatedFields = { ...request };
+  delete requestWithoutCalculatedFields.reimbursementDue;
+  return requestWithoutCalculatedFields;
+};
+
 /**
  * Create a new vendor transaction
  */
 export async function createVendorTransaction(
   request: CreateVendorTransactionRequest
 ): Promise<VendorTransaction> {
-  return apiRequest<VendorTransaction>('/api/vendor-transaction', {
+  const response = await apiRequest<VendorTransaction>('/api/vendor-transaction', {
     method: 'POST',
-    body: JSON.stringify(request),
+    body: JSON.stringify(stripCalculatedFields(request)),
   });
+
+  return hydrateVendorTransaction(response);
 }
 
 /**
@@ -61,10 +91,12 @@ export async function getVendorTransactions(
   page: number = 0,
   size: number = 10
 ): Promise<PagedResponse<VendorTransaction>> {
-  return apiRequest<PagedResponse<VendorTransaction>>(
+  const response = await apiRequest<PagedResponse<VendorTransaction>>(
     `/api/vendor-transaction?page=${page}&size=${size}`,
     { method: 'GET' }
   );
+
+  return hydrateVendorTransactionListResponse(response);
 }
 
 /**
@@ -75,10 +107,12 @@ export async function getVendorTransactionsByVendor(
   page: number = 0,
   size: number = 10
 ): Promise<PagedResponse<VendorTransaction>> {
-  return apiRequest<PagedResponse<VendorTransaction>>(
+  const response = await apiRequest<PagedResponse<VendorTransaction>>(
     `/api/vendor-transaction/vendor/${vendorId}?page=${page}&size=${size}`,
     { method: 'GET' }
   );
+
+  return hydrateVendorTransactionListResponse(response);
 }
 
 /**
@@ -89,10 +123,12 @@ export async function getVendorTransactionsByDate(
   page: number = 0,
   size: number = 10
 ): Promise<PagedResponse<VendorTransaction>> {
-  return apiRequest<PagedResponse<VendorTransaction>>(
+  const response = await apiRequest<PagedResponse<VendorTransaction>>(
     `/api/vendor-transaction?marketDate=${marketDate}&page=${page}&size=${size}`,
     { method: 'GET' }
   );
+
+  return hydrateVendorTransactionListResponse(response);
 }
 
 /**
@@ -114,18 +150,22 @@ export async function searchVendorTransactions(
     ? `/api/vendor-transaction/search?${queryString}`
     : '/api/vendor-transaction/search';
 
-  return apiRequest<PagedResponse<VendorTransaction>>(endpoint, {
+  const response = await apiRequest<PagedResponse<VendorTransaction>>(endpoint, {
     method: 'GET',
   });
+
+  return hydrateVendorTransactionListResponse(response);
 }
 
 /**
  * Get a single vendor transaction by UUID
  */
 export async function getVendorTransaction(uuid: string): Promise<VendorTransaction> {
-  return apiRequest<VendorTransaction>(`/api/vendor-transaction/${uuid}`, {
+  const response = await apiRequest<VendorTransaction>(`/api/vendor-transaction/${uuid}`, {
     method: 'GET',
   });
+
+  return hydrateVendorTransaction(response);
 }
 
 /**
@@ -144,10 +184,12 @@ export async function updateVendorTransaction(
   uuid: string,
   request: CreateVendorTransactionRequest
 ): Promise<VendorTransaction> {
-  return apiRequest<VendorTransaction>(`/api/vendor-transaction/${uuid}`, {
+  const response = await apiRequest<VendorTransaction>(`/api/vendor-transaction/${uuid}`, {
     method: 'PATCH',
-    body: JSON.stringify(request),
+    body: JSON.stringify(stripCalculatedFields(request)),
   });
+
+  return hydrateVendorTransaction(response);
 }
 
 /**
@@ -165,8 +207,10 @@ export async function deleteVendorTransaction(uuid: string): Promise<void> {
 export async function bulkCreateVendorTransactions(
   requests: CreateVendorTransactionRequest[]
 ): Promise<VendorTransaction[]> {
-  return apiRequest<VendorTransaction[]>('/api/vendor-transaction/batch', {
+  const response = await apiRequest<VendorTransaction[]>('/api/vendor-transaction/batch', {
     method: 'POST',
-    body: JSON.stringify(requests),
+    body: JSON.stringify(requests.map(stripCalculatedFields)),
   });
+
+  return response.map(hydrateVendorTransaction);
 }
