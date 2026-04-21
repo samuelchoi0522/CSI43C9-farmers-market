@@ -54,7 +54,7 @@ public class VendorDefaultsRepository extends AbstractJdbcRepository implements 
                 defaults.getPctPreparedFood(),
                 defaults.getPctCottageGoods(),
                 defaults.getPctManufactured(),
-                defaults.getAvgSale());
+                defaults.getAvgSaleAmount());
 
         return defaults;
     }
@@ -75,7 +75,7 @@ public class VendorDefaultsRepository extends AbstractJdbcRepository implements 
                 defaults.getPctPreparedFood(),
                 defaults.getPctCottageGoods(),
                 defaults.getPctManufactured(),
-                defaults.getAvgSale(),
+                defaults.getAvgSaleAmount(),
                 UuidUtils.toBytes(defaults.getId()));
     }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { Calculator, Check, Sparkles, X } from 'lucide-react';
 import Button from './Button';
@@ -23,6 +23,7 @@ interface VendorDefaultsDialogProps {
     pctCottageGoods: number;
     pctManufactured: number;
   };
+  initialAvgSaleAmount?: number | null;
   onApply: (data: {
     pctHandmade: number;
     pctAgricultural: number;
@@ -39,50 +40,47 @@ export function VendorDefaultsDialog({
   isOpen,
   onOpenChange,
   initialPercentages,
+  initialAvgSaleAmount,
   onApply,
 }: VendorDefaultsDialogProps) {
-  // Dialog expects a vendor with `defaults` loaded. If not available, render nothing.
-  // `VendorDefaults` values are strings (from the API); the dialog converts these
-  // to numeric strings for editing and then to numbers when applying.
-  if (!vendor || !vendor.defaults) return null;
-
-  const defaults = vendor.defaults;
+  const defaults = vendor?.defaults;
   const [pctHandmade, setPctHandmade] = useState('0');
   const [pctAgricultural, setPctAgricultural] = useState('0');
   const [pctPreparedFood, setPctPreparedFood] = useState('0');
   const [pctCottageGoods, setPctCottageGoods] = useState('0');
   const [pctManufactured, setPctManufactured] = useState('0');
+  const [avgSaleAmount, setAvgSaleAmount] = useState('0');
 
-  // Initialize fields when dialog opens. If `initialPercentages` is provided
-  // (e.g. when a transaction already has percentage values), prefer that so the
-  // dialog shows the existing transaction values instead of the vendor defaults.
-  useEffect(() => {
-    if (!isOpen) return;
+  const initializeFields = useCallback(() => {
+    if (!defaults) return;
+
     if (initialPercentages) {
       setPctHandmade(String(initialPercentages.pctHandmade ?? 0));
       setPctAgricultural(String(initialPercentages.pctAgricultural ?? 0));
       setPctPreparedFood(String(initialPercentages.pctPreparedFood ?? 0));
       setPctCottageGoods(String(initialPercentages.pctCottageGoods ?? 0));
       setPctManufactured(String(initialPercentages.pctManufactured ?? 0));
-      return;
+    } else {
+      setPctHandmade(defaults.pctHandmade || '0');
+      setPctAgricultural(defaults.pctAgricultural || '0');
+      setPctPreparedFood(defaults.pctPreparedFood || '0');
+      setPctCottageGoods(defaults.pctCottageGoods || '0');
+      setPctManufactured(defaults.pctManufactured || '0');
     }
 
-    // Vendor defaults from the API are strings (e.g. '25'). Use them as the
-    // initial string values for the inputs; fall back to '0' if absent.
-    setPctHandmade(defaults.pctHandmade || '0');
-    setPctAgricultural(defaults.pctAgricultural || '0');
-    setPctPreparedFood(defaults.pctPreparedFood || '0');
-    setPctCottageGoods(defaults.pctCottageGoods || '0');
-    setPctManufactured(defaults.pctManufactured || '0');
-  }, [
-    isOpen,
-    initialPercentages,
-    defaults.pctHandmade,
-    defaults.pctAgricultural,
-    defaults.pctPreparedFood,
-    defaults.pctCottageGoods,
-    defaults.pctManufactured,
-  ]);
+    if (initialAvgSaleAmount != null) {
+      setAvgSaleAmount(String(initialAvgSaleAmount));
+    } else {
+      setAvgSaleAmount(defaults.avgSaleAmount || '0');
+    }
+  }, [defaults, initialPercentages, initialAvgSaleAmount]);
+
+  // Reinitialize fields whenever dialog opens or initial values change
+  useEffect(() => {
+    if (isOpen) {
+      initializeFields();
+    }
+  }, [isOpen, initialPercentages, initialAvgSaleAmount, initializeFields]);
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
@@ -118,13 +116,21 @@ export function VendorDefaultsDialog({
       pctPreparedFood: parseFloat(pctPreparedFood || "0"),
       pctCottageGoods: parseFloat(pctCottageGoods || "0"),
       pctManufactured: parseFloat(pctManufactured || "0"),
-      avgSaleAmount: parseFloat(defaults.avgSaleAmount || "0"),
+      avgSaleAmount: parseFloat(avgSaleAmount || "0"),
     });
     onOpenChange(false);
   };
 
+  // Dialog expects a vendor with `defaults` loaded. If not available, render nothing.
+  // `VendorDefaults` values are strings (from the API); the dialog converts these
+  // to numeric strings for editing and then to numbers when applying.
+  if (!vendor || !defaults) return null;
+
   return (
-    <DialogPrimitive.Root open={isOpen} onOpenChange={onOpenChange}>
+    <DialogPrimitive.Root
+      open={isOpen}
+      onOpenChange={onOpenChange}
+    >
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300" />
         <DialogPrimitive.Content className="fixed left-[50%] top-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-2xl duration-200 sm:rounded-2xl overflow-hidden flex flex-col">
@@ -256,6 +262,36 @@ export function VendorDefaultsDialog({
             </div>
 
             <div className="space-y-3 pt-2">
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Average Sale Amount</p>
+                <div className="flex items-center gap-3">
+                  <div className="flex w-[140px] items-center rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1">
+                    <span className="text-sm text-slate-500 dark:text-slate-400">$</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className="w-full bg-transparent text-right text-slate-900 dark:text-white outline-none text-sm"
+                      value={avgSaleAmount}
+                      onChange={(event) =>
+                        setAvgSaleAmount(String(Math.max(0, parseFloat(event.target.value || '0'))))
+                      }
+                    />
+                  </div>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    Est. transactions:{' '}
+                    <strong className="text-slate-900 dark:text-white">
+                      {(() => {
+                        const parsed = parseFloat(avgSaleAmount || '0');
+                        return parsed > 0 ? Math.round((reportedSales || 0) / parsed) : 0;
+                      })()}
+                    </strong>
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  Overrides the vendor default for this transaction only.
+                </p>
+              </div>
               <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
                 <Calculator size={16} />
                 <span className="text-sm font-semibold">Autopopulate Logic</span>

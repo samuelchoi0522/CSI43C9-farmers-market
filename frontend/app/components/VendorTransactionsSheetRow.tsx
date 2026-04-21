@@ -23,6 +23,7 @@ export interface VendorTransactionsSheetRowModel {
   pct_prepared_food?: number | null;
   pct_cottage_goods?: number | null;
   pct_manufactured?: number | null;
+  avg_sale_amount?: number | null;
   isInvalid: boolean;
   customData?: Record<string, unknown>;
   defaults_applied?: boolean;

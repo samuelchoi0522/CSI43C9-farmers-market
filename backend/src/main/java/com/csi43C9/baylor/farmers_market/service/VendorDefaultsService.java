@@ -131,7 +131,7 @@ public class VendorDefaultsService {
             defaults.setPctPreparedFood(Optional.ofNullable(request.getPctPreparedFood()).orElse(BigDecimal.ZERO));
             defaults.setPctCottageGoods(Optional.ofNullable(request.getPctCottageGoods()).orElse(BigDecimal.ZERO));
             defaults.setPctManufactured(Optional.ofNullable(request.getPctManufactured()).orElse(BigDecimal.ZERO));
-            defaults.setAvgSale(request.getAvgSale());
+            defaults.setAvgSaleAmount(request.getAvgSaleAmount());
             return defaults;
         }
 

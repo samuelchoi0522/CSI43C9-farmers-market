@@ -74,6 +74,9 @@ public class VendorTransaction implements IdentifiableUuid {
     /** Percentage of reported sales that are manufactured. */
     private Double pctManufactured;
 
+    /** Average sale amount override for this transaction. */
+    private Double avgSaleAmount;
+
     /** Flexible payload for dynamic column data. */
     private Map<String, Object> customData;
 

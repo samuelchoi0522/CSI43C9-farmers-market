@@ -106,6 +106,11 @@ public class SaveVendorTransactionRequest {
     private Double pctManufactured;
 
     /**
+     * Average sale amount override for this transaction.
+     */
+    private Double avgSaleAmount;
+
+    /**
      * Flexible payload for dynamic column data.
      */
     private Map<String, Object> customData;

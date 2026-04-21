@@ -116,6 +116,9 @@ public class VendorTransactionService {
         if (request.getPctManufactured() == null) {
             transaction.setPctManufactured(existing.getPctManufactured());
         }
+        if (request.getAvgSaleAmount() == null) {
+            transaction.setAvgSaleAmount(existing.getAvgSaleAmount());
+        }
 
         return vendorTransactionRepository.save(transaction);
     }
@@ -358,6 +361,7 @@ public class VendorTransactionService {
             transaction.setPctPreparedFood(request.getPctPreparedFood());
             transaction.setPctCottageGoods(request.getPctCottageGoods());
             transaction.setPctManufactured(request.getPctManufactured());
+            transaction.setAvgSaleAmount(request.getAvgSaleAmount());
             transaction.setCustomData(request.getCustomData());
             return transaction;
         }

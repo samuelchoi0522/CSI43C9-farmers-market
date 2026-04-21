@@ -86,6 +86,7 @@ const mapTransactionToSalesRecord = (
     pct_prepared_food: transaction.pctPreparedFood ?? null,
     pct_cottage_goods: transaction.pctCottageGoods ?? null,
     pct_manufactured: transaction.pctManufactured ?? null,
+    avg_sale_amount: transaction.avgSaleAmount ?? null,
     customData: transaction.customData ?? {},
     defaults_applied: hasPercentages,
     isInvalid: false,
@@ -116,6 +117,7 @@ const buildTransactionPayload = (
     pctPreparedFood: record.pct_prepared_food ?? null,
     pctCottageGoods: record.pct_cottage_goods ?? null,
     pctManufactured: record.pct_manufactured ?? null,
+    avgSaleAmount: record.avg_sale_amount ?? null,
   };
 
   return payload;
@@ -202,12 +204,15 @@ function TransactionsContent() {
       // to 0, so only convert when value is not null/undefined.
       const parsePercentageValue = (value: number | null | undefined) =>
         value == null ? null : parseNumericValue(value);
+      const parseAvgSaleAmountValue = (value: number | null | undefined) =>
+        value == null ? null : parseNumericValue(value);
 
       let pctHandmade: number | null;
       let pctAgricultural: number | null;
       let pctPreparedFood: number | null;
       let pctCottageGoods: number | null;
       let pctManufactured: number | null;
+      let avgSaleAmount: number | null;
       let defaultsApplied: boolean;
       let estProduceSales: number;
       let estNumTransactions: number;
@@ -221,6 +226,7 @@ function TransactionsContent() {
         pctPreparedFood = parsePercentageValue(record.pct_prepared_food);
         pctCottageGoods = parsePercentageValue(record.pct_cottage_goods);
         pctManufactured = parsePercentageValue(record.pct_manufactured);
+        avgSaleAmount = parseAvgSaleAmountValue(record.avg_sale_amount);
 
         // Only mark defaults as applied if percentages were explicitly set
         defaultsApplied = pctHandmade != null || pctAgricultural != null ||
@@ -232,9 +238,17 @@ function TransactionsContent() {
           const defaultProduceSales =
             (reportedSales * ((pctAgricultural ?? 0) + (pctPreparedFood ?? 0))) / 100;
           estProduceSales = Math.round(defaultProduceSales * 100) / 100;
+          const vendorDefaultAvgSaleAmount =
+            vendorDefaults ? parseFloat(vendorDefaults.avgSaleAmount || '0') : 0;
+          const resolvedAvgSaleAmount =
+            avgSaleAmount != null && avgSaleAmount > 0
+              ? avgSaleAmount
+              : Number.isFinite(vendorDefaultAvgSaleAmount) && vendorDefaultAvgSaleAmount > 0
+              ? vendorDefaultAvgSaleAmount
+              : null;
           estNumTransactions =
-            vendorDefaults && parseFloat(vendorDefaults.avgSaleAmount || '0') > 0
-              ? Math.round(reportedSales / parseFloat(vendorDefaults.avgSaleAmount || '0'))
+            resolvedAvgSaleAmount != null
+              ? Math.round(reportedSales / resolvedAvgSaleAmount)
               : parseNumericValue(record.est_num_transactions);
         } else {
           estProduceSales = parseNumericValue(record.est_produce_sales);
@@ -247,6 +261,7 @@ function TransactionsContent() {
         pctPreparedFood = parsePercentageValue(record.pct_prepared_food);
         pctCottageGoods = parsePercentageValue(record.pct_cottage_goods);
         pctManufactured = parsePercentageValue(record.pct_manufactured);
+        avgSaleAmount = parseAvgSaleAmountValue(record.avg_sale_amount);
 
         // Only mark defaults as applied if percentages are actually stored
         defaultsApplied = pctHandmade != null || pctAgricultural != null ||
@@ -276,6 +291,7 @@ function TransactionsContent() {
         pct_prepared_food: pctPreparedFood,
         pct_cottage_goods: pctCottageGoods,
         pct_manufactured: pctManufactured,
+        avg_sale_amount: avgSaleAmount,
         customData: record.customData ?? {},
         defaults_applied: defaultsApplied,
         isInvalid: !matchedVendor,

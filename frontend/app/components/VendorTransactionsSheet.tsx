@@ -79,6 +79,7 @@ export default function VendorTransactionsSheet({
       ...targetRow,
       est_produce_sales: Math.round(produceSales * 100) / 100,
       est_num_transactions: estTransactions,
+      avg_sale_amount: data.avgSaleAmount,
       defaults_applied: true,
       pct_handmade: data.pctHandmade,
       pct_agricultural: data.pctAgricultural,
@@ -222,6 +223,7 @@ export default function VendorTransactionsSheet({
         ...row,
         est_produce_sales: Math.round(produceSales * 100) / 100,
         est_num_transactions: estTransactions,
+        avg_sale_amount: avgSaleAmount > 0 ? avgSaleAmount : row.avg_sale_amount ?? null,
         defaults_applied: true,
         pct_handmade: parseFloat(defaults.pctHandmade || '0'),
         pct_agricultural: parseFloat(defaults.pctAgricultural || '0'),
@@ -372,11 +374,22 @@ export default function VendorTransactionsSheet({
               item.id === row.vendor_id ||
               item.vendorName?.toLowerCase() === row.vendor_name.trim().toLowerCase()
           );
-          const avgSaleAmount = parseFloat(vendor?.defaults?.avgSaleAmount || '0');
-          if (!Number.isFinite(avgSaleAmount) || avgSaleAmount <= 0) return null;
+          const rowAvgSaleAmount =
+            row.avg_sale_amount != null ? Number(row.avg_sale_amount) : NaN;
+          const vendorAvgSaleAmount = parseFloat(vendor?.defaults?.avgSaleAmount || '0');
+          const resolvedAvgSaleAmount =
+            Number.isFinite(rowAvgSaleAmount) && rowAvgSaleAmount > 0
+              ? rowAvgSaleAmount
+              : Number.isFinite(vendorAvgSaleAmount) && vendorAvgSaleAmount > 0
+              ? vendorAvgSaleAmount
+              : null;
+
+          if (!resolvedAvgSaleAmount) {
+            return row.est_num_transactions ?? null;
+          }
 
           const sales = row.reported_sales || 0;
-          return Math.round(sales / avgSaleAmount);
+          return Math.round(sales / resolvedAvgSaleAmount);
         },
         valueFormatter: (value) => (value == null ? '' : String(value)),
       }),
@@ -614,11 +627,11 @@ function VendorDefaultsCell({ row, vendorsWithDefaults, onApply }: VendorDefault
   // Used to pre-populate the dialog so the user can edit existing percentages
   // instead of overwriting them with vendor defaults.
   const hasTransactionPercentages =
-    row.pct_handmade !== null && row.pct_handmade !== undefined ||
-    row.pct_agricultural !== null && row.pct_agricultural !== undefined ||
-    row.pct_prepared_food !== null && row.pct_prepared_food !== undefined ||
-    row.pct_cottage_goods !== null && row.pct_cottage_goods !== undefined ||
-    row.pct_manufactured !== null && row.pct_manufactured !== undefined;
+    (row.pct_handmade !== null && row.pct_handmade !== undefined) ||
+    (row.pct_agricultural !== null && row.pct_agricultural !== undefined) ||
+    (row.pct_prepared_food !== null && row.pct_prepared_food !== undefined) ||
+    (row.pct_cottage_goods !== null && row.pct_cottage_goods !== undefined) ||
+    (row.pct_manufactured !== null && row.pct_manufactured !== undefined);
 
   const handleOpen = async () => {
     if (!resolvedVendor) {
@@ -676,6 +689,7 @@ function VendorDefaultsCell({ row, vendorsWithDefaults, onApply }: VendorDefault
           reportedSales={row.reported_sales || 0}
           isOpen={isOpen}
           onOpenChange={setIsOpen}
+          initialAvgSaleAmount={row.avg_sale_amount ?? null}
           initialPercentages={
             hasTransactionPercentages
               ? {

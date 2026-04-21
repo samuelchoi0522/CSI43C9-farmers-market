@@ -20,7 +20,7 @@ public class VendorDefaultsRowMapper implements RowMapper<VendorDefaults> {
         defaults.setPctPreparedFood(rs.getBigDecimal("pct_prepared_food"));
         defaults.setPctCottageGoods(rs.getBigDecimal("pct_cottage_goods"));
         defaults.setPctManufactured(rs.getBigDecimal("pct_manufactured"));
-        defaults.setAvgSale(rs.getObject("avg_sale", Double.class));
+        defaults.setAvgSaleAmount(rs.getObject("avg_sale", Double.class));
         return defaults;
     }
 }

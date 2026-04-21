@@ -32,6 +32,7 @@ create table if not exists vendor_transactions
     pct_prepared_food    double,
     pct_cottage_goods    double,
     pct_manufactured     double,
+    avg_sale             double                    null,
     custom_data          text                      null,
     created_at           timestamp  default now(),
     updated_at           timestamp on update now() null

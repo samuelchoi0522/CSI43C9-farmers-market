@@ -18,6 +18,7 @@ export interface CreateVendorTransactionRequest {
   pctPreparedFood?: number | null;
   pctCottageGoods?: number | null;
   pctManufactured?: number | null;
+  avgSaleAmount?: number | null;
   customData?: Record<string, unknown>;
 }
 
@@ -40,6 +41,7 @@ export interface VendorTransaction {
   pctPreparedFood?: number | null;
   pctCottageGoods?: number | null;
   pctManufactured?: number | null;
+  avgSaleAmount?: number | null;
   customData?: Record<string, unknown>;
 }
 
