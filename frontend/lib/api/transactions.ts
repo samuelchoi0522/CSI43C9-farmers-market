@@ -42,32 +42,20 @@ export interface VendorTransactionSearchParams {
   [key: string]: string | number | boolean | undefined;
 }
 
-const calculateReimbursementDue = ({
-  snap = 0,
-  dufb = 0,
-  wdfmTokens = 0,
-  voucher = 0,
-}: Pick<VendorTransaction, 'snap' | 'dufb' | 'wdfmTokens' | 'voucher'>) =>
-  snap + dufb + wdfmTokens + voucher;
+const calculateReimbursementDue = (transaction: VendorTransaction) =>
+  transaction.snap + transaction.dufb + transaction.wdfmTokens + transaction.voucher;
 
-const hydrateVendorTransaction = (transaction: VendorTransaction): VendorTransaction => ({
+const withCalculatedReimbursementDue = (transaction: VendorTransaction): VendorTransaction => ({
   ...transaction,
   reimbursementDue: calculateReimbursementDue(transaction),
-});
-
-const hydrateVendorTransactionListResponse = (
-  response: PagedResponse<VendorTransaction>
-): PagedResponse<VendorTransaction> => ({
-  ...response,
-  data: response.data.map(hydrateVendorTransaction),
 });
 
 const stripCalculatedFields = (
   request: CreateVendorTransactionRequest
 ): Omit<CreateVendorTransactionRequest, 'reimbursementDue'> => {
-  const requestWithoutCalculatedFields = { ...request };
-  delete requestWithoutCalculatedFields.reimbursementDue;
-  return requestWithoutCalculatedFields;
+  const requestBody = { ...request };
+  delete requestBody.reimbursementDue;
+  return requestBody;
 };
 
 /**
@@ -81,7 +69,7 @@ export async function createVendorTransaction(
     body: JSON.stringify(stripCalculatedFields(request)),
   });
 
-  return hydrateVendorTransaction(response);
+  return withCalculatedReimbursementDue(response);
 }
 
 /**
@@ -96,7 +84,10 @@ export async function getVendorTransactions(
     { method: 'GET' }
   );
 
-  return hydrateVendorTransactionListResponse(response);
+  return {
+    ...response,
+    data: response.data.map(withCalculatedReimbursementDue),
+  };
 }
 
 /**
@@ -112,7 +103,10 @@ export async function getVendorTransactionsByVendor(
     { method: 'GET' }
   );
 
-  return hydrateVendorTransactionListResponse(response);
+  return {
+    ...response,
+    data: response.data.map(withCalculatedReimbursementDue),
+  };
 }
 
 /**
@@ -128,7 +122,10 @@ export async function getVendorTransactionsByDate(
     { method: 'GET' }
   );
 
-  return hydrateVendorTransactionListResponse(response);
+  return {
+    ...response,
+    data: response.data.map(withCalculatedReimbursementDue),
+  };
 }
 
 /**
@@ -154,7 +151,10 @@ export async function searchVendorTransactions(
     method: 'GET',
   });
 
-  return hydrateVendorTransactionListResponse(response);
+  return {
+    ...response,
+    data: response.data.map(withCalculatedReimbursementDue),
+  };
 }
 
 /**
@@ -165,7 +165,7 @@ export async function getVendorTransaction(uuid: string): Promise<VendorTransact
     method: 'GET',
   });
 
-  return hydrateVendorTransaction(response);
+  return withCalculatedReimbursementDue(response);
 }
 
 /**
@@ -189,7 +189,7 @@ export async function updateVendorTransaction(
     body: JSON.stringify(stripCalculatedFields(request)),
   });
 
-  return hydrateVendorTransaction(response);
+  return withCalculatedReimbursementDue(response);
 }
 
 /**
@@ -212,5 +212,5 @@ export async function bulkCreateVendorTransactions(
     body: JSON.stringify(requests.map(stripCalculatedFields)),
   });
 
-  return response.map(hydrateVendorTransaction);
+  return response.map(withCalculatedReimbursementDue);
 }
