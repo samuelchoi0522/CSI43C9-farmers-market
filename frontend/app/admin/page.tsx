@@ -22,17 +22,23 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "../components/figma/alert-dialog";
-import { invoke } from "@tauri-apps/api/core";
 
 function DatabaseManagement() {
     const [exporting, setExporting] = useState(false);
     const [importing, setImporting] = useState(false);
-    const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
+    const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' | 'warning' } | null>(null);
+
+    const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 
     const handleExport = async () => {
+        if (!isTauri) {
+            setMessage({ text: "Database operations are only available when running the desktop application.", type: 'warning' });
+            return;
+        }
         setExporting(true);
         setMessage(null);
         try {
+            const { invoke } = await import("@tauri-apps/api/core");
             await invoke("export_database");
             setMessage({ text: "Database exported successfully!", type: 'success' });
         } catch (error) {
@@ -45,9 +51,14 @@ function DatabaseManagement() {
     };
 
     const handleImport = async () => {
+        if (!isTauri) {
+            setMessage({ text: "Database operations are only available when running the desktop application.", type: 'warning' });
+            return;
+        }
         setImporting(true);
         setMessage(null);
         try {
+            const { invoke } = await import("@tauri-apps/api/core");
             await invoke("import_database");
             setMessage({ 
                 text: "Database imported successfully! Please restart the application for changes to take effect.", 
