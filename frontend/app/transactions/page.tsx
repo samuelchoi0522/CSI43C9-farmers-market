@@ -3,7 +3,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Download, FileSpreadsheet, Loader2 } from 'lucide-react';
 import SidebarNavigation from '../components/SidebarNavigation';
-import Button from '../components/Button';
 import { AddVendorDialog } from '../components/AddVendorDialog';
 import VendorTransactionsSheet from '../components/VendorTransactionsSheet';
 import { type VendorTransactionsSheetRowModel as VendorTransactionsSheetRow } from '../components/VendorTransactionsSheetRow';
@@ -12,6 +11,7 @@ import * as XLSX from 'xlsx';
 import ActiveVendorAddButton from "../components/ActiveVendorAddButton";
 import {
   bulkCreateVendorTransactions,
+  deleteVendorTransaction,
   searchVendorTransactions,
   updateVendorTransaction,
   type CreateVendorTransactionRequest,
@@ -20,7 +20,7 @@ import {
 import { getVendors, type Vendor as ApiVendor } from '@/lib/api/vendor';
 import { downloadVendorTransactionsTemplate } from '@/lib/transactionsTemplate';
 import { getActiveCustomColumns, type CustomColumnMetadata } from '@/lib/api/customColumns';
-import { getCurrentWindow } from '@tauri-apps/api/window';
+import { mostRecentSaturdayDate } from '@/lib/dashboardAggregates';
 
 interface Vendor {
   id: string;
@@ -29,15 +29,6 @@ interface Vendor {
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const TRANSACTION_ID_HEADERS = new Set(['vendor transaction id', 'transaction id', 'uuid']);
-
-const getMostRecentSaturday = () => {
-  const date = new Date();
-  const day = date.getDay();
-  const diff = (day + 1) % 7;
-  const saturday = new Date(date);
-  saturday.setDate(date.getDate() - diff);
-  return saturday.toISOString().split("T")[0];
-};
 
 const parseNumericValue = (value: unknown) => {
   if (value === "" || value === null || value === undefined) return 0;
@@ -114,7 +105,7 @@ const buildPersistedPayloadSnapshot = (rows: VendorTransactionsSheetRow[]) =>
   );
 
 function TransactionsContent() {
-  const [currentMarketDate, setCurrentMarketDate] = useState(getMostRecentSaturday());
+  const [currentMarketDate, setCurrentMarketDate] = useState(() => mostRecentSaturdayDate());
   const [records, setRecords] = useState<VendorTransactionsSheetRow[]>([]);
   const [allVendors, setAllVendors] = useState<Vendor[]>([]);
   const [activeVendors, setActiveVendors] = useState<ApiVendor[]>([]);
@@ -226,6 +217,10 @@ function TransactionsContent() {
   }, []);
 
   useEffect(() => {
+    if (vendorsLoading) {
+      return;
+    }
+
     let isActive = true;
 
     const loadTransactions = async () => {
@@ -256,9 +251,13 @@ function TransactionsContent() {
     return () => {
       isActive = false;
     };
-  }, [currentMarketDate, fetchTransactionsForDate]);
+  }, [currentMarketDate, fetchTransactionsForDate, vendorsLoading]);
 
   const invalidCount = records.filter((record) => record.isInvalid).length;
+  const isSheetLoading = vendorsLoading || isLoadingTransactions;
+  const hasPendingDeletions = Object.keys(persistedPayloadsRef.current).some(
+    (persistedId) => !records.some((record) => record.id === persistedId)
+  );
 
   const normalizeRows = (rows: VendorTransactionsSheetRow[]) => rows.map((row) => buildRecord(row));
 
@@ -412,11 +411,6 @@ function TransactionsContent() {
   };
 
   const handleSaveToBackend = async () => {
-    if (records.length === 0) {
-      toast.error("No records to save. Add vendors or import a spreadsheet first.");
-      return;
-    }
-
     if (invalidCount > 0) {
       toast.error(`Please fix ${invalidCount} invalid vendor name(s) before saving.`);
       return;
@@ -441,8 +435,16 @@ function TransactionsContent() {
       const previousPayload = persistedPayloadsRef.current[record.id];
       return previousPayload === undefined || previousPayload !== serializeTransactionPayload(record);
     });
+    const rowsToDelete = Object.keys(persistedPayloadsRef.current).filter(
+      (persistedId) => !records.some((record) => record.id === persistedId)
+    );
 
-    if (rowsToCreate.length === 0 && rowsToUpdate.length === 0) {
+    if (records.length === 0 && rowsToDelete.length === 0) {
+      toast.error("No records to save. Add vendors or import a spreadsheet first.");
+      return;
+    }
+
+    if (rowsToCreate.length === 0 && rowsToUpdate.length === 0 && rowsToDelete.length === 0) {
       toast.info("No changes to save.");
       return;
     }
@@ -462,21 +464,22 @@ function TransactionsContent() {
               )
             )
           : Promise.resolve([]),
+        rowsToDelete.length > 0
+          ? Promise.all(rowsToDelete.map((id) => deleteVendorTransaction(id)))
+          : Promise.resolve([]),
       ]);
 
       const refreshedRecords = await fetchTransactionsForDate(currentMarketDate);
       setRecords(refreshedRecords);
       persistedPayloadsRef.current = buildPersistedPayloadSnapshot(refreshedRecords);
 
-      if (rowsToCreate.length > 0 && rowsToUpdate.length > 0) {
-        toast.success(
-          `Saved ${rowsToCreate.length} new and ${rowsToUpdate.length} existing vendor transaction row(s).`
-        );
-      } else if (rowsToCreate.length > 0) {
-        toast.success(`Successfully saved ${rowsToCreate.length} vendor transaction row(s).`);
-      } else {
-        toast.success(`Successfully updated ${rowsToUpdate.length} vendor transaction row(s).`);
-      }
+      const successParts = [
+        rowsToCreate.length > 0 ? `${rowsToCreate.length} new` : null,
+        rowsToUpdate.length > 0 ? `${rowsToUpdate.length} updated` : null,
+        rowsToDelete.length > 0 ? `${rowsToDelete.length} deleted` : null,
+      ].filter(Boolean);
+
+      toast.success(`Successfully saved changes: ${successParts.join(', ')} vendor transaction row(s).`);
     } catch (error) {
       console.error("Error saving transactions:", error);
       toast.error("Failed to save data. Please try again.");
@@ -555,9 +558,10 @@ function TransactionsContent() {
           currentMarketDate={currentMarketDate}
           onCurrentMarketDateChange={setCurrentMarketDate}
           rows={records}
-          isLoading={isLoadingTransactions}
+          isLoading={isSheetLoading}
           isSaving={isSaving}
           invalidCount={invalidCount}
+          hasPendingDeletions={hasPendingDeletions}
           normalizeRow={buildRecord}
           onRowsChange={(nextRows) => setRecords(normalizeRows(nextRows))}
           onSave={handleSaveToBackend}
