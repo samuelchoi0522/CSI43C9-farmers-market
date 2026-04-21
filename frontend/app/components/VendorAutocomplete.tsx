@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from 'cmdk';
 import { Popover, PopoverContent, PopoverTrigger } from '../components/figma/popover';
@@ -13,11 +13,18 @@ interface VendorAutocompleteProps {
   vendors: Vendor[];
   onSelect: (vendor: Vendor) => void;
   placeholder?: string;
+  portalContainer?: HTMLElement | null;
 }
 
-export function VendorAutocomplete({ vendors, onSelect, placeholder = "Search vendor..." }: VendorAutocompleteProps) {
+export function VendorAutocomplete({
+  vendors,
+  onSelect,
+  placeholder = "Search vendor...",
+  portalContainer,
+}: VendorAutocompleteProps) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
+  const listId = useId();
 
   return (
     <div className="relative w-full">
@@ -25,6 +32,7 @@ export function VendorAutocomplete({ vendors, onSelect, placeholder = "Search ve
         <PopoverTrigger asChild>
           <button
             role="combobox"
+            aria-controls={listId}
             aria-expanded={open}
             className="flex h-12 w-full items-center justify-between rounded-md border border-gray-200 bg-white px-4 py-2 text-sm ring-offset-white focus:outline-none focus:ring-2 focus:ring-[#10b981] transition-all hover:border-gray-300"
           >
@@ -36,13 +44,17 @@ export function VendorAutocomplete({ vendors, onSelect, placeholder = "Search ve
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-gray-500 opacity-70" />
           </button>
         </PopoverTrigger>
-        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-white border-gray-200 text-gray-900" align="start">
+        <PopoverContent
+          container={portalContainer}
+          className="w-[var(--radix-popover-trigger-width)] p-0 bg-white border-gray-200 text-gray-900"
+          align="start"
+        >
           <Command className="w-full bg-white text-gray-900">
             <CommandInput 
               placeholder="Start typing name..." 
               className="flex h-11 w-full rounded-t-md bg-white py-3 px-3 text-sm text-gray-900 placeholder:text-gray-500 outline-none border-b border-gray-200"
             />
-            <CommandList className="max-h-[250px] overflow-y-auto p-1 bg-white">
+            <CommandList id={listId} className="max-h-[250px] overflow-y-auto p-1 bg-white">
               <CommandEmpty className="py-6 text-center text-sm text-gray-500">No results found.</CommandEmpty>
               <CommandGroup className="text-gray-900">
                 {vendors.map((vendor) => (
