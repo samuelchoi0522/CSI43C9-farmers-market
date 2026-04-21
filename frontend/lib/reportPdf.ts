@@ -452,7 +452,26 @@ export async function downloadFinancialReportPdf(args: DownloadFinancialReportPd
     /[^\w.\-]+/g,
     "_",
   );
-  doc.save(filename);
+
+  if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
+    try {
+      const { save } = await import("@tauri-apps/plugin-dialog");
+      const { writeFile } = await import("@tauri-apps/plugin-fs");
+      const filePath = await save({
+        filters: [{ name: 'PDF', extensions: ['pdf'] }],
+        defaultPath: filename
+      });
+      if (filePath) {
+        const pdfArrayBuffer = doc.output('arraybuffer');
+        await writeFile(filePath, new Uint8Array(pdfArrayBuffer));
+      }
+    } catch (error) {
+      console.error("Failed to save via Tauri:", error);
+      doc.save(filename);
+    }
+  } else {
+    doc.save(filename);
+  }
 }
 
 function formatTransactionsDateSpan(transactions: VendorTransaction[]): string {
@@ -628,5 +647,25 @@ export async function downloadVendorProfilePdf(args: DownloadVendorProfilePdfArg
   addFooters(doc);
 
   const safeName = args.vendorName.replace(/[^\w.\-]+/g, "_").slice(0, 80);
-  doc.save(`MarketOS-vendor-${safeName}.pdf`);
+  const filename = `MarketOS-vendor-${safeName}.pdf`;
+
+  if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
+    try {
+      const { save } = await import("@tauri-apps/plugin-dialog");
+      const { writeFile } = await import("@tauri-apps/plugin-fs");
+      const filePath = await save({
+        filters: [{ name: 'PDF', extensions: ['pdf'] }],
+        defaultPath: filename
+      });
+      if (filePath) {
+        const pdfArrayBuffer = doc.output('arraybuffer');
+        await writeFile(filePath, new Uint8Array(pdfArrayBuffer));
+      }
+    } catch (error) {
+      console.error("Failed to save via Tauri:", error);
+      doc.save(filename);
+    }
+  } else {
+    doc.save(filename);
+  }
 }

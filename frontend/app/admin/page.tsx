@@ -22,7 +22,135 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "../components/figma/alert-dialog";
-import { getCurrentWindow } from "@tauri-apps/api/window";
+
+function DatabaseManagement() {
+    const [exporting, setExporting] = useState(false);
+    const [importing, setImporting] = useState(false);
+    const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' | 'warning' } | null>(null);
+
+    const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+
+    const handleExport = async () => {
+        if (!isTauri) {
+            setMessage({ text: "Database operations are only available when running the desktop application.", type: 'warning' });
+            return;
+        }
+        setExporting(true);
+        setMessage(null);
+        try {
+            const { invoke } = await import("@tauri-apps/api/core");
+            await invoke("export_database");
+            setMessage({ text: "Database exported successfully!", type: 'success' });
+        } catch (error) {
+            if (error !== "Export cancelled") {
+                setMessage({ text: String(error), type: 'error' });
+            }
+        } finally {
+            setExporting(false);
+        }
+    };
+
+    const handleImport = async () => {
+        if (!isTauri) {
+            setMessage({ text: "Database operations are only available when running the desktop application.", type: 'warning' });
+            return;
+        }
+        setImporting(true);
+        setMessage(null);
+        try {
+            const { invoke } = await import("@tauri-apps/api/core");
+            await invoke("import_database");
+            setMessage({ 
+                text: "Database imported successfully! Please restart the application for changes to take effect.", 
+                type: 'success' 
+            });
+        } catch (error) {
+            if (error !== "Import cancelled") {
+                setMessage({ text: String(error), type: 'error' });
+            }
+        } finally {
+            setImporting(false);
+        }
+    };
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Database Management</CardTitle>
+                <CardDescription>Export your data for backup or import an existing database file.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="flex flex-col gap-8 py-4">
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-4 p-6 rounded-2xl border border-slate-200 bg-white shadow-sm">
+                            <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center mb-2">
+                                <span className="material-icons text-blue-600">file_download</span>
+                            </div>
+                            <h3 className="text-lg font-semibold">Export Database</h3>
+                            <p className="text-slate-500 text-sm">
+                                Create a backup copy of your entire database. You can save this file anywhere on your computer.
+                            </p>
+                            <Button 
+                                onClick={handleExport} 
+                                disabled={exporting}
+                                className="w-full justify-center gap-2"
+                            >
+                                {exporting ? "Exporting..." : "Export .mv.db File"}
+                            </Button>
+                        </div>
+
+                        <div className="space-y-4 p-6 rounded-2xl border border-slate-200 bg-white shadow-sm">
+                            <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center mb-2">
+                                <span className="material-icons text-amber-600">file_upload</span>
+                            </div>
+                            <h3 className="text-lg font-semibold">Import Database</h3>
+                            <p className="text-slate-500 text-sm">
+                                Overwrite the current database with an existing backup file. 
+                                <strong className="text-amber-700 block mt-1">Warning: This will replace all current data!</strong>
+                            </p>
+                            <Button 
+                                variant="outline"
+                                onClick={handleImport} 
+                                disabled={importing}
+                                className="w-full justify-center gap-2 border-amber-200 hover:bg-amber-50 text-amber-700"
+                            >
+                                {importing ? "Importing..." : "Import .mv.db File"}
+                            </Button>
+                        </div>
+                    </div>
+
+                    {message && (
+                        <div className={`p-4 rounded-xl border ${
+                            message.type === 'success' 
+                                ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
+                                : message.type === 'warning'
+                                ? 'bg-amber-50 border-amber-200 text-amber-800'
+                                : 'bg-red-50 border-red-200 text-red-800'
+                        } animate-in fade-in slide-in-from-top-2`}>
+                            <div className="flex items-center gap-3">
+                                <span className="material-icons">
+                                    {message.type === 'success' ? 'check_circle' : message.type === 'warning' ? 'warning' : 'error'}
+                                </span>
+                                <p className="font-medium">{message.text}</p>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <h4 className="text-sm font-semibold text-slate-900 mb-2 flex items-center gap-2">
+                            <span className="material-icons text-sm">info</span>
+                            Technical Information
+                        </h4>
+                        <p className="text-xs text-slate-500 leading-relaxed">
+                            The database is an H2 SQL file (ending in .mv.db). It contains all vendors, transactions, and custom settings. 
+                            Regular backups are recommended to prevent data loss.
+                        </p>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
 
 function LabelManagement() {
     const [labels, setLabels] = useState<CategoryLabel[]>([]);
@@ -560,12 +688,16 @@ function AdminContent() {
                     <TabsList className="mb-6">
                         <TabsTrigger value="labels">Category Labels</TabsTrigger>
                         <TabsTrigger value="columns">Custom Columns</TabsTrigger>
+                        <TabsTrigger value="database">Database</TabsTrigger>
                     </TabsList>
                     <TabsContent value="labels" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
                         <LabelManagement />
                     </TabsContent>
                     <TabsContent value="columns" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
                         <CustomColumnManagement />
+                    </TabsContent>
+                    <TabsContent value="database" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        <DatabaseManagement />
                     </TabsContent>
                 </Tabs>
             </main>

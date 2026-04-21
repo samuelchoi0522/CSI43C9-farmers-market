@@ -12,10 +12,10 @@ export default function SidecarBooter({ children }: { children: React.ReactNode 
 
       const startBackend = async () => {
         // If we are in standard browser dev mode (localhost:3000), skip the sidecar and unlock UI immediately
-        if (!('__TAURI_INTERNALS__' in window)) {
-          setIsReady(true);
-          return;
-        }
+        // if (!('__TAURI_INTERNALS__' in window)) {
+        //   setIsReady(true);
+        //   return;
+        // }
         
         console.log("🚀 Starting Spring Boot sidecar...");
         try {
