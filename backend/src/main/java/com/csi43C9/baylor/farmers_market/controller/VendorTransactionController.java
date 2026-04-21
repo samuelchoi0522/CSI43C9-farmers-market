@@ -85,6 +85,16 @@ public class VendorTransactionController {
     }
 
     /**
+     * Retrieves all unique market dates ordered from most recent to oldest.
+     *
+     * @return a response containing the list of market dates
+     */
+    @GetMapping("/market-dates")
+    public ResponseEntity<@NonNull List<LocalDate>> getMarketDates() {
+        return ResponseEntity.ok(vendorTransactionService.getMarketDates());
+    }
+
+    /**
      * Retrieves vendor transactions for one market date or an inclusive market date range.
      * This endpoint is intentionally filter-driven to support future expansion.
      * @param filter request filters bound from query parameters

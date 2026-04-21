@@ -27,7 +27,7 @@ import {
   TREND_REPORTED_SMOOTH_MS,
   useSmoothNumber,
 } from "@/lib/smoothNumbers";
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import { downloadFinancialReportPdf } from "@/lib/reportPdf";
 
 type VendorLabelReportRow = {
   name: string;
@@ -144,7 +144,7 @@ function LeaderboardListRow({ row, resetKey }: { row: LeaderboardListRowData; re
             {formatCurrency(smoothSales)}
           </p>
           <p className="text-xs text-slate-500 dark:text-slate-400" style={{ fontFeatureSettings: '"tnum"' }}>
-            {Math.round(smoothTx)} txn{row.transactionCount !== 1 ? "s" : ""}
+            {Math.round(smoothTx)} trans
           </p>
         </div>
       </div>
@@ -231,12 +231,20 @@ function ReportsContent() {
     Map<string, { id: number; name: string; color?: string | null }[]>
   >(new Map());
   const [loading, setLoading] = useState(true);
+  const [exportingPdf, setExportingPdf] = useState(false);
   const [labelsLoading, setLabelsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /** When true, vendor label chart/table show every label; when false, only names in `vendorLabelWhitelist`. */
   const [showAllVendorLabels, setShowAllVendorLabels] = useState(true);
   const [vendorLabelWhitelist, setVendorLabelWhitelist] = useState<Set<string>>(new Set());
   const [selectedVendorId, setSelectedVendorId] = useState<string>("");
+  const comprehensiveTrendChartRef = useRef<HTMLDivElement | null>(null);
+  const categoryAllocatedChartRef = useRef<HTMLDivElement | null>(null);
+  const categoryTrendChartRef = useRef<HTMLDivElement | null>(null);
+  const vendorTrendChartRef = useRef<HTMLDivElement | null>(null);
+  const vendorTotalsChartRef = useRef<HTMLDivElement | null>(null);
+  const vendorLabelChartRef = useRef<HTMLDivElement | null>(null);
+  const tokenChartRef = useRef<HTMLDivElement | null>(null);
 
   const dateRangeKey = useMemo(() => `${startDate}|${endDate}`, [startDate, endDate]);
 
@@ -761,13 +769,13 @@ function ReportsContent() {
         };
       case "category":
         return {
-          title: "Revenue by product category",
+          title: "Sales by product category",
           subtitle:
             "Reported sales allocated using each vendor’s default category percentages (agricultural, prepared food, handmade, cottage goods, manufactured).",
         };
       case "vendorLabel":
         return {
-          title: "Revenue by vendor label",
+          title: "Sales by vendor label",
           subtitle:
             "Reported sales allocated to labels assigned to each vendor. When a vendor has multiple labels, sales are split evenly across them. Filter which labels appear in the chart and table.",
         };
@@ -796,8 +804,153 @@ function ReportsContent() {
     return [...transactions].sort((a, b) => b.marketDate.localeCompare(a.marketDate));
   }, [transactions]);
 
-  const handleExportPdf = () => {
-    window.print();
+  const chartSvgToPngDataUrl = useCallback(async (container: HTMLDivElement | null): Promise<string | null> => {
+    if (!container) return null;
+    const svg = container.querySelector("svg");
+    if (!svg) return null;
+
+    const rect = container.getBoundingClientRect();
+    const width = Math.max(1, Math.round(rect.width));
+    const height = Math.max(1, Math.round(rect.height));
+    const clonedSvg = svg.cloneNode(true) as SVGSVGElement;
+    clonedSvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    clonedSvg.setAttribute("width", String(width));
+    clonedSvg.setAttribute("height", String(height));
+    clonedSvg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+
+    const serialized = new XMLSerializer().serializeToString(clonedSvg);
+    const svgBase64 = window.btoa(unescape(encodeURIComponent(serialized)));
+    const svgDataUrl = `data:image/svg+xml;base64,${svgBase64}`;
+
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error("chart image load failed"));
+      image.src = svgDataUrl;
+    });
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
+    ctx.drawImage(image, 0, 0, width, height);
+    return canvas.toDataURL("image/png", 0.92);
+  }, []);
+
+  const handleExportPdf = async () => {
+    if (loading) return;
+    setExportingPdf(true);
+    try {
+      const headline = reportHeadline;
+      const base = {
+        startDate,
+        endDate,
+        reportTitle: headline.title,
+        reportSubtitle: headline.subtitle,
+      };
+      switch (reportType) {
+        case "comprehensive":
+          {
+            const trendChart = await chartSvgToPngDataUrl(comprehensiveTrendChartRef.current);
+          await downloadFinancialReportPdf({
+            reportType: "comprehensive",
+            ...base,
+            comprehensive: {
+              totalReported: comprehensive.totalReported,
+              totalReimbursement: comprehensive.totalReimbursement,
+              tokenVolume: comprehensive.tokenVolume,
+              paymentShare: comprehensive.paymentShare,
+            },
+            sortedTxForTable,
+            chartImages: trendChart
+              ? [{ title: "Reported sales by market date", dataUrl: trendChart }]
+              : [],
+          });
+          }
+          break;
+        case "category":
+          {
+            const [allocatedChart, trendChart] = await Promise.all([
+              chartSvgToPngDataUrl(categoryAllocatedChartRef.current),
+              chartSvgToPngDataUrl(categoryTrendChartRef.current),
+            ]);
+          await downloadFinancialReportPdf({
+            reportType: "category",
+            ...base,
+            categoryRows,
+            chartImages: [
+              allocatedChart ? { title: "Allocated reported sales", dataUrl: allocatedChart } : null,
+              trendChart ? { title: "Category trends by market date", dataUrl: trendChart } : null,
+            ].filter((v): v is { title: string; dataUrl: string } => v != null),
+          });
+          }
+          break;
+        case "vendorLabel":
+          {
+            const labelChart = await chartSvgToPngDataUrl(vendorLabelChartRef.current);
+          await downloadFinancialReportPdf({
+            reportType: "vendorLabel",
+            ...base,
+            vendorLabelRows,
+            chartImages: labelChart
+              ? [{ title: "Allocated reported sales by label", dataUrl: labelChart }]
+              : [],
+          });
+          }
+          break;
+        case "leaderboard":
+          await downloadFinancialReportPdf({
+            reportType: "leaderboard",
+            ...base,
+            vendorLeaderboard,
+          });
+          break;
+        case "vendor":
+          {
+            const [trendChart, totalsChart] = await Promise.all([
+              chartSvgToPngDataUrl(vendorTrendChartRef.current),
+              chartSvgToPngDataUrl(vendorTotalsChartRef.current),
+            ]);
+          await downloadFinancialReportPdf({
+            reportType: "vendor",
+            ...base,
+            selectedVendorRow,
+            vendorReportRows,
+            chartImages: [
+              trendChart ? { title: "Reported sales by market date", dataUrl: trendChart } : null,
+              totalsChart ? { title: "Reported sales by vendor", dataUrl: totalsChart } : null,
+            ].filter((v): v is { title: string; dataUrl: string } => v != null),
+          });
+          }
+          break;
+        case "token":
+          {
+            const tokenTotalsChart = await chartSvgToPngDataUrl(tokenChartRef.current);
+          await downloadFinancialReportPdf({
+            reportType: "token",
+            ...base,
+            tokenRows,
+            tokenTotal,
+            sortedTxForTable,
+            chartImages: tokenTotalsChart
+              ? [{ title: "Combined token programs", dataUrl: tokenTotalsChart }]
+              : [],
+          });
+          }
+          break;
+        default:
+          break;
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Could not generate the PDF. Please try again.");
+    } finally {
+      setExportingPdf(false);
+    }
   };
 
   return (
@@ -847,7 +1000,6 @@ function ReportsContent() {
           </div>
           <div className="flex flex-wrap items-center gap-3 shrink-0 print:hidden">
             <div className="flex items-center gap-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 shadow-sm">
-              <span className="material-icons text-slate-400 text-sm leading-none">calendar_month</span>
               <label className="sr-only" htmlFor="report-start">
                 Start date
               </label>
@@ -875,9 +1027,12 @@ function ReportsContent() {
               variant="primary"
               className="flex items-center gap-2 shadow-md"
               onClick={handleExportPdf}
+              disabled={loading || exportingPdf}
             >
-              <span className="material-icons text-lg leading-none">download</span>
-              Export PDF
+              <span className="material-icons text-lg leading-none">
+                {exportingPdf ? "hourglass_empty" : "download"}
+              </span>
+              {exportingPdf ? "Generating PDF…" : "Export PDF"}
             </Button>
           </div>
         </section>
@@ -974,7 +1129,7 @@ function ReportsContent() {
                             ) : null}
                           </p>
                         </div>
-                        <div className="h-56 sm:h-64 -mx-1">
+                        <div ref={comprehensiveTrendChartRef} className="h-56 sm:h-64 -mx-1">
                           <ResponsiveContainer width="100%" height="100%">
                             <AreaChart
                               data={comprehensive.trend}
@@ -1114,7 +1269,7 @@ function ReportsContent() {
                   {categoryRows.length === 0 ? (
                     <p className="text-sm text-slate-600 dark:text-slate-400">No data for this range.</p>
                   ) : (
-                    <div className="h-72">
+                    <div ref={categoryAllocatedChartRef} className="h-72">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={categoryRows} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
                           <CartesianGrid strokeDasharray="4 4" stroke="#e2e8f0" className="dark:stroke-slate-600" />
@@ -1148,7 +1303,7 @@ function ReportsContent() {
                   {categoryTrend.length === 0 ? (
                     <p className="p-8 text-sm text-slate-600 dark:text-slate-400 text-center">No data for this range.</p>
                   ) : (
-                    <div className="h-80">
+                    <div ref={categoryTrendChartRef} className="h-80">
                       <ResponsiveContainer width="100%" height="100%">
                         <AreaChart
                           data={categoryTrend}
@@ -1306,7 +1461,7 @@ function ReportsContent() {
                           </p>
                         </div>
 
-                        <div className="h-56 sm:h-64 -mx-1">
+                        <div ref={vendorTrendChartRef} className="h-56 sm:h-64 -mx-1">
                           <ResponsiveContainer width="100%" height="100%">
                             <AreaChart
                               data={vendorTrend}
@@ -1411,7 +1566,7 @@ function ReportsContent() {
                   {vendorBarChartRows.length === 0 ? (
                     <p className="text-sm text-slate-600 dark:text-slate-400">No vendor data for this range.</p>
                   ) : (
-                    <div className="h-72">
+                    <div ref={vendorTotalsChartRef} className="h-72">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={vendorBarChartRows} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
                           <CartesianGrid strokeDasharray="4 4" stroke="#e2e8f0" className="dark:stroke-slate-600" />
@@ -1451,7 +1606,7 @@ function ReportsContent() {
                         <th className="px-6 py-3 text-right">Reported</th>
                         <th className="px-6 py-3 text-right">Reimbursement</th>
                         <th className="px-6 py-3 text-right">Tokens</th>
-                        <th className="px-6 py-3 text-right">Txns</th>
+                        <th className="px-6 py-3 text-right">Trans</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
@@ -1581,7 +1736,7 @@ function ReportsContent() {
                       No labels selected. Turn on &quot;Show all labels&quot; or choose at least one label above.
                     </p>
                   ) : (
-                    <div className="h-72">
+                    <div ref={vendorLabelChartRef} className="h-72">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={vendorLabelRows} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
                           <CartesianGrid strokeDasharray="4 4" stroke="#e2e8f0" className="dark:stroke-slate-600" />
@@ -1717,7 +1872,7 @@ function ReportsContent() {
                     className="block text-3xl font-bold tabular-nums text-slate-900 dark:text-slate-100"
                   />
                   {tokenTotal > 0 && (
-                    <div className="h-72 mt-8">
+                    <div ref={tokenChartRef} className="h-72 mt-8">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={tokenRows} layout="vertical" margin={{ top: 8, right: 24, left: 8, bottom: 8 }}>
                           <CartesianGrid strokeDasharray="4 4" stroke="#e2e8f0" className="dark:stroke-slate-600" />

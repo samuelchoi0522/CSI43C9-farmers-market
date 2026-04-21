@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Button from "./Button";
 
 interface SidebarNavigationProps {
   /** The currently active navigation item */
@@ -60,7 +59,7 @@ export default function SidebarNavigation({
         <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
           <p className="text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Market Status</p>
           <p className="text-sm font-bold truncate">Downtown Saturday Mar...</p>
-          <div className="mt-3 flex items-center justify-between">
+          <div className="mt-3 flex items-center">
             <span
               className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
                 isSaturday
@@ -70,9 +69,6 @@ export default function SidebarNavigation({
             >
               {isSaturday ? "Live" : "Upcoming"}
             </span>
-            <Button variant="ghost" size="sm" className="p-0 text-slate-400 hover:text-[#10b981]">
-              <span className="material-icons text-sm leading-none">settings</span>
-            </Button>
           </div>
         </div>
       </div>

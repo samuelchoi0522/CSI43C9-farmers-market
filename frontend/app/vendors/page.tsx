@@ -9,6 +9,7 @@ import { getVendors, Vendor } from "@/lib/api/vendor";
 import { EditVendorDialog } from "../components/EditVendorDialog";
 import { cn } from "@/lib/utils";
 import { SmoothIntegerValue } from "@/lib/smoothNumbers";
+import { fetchAllDefaultsFromApi, fetchAllVendorsFromApi } from "@/lib/vendorDirectoryFetch";
 
 interface VendorWithDefaults extends Vendor {
     defaults?: VendorDefaults;
@@ -81,40 +82,19 @@ function VendorsContent() {
 
     const fetchAllVendors = async () => {
         try {
-            const [allVendorsResponse, defaultsResponse] = await Promise.all([
-                getVendors(0, 1000, showInactive), // Fetch a large number to get all vendors for stats
-                getAllVendorDefaults(0, 1000)
+            const [allVendorsList, defaultsList] = await Promise.all([
+                fetchAllVendorsFromApi(showInactive),
+                fetchAllDefaultsFromApi(),
             ]);
 
-            // Handle defaults response
-            let defaultsList: VendorDefaults[] = [];
-            if (defaultsResponse) {
-                if (Array.isArray(defaultsResponse)) {
-                    defaultsList = defaultsResponse;
-                } else if (defaultsResponse.data && Array.isArray(defaultsResponse.data)) {
-                    defaultsList = defaultsResponse.data;
-                }
-            }
-
-            // Handle all vendors response for stats
-            let allVendorsList: Vendor[] = [];
-            if (allVendorsResponse) {
-                if (Array.isArray(allVendorsResponse)) {
-                    allVendorsList = allVendorsResponse;
-                } else if (allVendorsResponse.data && Array.isArray(allVendorsResponse.data)) {
-                    allVendorsList = allVendorsResponse.data;
-                }
-            }
-
-            // Map vendor defaults to all vendors
-            const allVendorsWithDefaults = allVendorsList.map(vendor => {
-                const defaults = defaultsList.find(d => d.vendorId === vendor.id);
+            const allVendorsWithDefaults = allVendorsList.map((vendor) => {
+                const defaults = defaultsList.find((d) => d.vendorId === vendor.id);
                 return { ...vendor, defaults };
             });
-            
+
             setAllVendors(allVendorsWithDefaults);
         } catch (error) {
-            console.error('Error fetching all vendors for stats:', error);
+            console.error("Error fetching all vendors for stats:", error);
         }
     };
     // Fetch all vendors for stats calculation
@@ -135,30 +115,52 @@ function VendorsContent() {
 
     const handleEditSuccess = () => {
         fetchData();
+        void fetchAllVendors();
     };
 
-    // Reset to first page when search query changes
+    // Reset paging when the search text changes (server mode or client search pages).
     useEffect(() => {
-        if (searchQuery.trim() !== "") {
-            setCurrentPage(0);
-        }
+        setCurrentPage(0);
     }, [searchQuery]);
 
-    // Compute filtered vendors based on search query
+    // Search runs against the full vendor list; the table uses server paging when not searching.
     const filteredVendors = useMemo(() => {
         if (searchQuery.trim() === "") {
             return vendors;
         }
         const query = searchQuery.toLowerCase();
-        return vendors.filter(
+        return allVendors.filter(
             (vendor) =>
                 vendor.vendorName?.toLowerCase().includes(query) ||
                 vendor.pointPerson?.toLowerCase().includes(query) ||
                 vendor.email?.toLowerCase().includes(query) ||
                 vendor.location?.toLowerCase().includes(query) ||
-                vendor.products?.toLowerCase().includes(query)
+                vendor.products?.toLowerCase().includes(query),
         );
-    }, [searchQuery, vendors]);
+    }, [searchQuery, vendors, allVendors]);
+
+    const displayedVendors = useMemo(() => {
+        if (searchQuery.trim() === "") {
+            return filteredVendors;
+        }
+        const start = currentPage * pageSize;
+        return filteredVendors.slice(start, start + pageSize);
+    }, [searchQuery, filteredVendors, currentPage, pageSize]);
+
+    const effectiveTotalPages = useMemo(() => {
+        if (searchQuery.trim() === "") {
+            return totalPages;
+        }
+        return Math.max(1, Math.ceil(filteredVendors.length / pageSize));
+    }, [searchQuery, totalPages, filteredVendors.length, pageSize]);
+
+    useEffect(() => {
+        if (searchQuery.trim() === "") {
+            return;
+        }
+        const maxPage = Math.max(0, Math.ceil(filteredVendors.length / pageSize) - 1);
+        setCurrentPage((p) => Math.min(p, maxPage));
+    }, [filteredVendors.length, searchQuery, pageSize]);
 
     const statsResetKey = `${showInactive}`;
 
@@ -175,7 +177,7 @@ function VendorsContent() {
             ? statsResetKey
             : `${statsResetKey}|search|${searchQuery.trim().toLowerCase()}`;
 
-    const footerResetKey = `${statsResetKey}|p${currentPage}|s${pageSize}|te${totalElements}|sq${searchQuery}|vl${vendors.length}|fv${filteredVendors.length}`;
+    const footerResetKey = `${statsResetKey}|p${currentPage}|s${pageSize}|te${totalElements}|sq${searchQuery}|vl${vendors.length}|fv${filteredVendors.length}|dv${displayedVendors.length}`;
 
     const getStatusBadge = (vendor: VendorWithDefaults) => {
         if (!vendor.isActive) {
@@ -192,7 +194,7 @@ function VendorsContent() {
         );
     };
 
-    const handleExportCSV = () => {
+    const handleExportCSV = async () => {
         if (allVendors.length === 0) return;
 
         const headers = [
@@ -235,15 +237,39 @@ function VendorsContent() {
             ].join(","))
         ].join("\n");
 
-        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const filename = `vendors_export_${new Date().toISOString().split('T')[0]}.csv`;
+
+        if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
+            try {
+                const { save } = await import("@tauri-apps/plugin-dialog");
+                const { writeFile } = await import("@tauri-apps/plugin-fs");
+                const filePath = await save({
+                    filters: [{ name: 'CSV', extensions: ['csv'] }],
+                    defaultPath: filename
+                });
+                if (filePath) {
+                    await writeFile(filePath, new TextEncoder().encode(csvContent));
+                }
+            } catch (error) {
+                console.error("Failed to save via Tauri:", error);
+                triggerCSVDownload(csvContent, filename);
+            }
+        } else {
+            triggerCSVDownload(csvContent, filename);
+        }
+    };
+
+    const triggerCSVDownload = (content: string, filename: string) => {
+        const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.setAttribute("href", url);
-        link.setAttribute("download", `vendors_export_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute("download", filename);
         link.style.visibility = "hidden";
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     };
 
     return (
@@ -260,7 +286,7 @@ function VendorsContent() {
                             <SmoothIntegerValue
                                 value={subtitleCountValue}
                                 resetKey={subtitleResetKey}
-                                className="font-medium text-slate-800 dark:text-slate-200"
+                                className="font-medium text-inherit"
                             />
                             {searchQuery.trim() === "" ? " total)" : " filtered)"}
                         </p>
@@ -379,14 +405,14 @@ function VendorsContent() {
                                             Loading vendors...
                                         </td>
                                     </tr>
-                                ) : filteredVendors.length === 0 ? (
+                                ) : displayedVendors.length === 0 ? (
                                     <tr>
                                         <td colSpan={10} className="px-6 py-8 text-center text-slate-500">
                                             No vendors found
                                         </td>
                                     </tr>
                                 ) : (
-                                    filteredVendors.map((vendor) => (
+                                    displayedVendors.map((vendor) => (
                                         <tr
                                             key={vendor.id}
                                             className="hover:bg-green-50 transition-colors cursor-pointer"
@@ -516,19 +542,19 @@ function VendorsContent() {
                                     <SmoothIntegerValue
                                         value={vendors.length > 0 ? currentPage * pageSize + 1 : 0}
                                         resetKey={footerResetKey}
-                                        className="font-medium tabular-nums"
+                                        className="font-medium tabular-nums text-inherit"
                                     />
                                     <span>to</span>
                                     <SmoothIntegerValue
                                         value={Math.min((currentPage + 1) * pageSize, totalElements)}
                                         resetKey={footerResetKey}
-                                        className="font-medium tabular-nums"
+                                        className="font-medium tabular-nums text-inherit"
                                     />
                                     <span>of</span>
                                     <SmoothIntegerValue
                                         value={totalElements}
                                         resetKey={footerResetKey}
-                                        className="font-medium tabular-nums"
+                                        className="font-medium tabular-nums text-inherit"
                                     />
                                     <span>vendors</span>
                                 </>
@@ -536,17 +562,30 @@ function VendorsContent() {
                                 <>
                                     <span>Showing</span>
                                     <SmoothIntegerValue
-                                        value={filteredVendors.length}
+                                        value={
+                                            filteredVendors.length === 0
+                                                ? 0
+                                                : currentPage * pageSize + 1
+                                        }
                                         resetKey={footerResetKey}
-                                        className="font-medium tabular-nums"
+                                        className="font-medium tabular-nums text-inherit"
+                                    />
+                                    <span>to</span>
+                                    <SmoothIntegerValue
+                                        value={Math.min(
+                                            (currentPage + 1) * pageSize,
+                                            filteredVendors.length,
+                                        )}
+                                        resetKey={footerResetKey}
+                                        className="font-medium tabular-nums text-inherit"
                                     />
                                     <span>of</span>
                                     <SmoothIntegerValue
-                                        value={vendors.length}
+                                        value={filteredVendors.length}
                                         resetKey={footerResetKey}
-                                        className="font-medium tabular-nums"
+                                        className="font-medium tabular-nums text-inherit"
                                     />
-                                    <span>vendors (filtered)</span>
+                                    <span>matching vendors</span>
                                 </>
                             )}
                         </span>
@@ -555,21 +594,21 @@ function VendorsContent() {
                                 variant="outline" 
                                 size="sm" 
                                 className="p-1 px-3" 
-                                disabled={currentPage === 0 || searchQuery.trim() !== ""}
-                                onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+                                disabled={currentPage === 0}
+                                onClick={() => setCurrentPage((prev) => Math.max(0, prev - 1))}
                             >
                                 Previous
                             </Button>
-                            {searchQuery.trim() === "" ? (
-                                Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                                    // Show page numbers around current page
-                                    let pageNum;
-                                    if (totalPages <= 5) {
+                            {Array.from(
+                                { length: Math.min(effectiveTotalPages, 5) },
+                                (_, i) => {
+                                    let pageNum: number;
+                                    if (effectiveTotalPages <= 5) {
                                         pageNum = i;
                                     } else if (currentPage < 3) {
                                         pageNum = i;
-                                    } else if (currentPage > totalPages - 4) {
-                                        pageNum = totalPages - 5 + i;
+                                    } else if (currentPage > effectiveTotalPages - 4) {
+                                        pageNum = effectiveTotalPages - 5 + i;
                                     } else {
                                         pageNum = currentPage - 2 + i;
                                     }
@@ -584,16 +623,18 @@ function VendorsContent() {
                                             {pageNum + 1}
                                         </Button>
                                     );
-                                })
-                            ) : (
-                                <Button variant="primary" size="sm" className="p-1 px-3">1</Button>
+                                },
                             )}
                             <Button 
                                 variant="outline" 
                                 size="sm" 
                                 className="p-1 px-3"
-                                disabled={currentPage >= totalPages - 1 || searchQuery.trim() !== ""}
-                                onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
+                                disabled={currentPage >= effectiveTotalPages - 1}
+                                onClick={() =>
+                                    setCurrentPage((prev) =>
+                                        Math.min(effectiveTotalPages - 1, prev + 1),
+                                    )
+                                }
                             >
                                 Next
                             </Button>
