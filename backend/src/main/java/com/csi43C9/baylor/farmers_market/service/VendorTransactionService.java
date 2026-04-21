@@ -127,6 +127,15 @@ public class VendorTransactionService {
     }
 
     /**
+     * Returns all unique market dates ordered from most recent to oldest.
+     *
+     * @return list of market dates
+     */
+    public List<LocalDate> getMarketDates() {
+        return vendorTransactionRepository.findAllMarketDates();
+    }
+
+    /**
      * Retrieves a revenue breakdown for a specific date.
      *
      * @param date The market date.

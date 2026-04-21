@@ -87,4 +87,19 @@ class VendorTransactionServiceTest {
         assertThat(result.getTotalElements()).isEqualTo(1L);
         verify(vendorTransactionRepository).findByVendorIdPaged(vendorId, 0, 10);
     }
+
+    @Test
+    void getMarketDatesReturnsRepositoryDates() {
+        List<LocalDate> expected = List.of(
+                LocalDate.of(2026, 3, 15),
+                LocalDate.of(2026, 3, 8),
+                LocalDate.of(2026, 3, 1)
+        );
+        when(vendorTransactionRepository.findAllMarketDates()).thenReturn(expected);
+
+        List<LocalDate> result = vendorTransactionService.getMarketDates();
+
+        assertThat(result).isEqualTo(expected);
+        verify(vendorTransactionRepository).findAllMarketDates();
+    }
 }

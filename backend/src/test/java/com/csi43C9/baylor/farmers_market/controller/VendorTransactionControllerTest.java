@@ -88,6 +88,21 @@ class VendorTransactionControllerTest {
     }
 
     @Test
+    void getMarketDatesReturnsDatesInResponse() throws Exception {
+        when(vendorTransactionService.getMarketDates()).thenReturn(List.of(
+                LocalDate.of(2026, 3, 15),
+                LocalDate.of(2026, 3, 8),
+                LocalDate.of(2026, 3, 1)
+        ));
+
+        mockMvc.perform(get("/api/vendor-transaction/market-dates"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0]").value("2026-03-15"))
+                .andExpect(jsonPath("$[1]").value("2026-03-08"))
+                .andExpect(jsonPath("$[2]").value("2026-03-01"));
+    }
+
+    @Test
     void getVendorTransactionByIdNotFoundReturns404() throws Exception {
         when(vendorTransactionService.get(any(UUID.class))).thenReturn(Optional.empty());
 

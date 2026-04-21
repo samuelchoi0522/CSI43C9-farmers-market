@@ -11,12 +11,23 @@ interface Vendor {
 interface AddVendorDialogProps {
   vendors: Vendor[];
   onAdd: (vendor: Vendor) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
 }
 
-export function AddVendorDialog({ vendors, onAdd }: AddVendorDialogProps) {
-  const [isOpen, setIsOpen] = useState(false);
+export function AddVendorDialog({
+  vendors,
+  onAdd,
+  open,
+  onOpenChange,
+  hideTrigger = false,
+}: AddVendorDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
   const [portalContainer, setPortalContainer] = useState<HTMLDivElement | null>(null);
+  const isOpen = open ?? internalOpen;
+  const setIsOpen = onOpenChange ?? setInternalOpen;
 
   const handleAdd = () => {
     if (selectedVendor) {
@@ -28,12 +39,14 @@ export function AddVendorDialog({ vendors, onAdd }: AddVendorDialogProps) {
 
   return (
     <DialogPrimitive.Root open={isOpen} onOpenChange={setIsOpen}>
-      <DialogPrimitive.Trigger asChild>
-        <button className="flex items-center gap-2 px-4 py-2 bg-[#10b981] text-white rounded-lg font-medium text-sm hover:bg-[#059669] transition-all shadow-sm">
-          <Plus size={16} />
-          Add Vendor
-        </button>
-      </DialogPrimitive.Trigger>
+      {!hideTrigger && (
+        <DialogPrimitive.Trigger asChild>
+          <button className="flex items-center gap-2 px-4 py-2 bg-[#10b981] text-white rounded-lg font-medium text-sm hover:bg-[#059669] transition-all shadow-sm">
+            <Plus size={16} />
+            Add Vendor
+          </button>
+        </DialogPrimitive.Trigger>
+      )}
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
         <DialogPrimitive.Content
