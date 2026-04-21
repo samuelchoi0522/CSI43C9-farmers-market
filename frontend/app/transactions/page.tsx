@@ -11,6 +11,7 @@ import * as XLSX from 'xlsx';
 import ActiveVendorAddButton from "../components/ActiveVendorAddButton";
 import {
   bulkCreateVendorTransactions,
+  deleteVendorTransaction,
   searchVendorTransactions,
   updateVendorTransaction,
   type CreateVendorTransactionRequest,
@@ -254,6 +255,9 @@ function TransactionsContent() {
 
   const invalidCount = records.filter((record) => record.isInvalid).length;
   const isSheetLoading = vendorsLoading || isLoadingTransactions;
+  const hasPendingDeletions = Object.keys(persistedPayloadsRef.current).some(
+    (persistedId) => !records.some((record) => record.id === persistedId)
+  );
 
   const normalizeRows = (rows: VendorTransactionsSheetRow[]) => rows.map((row) => buildRecord(row));
 
@@ -407,11 +411,6 @@ function TransactionsContent() {
   };
 
   const handleSaveToBackend = async () => {
-    if (records.length === 0) {
-      toast.error("No records to save. Add vendors or import a spreadsheet first.");
-      return;
-    }
-
     if (invalidCount > 0) {
       toast.error(`Please fix ${invalidCount} invalid vendor name(s) before saving.`);
       return;
@@ -436,8 +435,16 @@ function TransactionsContent() {
       const previousPayload = persistedPayloadsRef.current[record.id];
       return previousPayload === undefined || previousPayload !== serializeTransactionPayload(record);
     });
+    const rowsToDelete = Object.keys(persistedPayloadsRef.current).filter(
+      (persistedId) => !records.some((record) => record.id === persistedId)
+    );
 
-    if (rowsToCreate.length === 0 && rowsToUpdate.length === 0) {
+    if (records.length === 0 && rowsToDelete.length === 0) {
+      toast.error("No records to save. Add vendors or import a spreadsheet first.");
+      return;
+    }
+
+    if (rowsToCreate.length === 0 && rowsToUpdate.length === 0 && rowsToDelete.length === 0) {
       toast.info("No changes to save.");
       return;
     }
@@ -457,21 +464,22 @@ function TransactionsContent() {
               )
             )
           : Promise.resolve([]),
+        rowsToDelete.length > 0
+          ? Promise.all(rowsToDelete.map((id) => deleteVendorTransaction(id)))
+          : Promise.resolve([]),
       ]);
 
       const refreshedRecords = await fetchTransactionsForDate(currentMarketDate);
       setRecords(refreshedRecords);
       persistedPayloadsRef.current = buildPersistedPayloadSnapshot(refreshedRecords);
 
-      if (rowsToCreate.length > 0 && rowsToUpdate.length > 0) {
-        toast.success(
-          `Saved ${rowsToCreate.length} new and ${rowsToUpdate.length} existing vendor transaction row(s).`
-        );
-      } else if (rowsToCreate.length > 0) {
-        toast.success(`Successfully saved ${rowsToCreate.length} vendor transaction row(s).`);
-      } else {
-        toast.success(`Successfully updated ${rowsToUpdate.length} vendor transaction row(s).`);
-      }
+      const successParts = [
+        rowsToCreate.length > 0 ? `${rowsToCreate.length} new` : null,
+        rowsToUpdate.length > 0 ? `${rowsToUpdate.length} updated` : null,
+        rowsToDelete.length > 0 ? `${rowsToDelete.length} deleted` : null,
+      ].filter(Boolean);
+
+      toast.success(`Successfully saved changes: ${successParts.join(', ')} vendor transaction row(s).`);
     } catch (error) {
       console.error("Error saving transactions:", error);
       toast.error("Failed to save data. Please try again.");
@@ -553,6 +561,7 @@ function TransactionsContent() {
           isLoading={isSheetLoading}
           isSaving={isSaving}
           invalidCount={invalidCount}
+          hasPendingDeletions={hasPendingDeletions}
           normalizeRow={buildRecord}
           onRowsChange={(nextRows) => setRecords(normalizeRows(nextRows))}
           onSave={handleSaveToBackend}
