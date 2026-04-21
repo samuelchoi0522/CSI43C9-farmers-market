@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import SidebarNavigation from "./components/SidebarNavigation";
 import CategorySalesChart from "./components/CategorySalesChart";
+import MarketGoalsWidget from "./components/MarketGoalsWidget";
 import Button from "./components/Button";
 import { getAllVendorDefaults, VendorDefaults } from "@/lib/api/defaults";
 import { getVendors, Vendor } from "@/lib/api/vendor";
@@ -368,6 +369,8 @@ function DashboardContent() {
 
                 <CategorySalesChart data={categoryChartData} />
 
+                <MarketGoalsWidget />
+
                 {/* Vendor Tracking Table */}
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-slide-up" style={{ animationDelay: '0.2s' }}>
                     <div className="p-6 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -557,84 +560,6 @@ function DashboardContent() {
                             >
                                 Next
                             </Button>
-                        </div>
-                    </div>
-                </div>
-
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                        <h4 className="font-bold mb-1 text-slate-900 dark:text-slate-100">Allocated sales by category</h4>
-                        <p className="text-xs text-slate-600 dark:text-slate-400 mb-4">
-                            Same allocation rules as Reports → Category (vendor defaults %).
-                        </p>
-                        {categoryChartData.length === 0 ? (
-                            <p className="text-sm text-slate-600 dark:text-slate-400">No category breakdown for this market day.</p>
-                        ) : (
-                            <div className="space-y-4">
-                                {categoryChartData.map((row, i) => {
-                                    const pct =
-                                        categorySalesTotal > 0
-                                            ? Math.round((row.sales / categorySalesTotal) * 1000) / 10
-                                            : 0;
-                                    const barPct =
-                                        categorySalesTotal > 0
-                                            ? Math.min(100, (row.sales / categorySalesTotal) * 100)
-                                            : 0;
-                                    return (
-                                        <div key={row.category}>
-                                            <div className="flex justify-between text-sm mb-1">
-                                                <span>{row.category}</span>
-                                                <span className="font-bold tabular-nums inline-flex items-baseline gap-1 flex-wrap justify-end">
-                                                    <SmoothCurrencyValue
-                                                        value={row.sales}
-                                                        resetKey={`${metricsResetKey}|${row.category}`}
-                                                        className="font-bold tabular-nums text-slate-900 dark:text-slate-100"
-                                                    />
-                                                    <span className="text-slate-500 font-medium">({pct}%)</span>
-                                                </span>
-                                            </div>
-                                            <div className="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-                                                <div
-                                                    className="h-full rounded-full transition-all"
-                                                    style={{
-                                                        width: `${barPct}%`,
-                                                        backgroundColor: categoryBarColors[i % categoryBarColors.length],
-                                                    }}
-                                                />
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                        <h4 className="font-bold mb-1 text-slate-900 dark:text-slate-100">At a glance</h4>
-                        <p className="text-xs text-slate-600 dark:text-slate-400 mb-4">
-                            Derived from this market day&apos;s transactions and your vendor directory.
-                        </p>
-                        <div className="space-y-4">
-                            {dashboardAlerts.length === 0 ? (
-                                <p className="text-sm text-slate-600 dark:text-slate-400">
-                                    Nothing flagged for your vendors.
-                                </p>
-                            ) : (
-                                dashboardAlerts.map((a, idx) => (
-                                    <div key={idx} className="flex gap-4 items-start">
-                                        <div
-                                            className={`w-2 h-2 rounded-full mt-2 shrink-0 ${
-                                                a.tone === "amber" ? "bg-amber-500" : "bg-slate-400 dark:bg-slate-500"
-                                            }`}
-                                        />
-                                        <div>
-                                            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{a.title}</p>
-                                            <p className="text-xs text-slate-600 dark:text-slate-500">{a.detail}</p>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
                         </div>
                     </div>
                 </div>
