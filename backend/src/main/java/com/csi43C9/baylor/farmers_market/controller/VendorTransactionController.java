@@ -86,7 +86,7 @@ public class VendorTransactionController {
      * @param page 0-based page number
      * @param size page size
      * @return a {@link ResponseEntity} containing a {@link PagedResponse} of
-     *         {@link VendorTransaction}s
+     *         {@link VendorTransaction}
      */
     @GetMapping
     public ResponseEntity<@NonNull PagedResponse<VendorTransaction>> getAllVendorTransactions(
@@ -97,9 +97,25 @@ public class VendorTransactionController {
     }
 
     /**
+     * <<<<<<< HEAD
      * Retrieves vendor transactions for one market date or an inclusive market date
      * range.
+     * =======
+     * Retrieves all unique market dates ordered from most recent to oldest.
+     *
+     * @return a response containing the list of market dates
+     */
+    @GetMapping("/market-dates")
+    public ResponseEntity<@NonNull List<LocalDate>> getMarketDates() {
+        return ResponseEntity.ok(vendorTransactionService.getMarketDates());
+    }
+
+    /**
+     * Retrieves vendor transactions for one market date or an inclusive market date
+     * range.
+     * >>>>>>> main
      * This endpoint is intentionally filter-driven to support future expansion.
+     * 
      * @param filter request filters bound from query parameters
      * @param page   0-based page number
      * @param size   page size
@@ -116,6 +132,7 @@ public class VendorTransactionController {
 
     /**
      * Retrieves vendor transactions for a single vendor.
+     * 
      * @param vendorId the vendor UUID
      * @param page     0-based page number
      * @param size     page size

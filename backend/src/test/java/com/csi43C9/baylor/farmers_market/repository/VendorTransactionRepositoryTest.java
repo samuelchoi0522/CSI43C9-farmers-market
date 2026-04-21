@@ -90,6 +90,19 @@ class VendorTransactionRepositoryTest {
     }
 
     @Test
+    void findAllMarketDatesReturnsUniqueDatesInDescendingOrder() {
+        vendorTransactionRepository.save(createTransaction(vendorTwoId, "Vendor Two", LocalDate.of(2026, 3, 8)));
+
+        List<LocalDate> results = vendorTransactionRepository.findAllMarketDates();
+
+        assertThat(results).containsExactly(
+                LocalDate.of(2026, 3, 15),
+                LocalDate.of(2026, 3, 8),
+                LocalDate.of(2026, 3, 1)
+        );
+    }
+
+    @Test
     void findFilteredPagedByVendorIdReturnsOnlyMatchingVendorTransactions() {
         VendorTransactionFilterRequest filter = new VendorTransactionFilterRequest();
         filter.setVendorId(vendorOneId);

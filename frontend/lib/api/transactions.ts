@@ -141,6 +141,15 @@ export async function getVendorTransaction(uuid: string): Promise<VendorTransact
 }
 
 /**
+ * Get the sorted list of market dates that have vendor transactions.
+ */
+export async function getVendorTransactionMarketDates(): Promise<string[]> {
+  return apiRequest<string[]>('/api/vendor-transaction/market-dates', {
+    method: 'GET',
+  });
+}
+
+/**
  * Update a vendor transaction
  */
 export async function updateVendorTransaction(

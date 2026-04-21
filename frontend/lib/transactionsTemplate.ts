@@ -308,13 +308,36 @@ export async function downloadVendorTransactionsTemplate(marketDate: string): Pr
   metadataSheet.state = 'hidden';
 
   const buffer = await workbook.xlsx.writeBuffer();
+  const filename = formatTemplateFilename(marketDate);
+
+  if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
+    try {
+      const { save } = await import("@tauri-apps/plugin-dialog");
+      const { writeFile } = await import("@tauri-apps/plugin-fs");
+      const filePath = await save({
+        filters: [{ name: 'Excel', extensions: ['xlsx'] }],
+        defaultPath: filename
+      });
+      if (filePath) {
+        await writeFile(filePath, new Uint8Array(buffer));
+      }
+    } catch (error) {
+      console.error("Failed to save via Tauri:", error);
+      triggerBrowserDownload(buffer, filename);
+    }
+  } else {
+    triggerBrowserDownload(buffer, filename);
+  }
+}
+
+function triggerBrowserDownload(buffer: ExcelJS.Buffer, filename: string) {
   const blob = new Blob([buffer], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = formatTemplateFilename(marketDate);
+  link.download = filename;
   document.body.appendChild(link);
   link.click();
   link.remove();

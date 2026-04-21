@@ -1,17 +1,18 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Download, FileSpreadsheet, Loader2 } from 'lucide-react';
+import { Download, FileSpreadsheet, Loader2, MoreHorizontal, Plus, Users } from 'lucide-react';
 import SidebarNavigation from '../components/SidebarNavigation';
-import Button from '../components/Button';
 import { AddVendorDialog } from '../components/AddVendorDialog';
-import VendorTransactionsSheet from '../components/VendorTransactionsSheet';
+import VendorTransactionsSheet, { type VendorTransactionsSheetRow as VendorTransactionsSheetType } from '../components/VendorTransactionsSheet';
 import { type VendorTransactionsSheetRowModel as VendorTransactionsSheetRow } from '../components/VendorTransactionsSheetRow';
 import { toast, Toaster } from 'sonner';
 import * as XLSX from 'xlsx';
-import ActiveVendorAddButton from "../components/ActiveVendorAddButton";
+import ActiveVendorPreviewDialog from '../components/ActiveVendorPreviewDialog';
 import {
   bulkCreateVendorTransactions,
+  deleteVendorTransaction,
+  getVendorTransactionMarketDates,
   searchVendorTransactions,
   updateVendorTransaction,
   type CreateVendorTransactionRequest,
@@ -21,7 +22,14 @@ import { getVendors, type Vendor as ApiVendor } from '@/lib/api/vendor';
 import { getAllVendorDefaults, type VendorDefaults } from '@/lib/api/defaults';
 import { downloadVendorTransactionsTemplate } from '@/lib/transactionsTemplate';
 import { getActiveCustomColumns, type CustomColumnMetadata } from '@/lib/api/customColumns';
-import { getCurrentWindow } from '@tauri-apps/api/window';
+import { mostRecentSaturdayDate } from '@/lib/dashboardAggregates';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../components/figma/dropdown-menu';
 
 interface Vendor {
   id: string;
@@ -34,15 +42,6 @@ type VendorWithDefaults = ApiVendor & {
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const TRANSACTION_ID_HEADERS = new Set(['vendor transaction id', 'transaction id', 'uuid']);
-
-const getMostRecentSaturday = () => {
-  const date = new Date();
-  const day = date.getDay();
-  const diff = (day + 1) % 7;
-  const saturday = new Date(date);
-  saturday.setDate(date.getDate() - diff);
-  return saturday.toISOString().split("T")[0];
-};
 
 const parseNumericValue = (value: unknown) => {
   if (value === "" || value === null || value === undefined) return 0;
@@ -149,8 +148,47 @@ const buildPersistedPayloadSnapshot = (rows: VendorTransactionsSheetRow[]) =>
       .map((record) => [record.id, serializeTransactionPayload(record)])
   );
 
+const appendMissingMarketDate = (marketDates: string[], marketDate: string) =>
+  marketDates.includes(marketDate) ? marketDates : [marketDate, ...marketDates];
+
+const getAdjacentMarketDates = (marketDates: string[], currentMarketDate: string) => {
+  if (marketDates.length === 0) {
+    return { previousMarketDate: null, nextMarketDate: null };
+  }
+
+  const isAscending = marketDates[0] <= marketDates[marketDates.length - 1];
+  const currentIndex = marketDates.indexOf(currentMarketDate);
+
+  if (currentIndex >= 0) {
+    return {
+      previousMarketDate:
+        currentIndex > 0 ? marketDates[currentIndex - 1] : null,
+      nextMarketDate:
+        currentIndex < marketDates.length - 1 ? marketDates[currentIndex + 1] : null,
+    };
+  }
+
+  const earlierDates = marketDates.filter((date) => date < currentMarketDate);
+  const laterDates = marketDates.filter((date) => date > currentMarketDate);
+
+  if (isAscending) {
+    return {
+      previousMarketDate:
+        earlierDates.length > 0 ? earlierDates[earlierDates.length - 1] : null,
+      nextMarketDate: laterDates.length > 0 ? laterDates[0] : null,
+    };
+  }
+
+  return {
+    previousMarketDate: laterDates.length > 0 ? laterDates[laterDates.length - 1] : null,
+    nextMarketDate: earlierDates.length > 0 ? earlierDates[0] : null,
+  };
+};
+
 function TransactionsContent() {
-  const [currentMarketDate, setCurrentMarketDate] = useState(getMostRecentSaturday());
+  const defaultMarketDate = mostRecentSaturdayDate();
+  const [currentMarketDate, setCurrentMarketDate] = useState(defaultMarketDate);
+  const [availableMarketDates, setAvailableMarketDates] = useState<string[]>([]);
   const [records, setRecords] = useState<VendorTransactionsSheetRow[]>([]);
   const [allVendors, setAllVendors] = useState<Vendor[]>([]);
   const [activeVendors, setActiveVendors] = useState<ApiVendor[]>([]);
@@ -161,6 +199,9 @@ function TransactionsContent() {
   const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
+  const [isAddVendorDialogOpen, setIsAddVendorDialogOpen] = useState(false);
+  const [pendingActiveVendors, setPendingActiveVendors] = useState<ApiVendor[]>([]);
+  const [isActiveVendorPreviewOpen, setIsActiveVendorPreviewOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const persistedPayloadsRef = useRef<Record<string, string>>({});
 
@@ -315,6 +356,15 @@ function TransactionsContent() {
     [buildRecord]
   );
 
+  const loadAvailableMarketDates = useCallback(async () => {
+    const marketDates = appendMissingMarketDate(
+      await getVendorTransactionMarketDates(),
+      defaultMarketDate
+    );
+    setAvailableMarketDates(marketDates);
+    return marketDates;
+  }, [defaultMarketDate]);
+
   useEffect(() => {
     let isMounted = true;
 
@@ -322,9 +372,10 @@ function TransactionsContent() {
       setVendorsLoading(true);
 
       try {
-        const [vendorResponse, columnsResponse, defaultsResponse] = await Promise.all([
+        const [vendorResponse, columnsResponse, marketDates, defaultsResponse] = await Promise.all([
           getVendors(0, 1000, true),
           getActiveCustomColumns(),
+          loadAvailableMarketDates(),,
           getAllVendorDefaults(0, 2000),
         ]);
 
@@ -357,6 +408,7 @@ function TransactionsContent() {
             .sort((a, b) => a.vendorName.localeCompare(b.vendorName))
         );
         setCustomColumns(columnsResponse);
+        setAvailableMarketDates(marketDates);
       } catch (error) {
         console.error("Failed to load metadata:", error);
         toast.error("Failed to load vendors or custom columns.");
@@ -372,9 +424,13 @@ function TransactionsContent() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [loadAvailableMarketDates]);
 
   useEffect(() => {
+    if (vendorsLoading) {
+      return;
+    }
+
     let isActive = true;
 
     const loadTransactions = async () => {
@@ -405,9 +461,29 @@ function TransactionsContent() {
     return () => {
       isActive = false;
     };
-  }, [currentMarketDate, fetchTransactionsForDate]);
+  }, [currentMarketDate, fetchTransactionsForDate, vendorsLoading]);
 
   const invalidCount = records.filter((record) => record.isInvalid).length;
+  const isSheetLoading = vendorsLoading || isLoadingTransactions;
+  const hasPendingDeletions = Object.keys(persistedPayloadsRef.current).some(
+    (persistedId) => !records.some((record) => record.id === persistedId)
+  );
+  const { previousMarketDate, nextMarketDate } = getAdjacentMarketDates(
+    availableMarketDates,
+    currentMarketDate
+  );
+
+  const handlePreviousMarketDate = useCallback(() => {
+    if (previousMarketDate) {
+      setCurrentMarketDate(previousMarketDate);
+    }
+  }, [previousMarketDate]);
+
+  const handleNextMarketDate = useCallback(() => {
+    if (nextMarketDate) {
+      setCurrentMarketDate(nextMarketDate);
+    }
+  }, [nextMarketDate]);
   const defaultsMissingCount = records.filter((record) => {
     const vendor = vendorDetails.find(
       (item) =>
@@ -485,6 +561,67 @@ function TransactionsContent() {
 
     setRecords((previous) => [nextRecord, ...previous]);
     toast.success(`Added ${vendor.name}`);
+  };
+
+  const handleOpenActiveVendorPreview = () => {
+    if (vendorsLoading) {
+      toast.info("Active vendor list is still loading.");
+      return;
+    }
+
+    if (activeVendors.length === 0) {
+      toast.info("No active vendors are available.");
+      return;
+    }
+
+    const existingVendorIds = new Set(records.map((row) => row.vendor_id));
+    const missingActiveVendors = activeVendors.filter(
+      (vendor) => !existingVendorIds.has(vendor.id)
+    );
+
+    if (missingActiveVendors.length === 0) {
+      toast.info("All active vendors are already present.");
+      return;
+    }
+
+    setPendingActiveVendors(missingActiveVendors);
+    setIsActiveVendorPreviewOpen(true);
+  };
+
+  const handleActiveVendorPreviewOpenChange = (open: boolean) => {
+    setIsActiveVendorPreviewOpen(open);
+    if (!open) {
+      setPendingActiveVendors([]);
+    }
+  };
+
+  const handleConfirmAddActiveVendors = () => {
+    if (pendingActiveVendors.length === 0) {
+      setIsActiveVendorPreviewOpen(false);
+      return;
+    }
+
+    const newRows: VendorTransactionsSheetType[] = pendingActiveVendors.map((vendor) => ({
+      id: createLocalId(),
+      vendor_id: vendor.id,
+      vendor_name: vendor.vendorName,
+      market_date: currentMarketDate,
+      present: false,
+      snap: 0,
+      dufb: 0,
+      wdfm_tokens: 0,
+      voucher: 0,
+      reimbursement_due: 0,
+      reported_sales: 0,
+      est_produce_sales: 0,
+      est_num_transactions: 0,
+      isInvalid: false,
+    }));
+
+    setRecords([...newRows, ...records]);
+    setIsActiveVendorPreviewOpen(false);
+    setPendingActiveVendors([]);
+    toast.success(`Added ${newRows.length} active vendor${newRows.length === 1 ? "" : "s"}.`);
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -595,11 +732,6 @@ function TransactionsContent() {
   };
 
   const handleSaveToBackend = async () => {
-    if (records.length === 0) {
-      toast.error("No records to save. Add vendors or import a spreadsheet first.");
-      return;
-    }
-
     if (invalidCount > 0) {
       toast.error(`Please fix ${invalidCount} invalid vendor name(s) before saving.`);
       return;
@@ -628,8 +760,16 @@ function TransactionsContent() {
       const previousPayload = persistedPayloadsRef.current[record.id];
       return previousPayload === undefined || previousPayload !== serializeTransactionPayload(record);
     });
+    const rowsToDelete = Object.keys(persistedPayloadsRef.current).filter(
+      (persistedId) => !records.some((record) => record.id === persistedId)
+    );
 
-    if (rowsToCreate.length === 0 && rowsToUpdate.length === 0) {
+    if (records.length === 0 && rowsToDelete.length === 0) {
+      toast.error("No records to save. Add vendors or import a spreadsheet first.");
+      return;
+    }
+
+    if (rowsToCreate.length === 0 && rowsToUpdate.length === 0 && rowsToDelete.length === 0) {
       toast.info("No changes to save.");
       return;
     }
@@ -661,21 +801,23 @@ function TransactionsContent() {
               )
             )
           : Promise.resolve([]),
+        rowsToDelete.length > 0
+          ? Promise.all(rowsToDelete.map((id) => deleteVendorTransaction(id)))
+          : Promise.resolve([]),
       ]);
 
       const refreshedRecords = await fetchTransactionsForDate(currentMarketDate);
+      await loadAvailableMarketDates();
       setRecords(refreshedRecords);
       persistedPayloadsRef.current = buildPersistedPayloadSnapshot(refreshedRecords);
 
-      if (rowsToCreate.length > 0 && rowsToUpdate.length > 0) {
-        toast.success(
-          `Saved ${rowsToCreate.length} new and ${rowsToUpdate.length} existing vendor transaction row(s).`
-        );
-      } else if (rowsToCreate.length > 0) {
-        toast.success(`Successfully saved ${rowsToCreate.length} vendor transaction row(s).`);
-      } else {
-        toast.success(`Successfully updated ${rowsToUpdate.length} vendor transaction row(s).`);
-      }
+      const successParts = [
+        rowsToCreate.length > 0 ? `${rowsToCreate.length} new` : null,
+        rowsToUpdate.length > 0 ? `${rowsToUpdate.length} updated` : null,
+        rowsToDelete.length > 0 ? `${rowsToDelete.length} deleted` : null,
+      ].filter(Boolean);
+
+      toast.success(`Successfully saved changes: ${successParts.join(', ')} vendor transaction row(s).`);
     } catch (error) {
       console.error("Error saving transactions:", error);
       toast.error("Failed to save data. Please try again.");
@@ -703,7 +845,7 @@ function TransactionsContent() {
           <div>
             <h2 className="text-2xl font-bold text-slate-900">Vendor Transactions</h2>
             <p className="mt-1 text-slate-700">
-              Import rows, add vendors manually, review mismatches, and remove multiple rows at once.
+              Edit and save transactions per Market Date.
             </p>
           </div>
 
@@ -715,48 +857,86 @@ function TransactionsContent() {
               accept=".xlsx,.xls,.csv"
               className="hidden"
             />
-            <button
-              onClick={handleImportClick}
-              disabled={isImporting}
-              className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium shadow-sm transition-all ${
-                isImporting
-                  ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
-                  : "border-[#10b981]/30 bg-white text-[#10b981] hover:bg-[#10b981]/10"
-              }`}
-            >
-              {isImporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-              Import Excel
-            </button>
-            <button
-              onClick={handleDownloadTemplate}
-              disabled={isDownloadingTemplate}
-              className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium shadow-sm transition-all ${
-                isDownloadingTemplate
-                  ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'
-                  : 'border-[#10b981]/30 bg-white text-[#10b981] hover:bg-[#10b981]/10'
-              }`}
-            >
-              {isDownloadingTemplate ? <Loader2 size={16} className="animate-spin" /> : <FileSpreadsheet size={16} />}
-              Download Template
-            </button>
-            <AddVendorDialog vendors={allVendors} onAdd={handleAddVendor} />
-            <ActiveVendorAddButton
-              activeVendors={activeVendors}
-              vendorsLoading={vendorsLoading}
-              currentMarketDate={currentMarketDate}
-              rows={records}
-              onRowsChange={setRecords}
-            />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="inline-flex items-center gap-2 rounded-lg border border-[#10b981] bg-[#10b981] px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:border-[#059669] hover:bg-[#059669] focus:outline-none focus:ring-2 focus:ring-[#10b981]">
+                  <MoreHorizontal size={16} />
+                  Actions
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 border-slate-200 bg-white text-slate-900">
+                <DropdownMenuItem
+                  onSelect={handleImportClick}
+                  disabled={isImporting}
+                  className="gap-3 py-2 text-slate-700 focus:bg-[#10b981]/10 focus:text-[#059669]"
+                >
+                  <span className="flex w-4 shrink-0 justify-center">
+                    {isImporting ? <Loader2 className="animate-spin text-[#10b981]" /> : <Download className="text-[#10b981]" />}
+                  </span>
+                  <span>Import Excel</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() => void handleDownloadTemplate()}
+                  disabled={isDownloadingTemplate}
+                  className="gap-3 py-2 text-slate-700 focus:bg-[#10b981]/10 focus:text-[#059669]"
+                >
+                  <span className="flex w-4 shrink-0 justify-center">
+                    {isDownloadingTemplate ? <Loader2 className="animate-spin text-[#10b981]" /> : <FileSpreadsheet className="text-[#10b981]" />}
+                  </span>
+                  <span>Download Template</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="my-0.5" />
+                <DropdownMenuItem
+                  onSelect={() => setIsAddVendorDialogOpen(true)}
+                  className="gap-3 py-2 text-slate-700 focus:bg-[#10b981]/10 focus:text-[#059669]"
+                >
+                  <span className="flex w-4 shrink-0 justify-center">
+                    <Plus className="text-[#10b981]" />
+                  </span>
+                  <span>Add Vendor</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={handleOpenActiveVendorPreview}
+                  disabled={vendorsLoading || activeVendors.length === 0}
+                  className="gap-3 py-2 text-slate-700 focus:bg-[#10b981]/10 focus:text-[#059669]"
+                >
+                  <span className="flex w-4 shrink-0 justify-center">
+                    <Users className="text-[#10b981]" />
+                  </span>
+                  <span>Add Active Vendors</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
+
+        <AddVendorDialog
+          vendors={allVendors}
+          onAdd={handleAddVendor}
+          open={isAddVendorDialogOpen}
+          onOpenChange={setIsAddVendorDialogOpen}
+          hideTrigger
+        />
+        <ActiveVendorPreviewDialog
+          open={isActiveVendorPreviewOpen}
+          pendingVendors={pendingActiveVendors}
+          onOpenChange={handleActiveVendorPreviewOpenChange}
+          onConfirm={handleConfirmAddActiveVendors}
+          formatCurrency={(amount) =>
+            new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount)
+          }
+        />
 
         <VendorTransactionsSheet
           currentMarketDate={currentMarketDate}
           onCurrentMarketDateChange={setCurrentMarketDate}
           rows={records}
-          isLoading={isLoadingTransactions}
+          isLoading={isSheetLoading}
           isSaving={isSaving}
           invalidCount={invalidCount}
+          hasPendingDeletions={hasPendingDeletions}
+          onPreviousMarketDate={previousMarketDate ? handlePreviousMarketDate : undefined}
+          onNextMarketDate={nextMarketDate ? handleNextMarketDate : undefined}
           normalizeRow={buildRecord}
           onRowsChange={(nextRows) => setRecords(nextRows)}
           onSave={handleSaveToBackend}
