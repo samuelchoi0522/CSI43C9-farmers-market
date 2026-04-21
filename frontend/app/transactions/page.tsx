@@ -216,6 +216,10 @@ function TransactionsContent() {
   }, []);
 
   useEffect(() => {
+    if (vendorsLoading) {
+      return;
+    }
+
     let isActive = true;
 
     const loadTransactions = async () => {
@@ -246,9 +250,10 @@ function TransactionsContent() {
     return () => {
       isActive = false;
     };
-  }, [currentMarketDate, fetchTransactionsForDate]);
+  }, [currentMarketDate, fetchTransactionsForDate, vendorsLoading]);
 
   const invalidCount = records.filter((record) => record.isInvalid).length;
+  const isSheetLoading = vendorsLoading || isLoadingTransactions;
 
   const normalizeRows = (rows: VendorTransactionsSheetRow[]) => rows.map((row) => buildRecord(row));
 
@@ -545,7 +550,7 @@ function TransactionsContent() {
           currentMarketDate={currentMarketDate}
           onCurrentMarketDateChange={setCurrentMarketDate}
           rows={records}
-          isLoading={isLoadingTransactions}
+          isLoading={isSheetLoading}
           isSaving={isSaving}
           invalidCount={invalidCount}
           normalizeRow={buildRecord}
