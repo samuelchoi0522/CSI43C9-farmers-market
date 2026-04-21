@@ -201,6 +201,20 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
     }
 
     /**
+     * Retrieves all distinct market dates ordered from most recent to oldest.
+     *
+     * @return a list of unique market dates
+     */
+    public List<LocalDate> findAllMarketDates() {
+        String sql = """
+                select distinct market_date
+                from vendor_transactions
+                order by market_date desc
+                """;
+        return jdbcTemplate.queryForList(sql, LocalDate.class);
+    }
+
+    /**
      * Retrieves a page of vendor transactions matching the provided filters.
      * @param filter filter values to apply
      * @param page 0-based page number
