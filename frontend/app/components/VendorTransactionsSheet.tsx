@@ -32,6 +32,8 @@ interface VendorTransactionsSheetProps {
   isSaving: boolean;
   invalidCount: number;
   hasPendingDeletions: boolean;
+  onPreviousMarketDate?: () => void;
+  onNextMarketDate?: () => void;
   normalizeRow: (row: VendorTransactionsSheetRow) => VendorTransactionsSheetRow;
   onRowsChange: (rows: VendorTransactionsSheetRow[]) => void;
   onSave: () => void;
@@ -46,6 +48,8 @@ export default function VendorTransactionsSheet({
   isSaving,
   invalidCount,
   hasPendingDeletions,
+  onPreviousMarketDate,
+  onNextMarketDate,
   normalizeRow,
   onRowsChange,
   onSave,
@@ -250,6 +254,8 @@ export default function VendorTransactionsSheet({
         <MarketDatePicker
           value={currentMarketDate}
           onChange={onCurrentMarketDateChange}
+          onPrevClick={onNextMarketDate}
+          onNextClick={onPreviousMarketDate}
           compact
         />
       </div>

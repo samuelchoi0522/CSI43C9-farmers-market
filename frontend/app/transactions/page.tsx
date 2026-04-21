@@ -12,6 +12,7 @@ import ActiveVendorAddButton from "../components/ActiveVendorAddButton";
 import {
   bulkCreateVendorTransactions,
   deleteVendorTransaction,
+  getVendorTransactionMarketDates,
   searchVendorTransactions,
   updateVendorTransaction,
   type CreateVendorTransactionRequest,
@@ -104,8 +105,47 @@ const buildPersistedPayloadSnapshot = (rows: VendorTransactionsSheetRow[]) =>
       .map((record) => [record.id, serializeTransactionPayload(record)])
   );
 
+const appendMissingMarketDate = (marketDates: string[], marketDate: string) =>
+  marketDates.includes(marketDate) ? marketDates : [marketDate, ...marketDates];
+
+const getAdjacentMarketDates = (marketDates: string[], currentMarketDate: string) => {
+  if (marketDates.length === 0) {
+    return { previousMarketDate: null, nextMarketDate: null };
+  }
+
+  const isAscending = marketDates[0] <= marketDates[marketDates.length - 1];
+  const currentIndex = marketDates.indexOf(currentMarketDate);
+
+  if (currentIndex >= 0) {
+    return {
+      previousMarketDate:
+        currentIndex > 0 ? marketDates[currentIndex - 1] : null,
+      nextMarketDate:
+        currentIndex < marketDates.length - 1 ? marketDates[currentIndex + 1] : null,
+    };
+  }
+
+  const earlierDates = marketDates.filter((date) => date < currentMarketDate);
+  const laterDates = marketDates.filter((date) => date > currentMarketDate);
+
+  if (isAscending) {
+    return {
+      previousMarketDate:
+        earlierDates.length > 0 ? earlierDates[earlierDates.length - 1] : null,
+      nextMarketDate: laterDates.length > 0 ? laterDates[0] : null,
+    };
+  }
+
+  return {
+    previousMarketDate: laterDates.length > 0 ? laterDates[laterDates.length - 1] : null,
+    nextMarketDate: earlierDates.length > 0 ? earlierDates[0] : null,
+  };
+};
+
 function TransactionsContent() {
-  const [currentMarketDate, setCurrentMarketDate] = useState(() => mostRecentSaturdayDate());
+  const defaultMarketDate = mostRecentSaturdayDate();
+  const [currentMarketDate, setCurrentMarketDate] = useState(defaultMarketDate);
+  const [availableMarketDates, setAvailableMarketDates] = useState<string[]>([]);
   const [records, setRecords] = useState<VendorTransactionsSheetRow[]>([]);
   const [allVendors, setAllVendors] = useState<Vendor[]>([]);
   const [activeVendors, setActiveVendors] = useState<ApiVendor[]>([]);
@@ -172,6 +212,15 @@ function TransactionsContent() {
     [buildRecord]
   );
 
+  const loadAvailableMarketDates = useCallback(async () => {
+    const marketDates = appendMissingMarketDate(
+      await getVendorTransactionMarketDates(),
+      defaultMarketDate
+    );
+    setAvailableMarketDates(marketDates);
+    return marketDates;
+  }, [defaultMarketDate]);
+
   useEffect(() => {
     let isMounted = true;
 
@@ -179,9 +228,10 @@ function TransactionsContent() {
       setVendorsLoading(true);
 
       try {
-        const [vendorResponse, columnsResponse] = await Promise.all([
+        const [vendorResponse, columnsResponse, marketDates] = await Promise.all([
           getVendors(0, 1000, true),
-          getActiveCustomColumns()
+          getActiveCustomColumns(),
+          loadAvailableMarketDates(),
         ]);
 
         if (!isMounted) return;
@@ -199,6 +249,7 @@ function TransactionsContent() {
             .sort((a, b) => a.vendorName.localeCompare(b.vendorName))
         );
         setCustomColumns(columnsResponse);
+        setAvailableMarketDates(marketDates);
       } catch (error) {
         console.error("Failed to load metadata:", error);
         toast.error("Failed to load vendors or custom columns.");
@@ -214,7 +265,7 @@ function TransactionsContent() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [loadAvailableMarketDates]);
 
   useEffect(() => {
     if (vendorsLoading) {
@@ -258,6 +309,22 @@ function TransactionsContent() {
   const hasPendingDeletions = Object.keys(persistedPayloadsRef.current).some(
     (persistedId) => !records.some((record) => record.id === persistedId)
   );
+  const { previousMarketDate, nextMarketDate } = getAdjacentMarketDates(
+    availableMarketDates,
+    currentMarketDate
+  );
+
+  const handlePreviousMarketDate = useCallback(() => {
+    if (previousMarketDate) {
+      setCurrentMarketDate(previousMarketDate);
+    }
+  }, [previousMarketDate]);
+
+  const handleNextMarketDate = useCallback(() => {
+    if (nextMarketDate) {
+      setCurrentMarketDate(nextMarketDate);
+    }
+  }, [nextMarketDate]);
 
   const normalizeRows = (rows: VendorTransactionsSheetRow[]) => rows.map((row) => buildRecord(row));
 
@@ -470,6 +537,7 @@ function TransactionsContent() {
       ]);
 
       const refreshedRecords = await fetchTransactionsForDate(currentMarketDate);
+      await loadAvailableMarketDates();
       setRecords(refreshedRecords);
       persistedPayloadsRef.current = buildPersistedPayloadSnapshot(refreshedRecords);
 
@@ -507,7 +575,7 @@ function TransactionsContent() {
           <div>
             <h2 className="text-2xl font-bold text-slate-900">Vendor Transactions</h2>
             <p className="mt-1 text-slate-700">
-              Import rows, add vendors manually, review mismatches, and remove multiple rows at once.
+              Edit and save transactions per Market Date.
             </p>
           </div>
 
@@ -562,6 +630,8 @@ function TransactionsContent() {
           isSaving={isSaving}
           invalidCount={invalidCount}
           hasPendingDeletions={hasPendingDeletions}
+          onPreviousMarketDate={previousMarketDate ? handlePreviousMarketDate : undefined}
+          onNextMarketDate={nextMarketDate ? handleNextMarketDate : undefined}
           normalizeRow={buildRecord}
           onRowsChange={(nextRows) => setRecords(normalizeRows(nextRows))}
           onSave={handleSaveToBackend}
