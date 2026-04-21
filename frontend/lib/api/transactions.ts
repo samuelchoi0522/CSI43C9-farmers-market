@@ -42,16 +42,34 @@ export interface VendorTransactionSearchParams {
   [key: string]: string | number | boolean | undefined;
 }
 
+const calculateReimbursementDue = (transaction: VendorTransaction) =>
+  transaction.snap + transaction.dufb + transaction.wdfmTokens + transaction.voucher;
+
+const withCalculatedReimbursementDue = (transaction: VendorTransaction): VendorTransaction => ({
+  ...transaction,
+  reimbursementDue: calculateReimbursementDue(transaction),
+});
+
+const stripCalculatedFields = (
+  request: CreateVendorTransactionRequest
+): Omit<CreateVendorTransactionRequest, 'reimbursementDue'> => {
+  const requestBody = { ...request };
+  delete requestBody.reimbursementDue;
+  return requestBody;
+};
+
 /**
  * Create a new vendor transaction
  */
 export async function createVendorTransaction(
   request: CreateVendorTransactionRequest
 ): Promise<VendorTransaction> {
-  return apiRequest<VendorTransaction>('/api/vendor-transaction', {
+  const response = await apiRequest<VendorTransaction>('/api/vendor-transaction', {
     method: 'POST',
-    body: JSON.stringify(request),
+    body: JSON.stringify(stripCalculatedFields(request)),
   });
+
+  return withCalculatedReimbursementDue(response);
 }
 
 /**
@@ -61,10 +79,15 @@ export async function getVendorTransactions(
   page: number = 0,
   size: number = 10
 ): Promise<PagedResponse<VendorTransaction>> {
-  return apiRequest<PagedResponse<VendorTransaction>>(
+  const response = await apiRequest<PagedResponse<VendorTransaction>>(
     `/api/vendor-transaction?page=${page}&size=${size}`,
     { method: 'GET' }
   );
+
+  return {
+    ...response,
+    data: response.data.map(withCalculatedReimbursementDue),
+  };
 }
 
 /**
@@ -75,10 +98,15 @@ export async function getVendorTransactionsByVendor(
   page: number = 0,
   size: number = 10
 ): Promise<PagedResponse<VendorTransaction>> {
-  return apiRequest<PagedResponse<VendorTransaction>>(
+  const response = await apiRequest<PagedResponse<VendorTransaction>>(
     `/api/vendor-transaction/vendor/${vendorId}?page=${page}&size=${size}`,
     { method: 'GET' }
   );
+
+  return {
+    ...response,
+    data: response.data.map(withCalculatedReimbursementDue),
+  };
 }
 
 /**
@@ -89,10 +117,15 @@ export async function getVendorTransactionsByDate(
   page: number = 0,
   size: number = 10
 ): Promise<PagedResponse<VendorTransaction>> {
-  return apiRequest<PagedResponse<VendorTransaction>>(
+  const response = await apiRequest<PagedResponse<VendorTransaction>>(
     `/api/vendor-transaction?marketDate=${marketDate}&page=${page}&size=${size}`,
     { method: 'GET' }
   );
+
+  return {
+    ...response,
+    data: response.data.map(withCalculatedReimbursementDue),
+  };
 }
 
 /**
@@ -114,18 +147,25 @@ export async function searchVendorTransactions(
     ? `/api/vendor-transaction/search?${queryString}`
     : '/api/vendor-transaction/search';
 
-  return apiRequest<PagedResponse<VendorTransaction>>(endpoint, {
+  const response = await apiRequest<PagedResponse<VendorTransaction>>(endpoint, {
     method: 'GET',
   });
+
+  return {
+    ...response,
+    data: response.data.map(withCalculatedReimbursementDue),
+  };
 }
 
 /**
  * Get a single vendor transaction by UUID
  */
 export async function getVendorTransaction(uuid: string): Promise<VendorTransaction> {
-  return apiRequest<VendorTransaction>(`/api/vendor-transaction/${uuid}`, {
+  const response = await apiRequest<VendorTransaction>(`/api/vendor-transaction/${uuid}`, {
     method: 'GET',
   });
+
+  return withCalculatedReimbursementDue(response);
 }
 
 /**
@@ -144,10 +184,12 @@ export async function updateVendorTransaction(
   uuid: string,
   request: CreateVendorTransactionRequest
 ): Promise<VendorTransaction> {
-  return apiRequest<VendorTransaction>(`/api/vendor-transaction/${uuid}`, {
+  const response = await apiRequest<VendorTransaction>(`/api/vendor-transaction/${uuid}`, {
     method: 'PATCH',
-    body: JSON.stringify(request),
+    body: JSON.stringify(stripCalculatedFields(request)),
   });
+
+  return withCalculatedReimbursementDue(response);
 }
 
 /**
@@ -165,8 +207,10 @@ export async function deleteVendorTransaction(uuid: string): Promise<void> {
 export async function bulkCreateVendorTransactions(
   requests: CreateVendorTransactionRequest[]
 ): Promise<VendorTransaction[]> {
-  return apiRequest<VendorTransaction[]>('/api/vendor-transaction/batch', {
+  const response = await apiRequest<VendorTransaction[]>('/api/vendor-transaction/batch', {
     method: 'POST',
-    body: JSON.stringify(requests),
+    body: JSON.stringify(requests.map(stripCalculatedFields)),
   });
+
+  return response.map(withCalculatedReimbursementDue);
 }
