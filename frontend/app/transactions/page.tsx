@@ -375,7 +375,7 @@ function TransactionsContent() {
         const [vendorResponse, columnsResponse, marketDates, defaultsResponse] = await Promise.all([
           getVendors(0, 1000, true),
           getActiveCustomColumns(),
-          loadAvailableMarketDates(),,
+          loadAvailableMarketDates(),
           getAllVendorDefaults(0, 2000),
         ]);
 
