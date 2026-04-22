@@ -37,9 +37,11 @@ public class VendorDefaultsController {
     /**
      * Creates new vendor defaults in the system.
      *
-     * @param request the {@link SaveVendorDefaultsRequest} containing valid details.
-     * @return a {@link ResponseEntity} containing the created {@link VendorDefaults}
-     * and an HTTP 201 Created status.
+     * @param request the {@link SaveVendorDefaultsRequest} containing valid
+     *                details.
+     * @return a {@link ResponseEntity} containing the created
+     *         {@link VendorDefaults}
+     *         and an HTTP 201 Created status.
      */
     @PostMapping
     public ResponseEntity<@NonNull VendorDefaults> createVendorDefaults(
@@ -49,9 +51,11 @@ public class VendorDefaultsController {
 
     /**
      * Retrieves a paged list of all vendor defaults in the system.
+     *
      * @param page 0-based page number
      * @param size page size
-     * @return a {@link ResponseEntity} containing a {@link PagedResponse} of {@link VendorDefaults}s
+     * @return a {@link ResponseEntity} containing a {@link PagedResponse} of
+     *         {@link VendorDefaults}s
      */
     @GetMapping
     public ResponseEntity<@NonNull PagedResponse<VendorDefaults>> getAllVendorDefaults(
@@ -62,8 +66,10 @@ public class VendorDefaultsController {
 
     /**
      * Retrieves vendor defaults by its UUID.
+     *
      * @param uuid the UUID of the vendor defaults to retrieve.
-     * @return a {@link ResponseEntity} containing the requested {@link VendorDefaults}
+     * @return a {@link ResponseEntity} containing the requested
+     *         {@link VendorDefaults}
      */
     @GetMapping("/{uuid}")
     public ResponseEntity<@NonNull VendorDefaults> getVendorDefaults(@PathVariable UUID uuid) {
@@ -74,8 +80,10 @@ public class VendorDefaultsController {
 
     /**
      * Retrieves vendor defaults by vendor UUID.
+     *
      * @param vendorId the UUID of the vendor.
-     * @return a {@link ResponseEntity} containing the requested {@link VendorDefaults}
+     * @return a {@link ResponseEntity} containing the requested
+     *         {@link VendorDefaults}
      */
     @GetMapping("/vendor/{vendorId}")
     public ResponseEntity<@NonNull VendorDefaults> getVendorDefaultsByVendorId(@PathVariable UUID vendorId) {
@@ -86,9 +94,12 @@ public class VendorDefaultsController {
 
     /**
      * Updates existing vendor defaults in the system.
-     * @param uuid the UUID of the vendor defaults to update.
-     * @param request the {@link SaveVendorDefaultsRequest} containing updated details.
-     * @return a {@link ResponseEntity} containing the updated {@link VendorDefaults}
+     *
+     * @param uuid    the UUID of the vendor defaults to update.
+     * @param request the {@link SaveVendorDefaultsRequest} containing updated
+     *                details.
+     * @return a {@link ResponseEntity} containing the updated
+     *         {@link VendorDefaults}
      */
     @PatchMapping("/{uuid}")
     public ResponseEntity<@NonNull VendorDefaults> updateVendorDefaults(
@@ -99,6 +110,7 @@ public class VendorDefaultsController {
 
     /**
      * Deletes vendor defaults from the system.
+     *
      * @param uuid the UUID of the vendor defaults to delete.
      * @return a 204 No Content response if the record was successfully deleted.
      */

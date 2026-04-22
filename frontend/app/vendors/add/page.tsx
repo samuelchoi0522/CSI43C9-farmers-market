@@ -35,6 +35,7 @@ interface VendorFormData {
     pctPreparedFood: string;
     pctCottageGoods: string;
     pctManufactured: string;
+    avgSaleAmount: string;
 }
 
 function AddVendorContent() {
@@ -70,6 +71,7 @@ function AddVendorContent() {
         pctPreparedFood: "0",
         pctCottageGoods: "0",
         pctManufactured: "0",
+        avgSaleAmount: "0",
     });
 
     const normalizeLabelName = (name: string) => name.trim().toLowerCase();
@@ -83,6 +85,14 @@ function AddVendorContent() {
             formData.pctManufactured,
         ].some(pct => parseFloat(pct) !== 0);
     }, [formData]);
+
+    const hasAvgSaleAmount = useMemo(() => {
+        return parseFloat(formData.avgSaleAmount || "0") > 0;
+    }, [formData.avgSaleAmount]);
+
+    const hasAnyDefaults = useMemo(() => {
+        return hasNonZeroPercentage || hasAvgSaleAmount;
+    }, [hasNonZeroPercentage, hasAvgSaleAmount]);
 
     // Calculate profile completion percentage
     const profileCompletion = useMemo(() => {
@@ -111,38 +121,43 @@ function AddVendorContent() {
         if (formData.bipocOwned) completed++;
         if (formData.veteranOwned) completed++;
 
-        // Vendor Defaults (5 fields, plus a total check)
-        if (hasNonZeroPercentage) {
-            total += 6; // 1 for each field + 1 for the sum validation
-            const percentageFieldKeys = [
-                'pctHandmade', 'pctAgricultural', 'pctPreparedFood',
-                'pctCottageGoods', 'pctManufactured'
-            ];
-            let sumPercentages = 0;
-            let allPercentagesValid = true;
+        // Vendor Defaults (avg sale + optional percentage breakdown)
+        if (hasAnyDefaults) {
+            total += 1;
+            if (hasAvgSaleAmount) completed++;
 
-            percentageFieldKeys.forEach(field => {
-                const value = parseFloat(formData[field as keyof VendorFormData] as string);
-                if (!isNaN(value) && value >= 0 && value <= 100) {
-                    completed++;
-                    sumPercentages += value;
-                } else {
-                    allPercentagesValid = false;
+            if (hasNonZeroPercentage) {
+                total += 6; // 1 for each field + 1 for the sum validation
+                const percentageFieldKeys = [
+                    'pctHandmade', 'pctAgricultural', 'pctPreparedFood',
+                    'pctCottageGoods', 'pctManufactured'
+                ];
+                let sumPercentages = 0;
+                let allPercentagesValid = true;
+
+                percentageFieldKeys.forEach(field => {
+                    const value = parseFloat(formData[field as keyof VendorFormData] as string);
+                    if (!isNaN(value) && value >= 0 && value <= 100) {
+                        completed++;
+                        sumPercentages += value;
+                    } else {
+                        allPercentagesValid = false;
+                    }
+                });
+
+                // Round to 2 decimal places to avoid floating point precision issues
+                sumPercentages = Math.round(sumPercentages * 100) / 100;
+
+                if (allPercentagesValid && sumPercentages === 100) {
+                    completed++; // +1 for the valid sum
                 }
-            });
-
-            // Round to 2 decimal places to avoid floating point precision issues
-            sumPercentages = Math.round(sumPercentages * 100) / 100;
-
-            if (allPercentagesValid && sumPercentages === 100) {
-                completed++; // +1 for the valid sum
             }
         }
 
         // Calculate percentage, ensuring it doesn't exceed 100%
         const percentage = Math.round((completed / total) * 100);
         return Math.min(percentage, 100);
-    }, [formData, hasNonZeroPercentage]);
+    }, [formData, hasNonZeroPercentage, hasAvgSaleAmount, hasAnyDefaults]);
 
     // Animate percentage counter
     useEffect(() => {
@@ -275,6 +290,10 @@ function AddVendorContent() {
             newErrors.miles = "Miles must be a valid positive number";
         }
 
+        if (formData.avgSaleAmount && (isNaN(Number(formData.avgSaleAmount)) || Number(formData.avgSaleAmount) < 0)) {
+            newErrors.avgSaleAmount = "Average sale amount must be a valid positive number";
+        }
+
         const percentageFieldKeys = [
             'pctHandmade', 'pctAgricultural', 'pctPreparedFood',
             'pctCottageGoods', 'pctManufactured'
@@ -344,8 +363,8 @@ function AddVendorContent() {
                 throw new Error("Invalid response from server when creating vendor");
             }
 
-            // Only create vendor defaults if any percentage is non-zero
-            if (hasNonZeroPercentage) {
+            // Create vendor defaults if any percentage is non-zero or avg sale is provided
+            if (hasAnyDefaults) {
                 await createVendorDefaults({
                     vendorId: newVendor.id,
                     pctHandmade: formData.pctHandmade,
@@ -353,6 +372,7 @@ function AddVendorContent() {
                     pctPreparedFood: formData.pctPreparedFood,
                     pctCottageGoods: formData.pctCottageGoods,
                     pctManufactured: formData.pctManufactured,
+                    avgSaleAmount: formData.avgSaleAmount || "0",
                 });
             }
 
@@ -485,18 +505,25 @@ function AddVendorContent() {
                                 </div>
 
                                 {/* Vendor Defaults Review */}
-                                {hasNonZeroPercentage && (
+                                {hasAnyDefaults && (
                                     <div>
-                                        <h4 className="text-sm font-semibold text-slate-700 mb-4">Product Category Percentages</h4>
+                                        <h4 className="text-sm font-semibold text-slate-700 mb-4">Vendor Defaults</h4>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            {percentageFields.map(({ key, label }) => (
-                                                <div key={key}>
-                                                    <p className="text-xs text-slate-700 mb-1">{label}</p>
-                                                    <p className="text-sm font-medium">{formData[key] || "0"}%</p>
-                                                </div>
-                                            ))}
+                                            <div>
+                                                <p className="text-xs text-slate-700 mb-1">Average Sale Amount</p>
+                                                <p className="text-sm font-medium">
+                                                    {hasAvgSaleAmount ? `$${formData.avgSaleAmount}` : <span className="text-slate-400 italic">Not provided</span>}
+                                                </p>
+                                            </div>
+                                            {hasNonZeroPercentage &&
+                                                percentageFields.map(({ key, label }) => (
+                                                    <div key={key}>
+                                                        <p className="text-xs text-slate-700 mb-1">{label}</p>
+                                                        <p className="text-sm font-medium">{formData[key] || "0"}%</p>
+                                                    </div>
+                                                ))}
                                         </div>
-                                        {errors.percentageSum && (
+                                        {hasNonZeroPercentage && errors.percentageSum && (
                                             <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
                                                 <p className="text-sm text-red-600">{errors.percentageSum}</p>
                                             </div>
@@ -803,6 +830,37 @@ function AddVendorContent() {
                                                     })
                                             )}
                                         </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Vendor Average Sale Amount */}
+                            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                                <div className="p-6 border-b border-slate-200">
+                                    <h3 className="font-bold text-lg">Average Sale Amount (Optional)</h3>
+                                    <p className="text-sm text-slate-600 mt-1">
+                                        Save an estimated average transaction amount for this vendor.
+                                    </p>
+                                </div>
+                                <div className="p-6 space-y-2">
+                                    <label htmlFor="avgSaleAmount" className="block text-sm font-medium text-slate-700">
+                                        Average Sale Amount ($)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        id="avgSaleAmount"
+                                        name="avgSaleAmount"
+                                        value={formData.avgSaleAmount}
+                                        onChange={handleInputChange}
+                                        step="0.01"
+                                        min="0"
+                                        className={`w-full px-4 py-2 bg-slate-50 border rounded-lg focus:ring-2 focus:ring-dashboard-primary focus:border-dashboard-primary outline-none transition-colors text-slate-900 ${
+                                            errors.avgSaleAmount ? "border-red-500" : "border-slate-200"
+                                        }`}
+                                        placeholder="0.00"
+                                    />
+                                    {errors.avgSaleAmount && (
+                                        <p className="mt-1 text-sm text-red-500">{errors.avgSaleAmount}</p>
                                     )}
                                 </div>
                             </div>

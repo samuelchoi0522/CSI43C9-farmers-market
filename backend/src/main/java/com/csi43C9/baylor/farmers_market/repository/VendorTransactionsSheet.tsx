@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Box } from '@mui/material';
 import {
   DataGrid,
@@ -39,9 +39,6 @@ interface VendorTransactionsSheetProps {
   isLoading: boolean;
   isSaving: boolean;
   invalidCount: number;
-  hasPendingDeletions: boolean;
-  onPreviousMarketDate?: () => void;
-  onNextMarketDate?: () => void;
   normalizeRow: (row: VendorTransactionsSheetRow) => VendorTransactionsSheetRow;
   onRowsChange: (rows: VendorTransactionsSheetRow[]) => void;
   onSave: () => void;
@@ -56,9 +53,6 @@ export default function VendorTransactionsSheet({
   isLoading,
   isSaving,
   invalidCount,
-  hasPendingDeletions,
-  onPreviousMarketDate,
-  onNextMarketDate,
   normalizeRow,
   onRowsChange,
   onSave,
@@ -66,7 +60,7 @@ export default function VendorTransactionsSheet({
   customColumns = [],
 }: VendorTransactionsSheetProps) {
   const [rowSelectionModel, setRowSelectionModel] = useState<GridRowSelectionModel>({ type: 'include', ids: new Set() });
-  const handleApplyDefaults = useCallback((rowId: string, data: {
+  const handleApplyDefaults = (rowId: string, data: {
     pctHandmade: number;
     pctAgricultural: number;
     pctPreparedFood: number;
@@ -85,7 +79,6 @@ export default function VendorTransactionsSheet({
       ...targetRow,
       est_produce_sales: Math.round(produceSales * 100) / 100,
       est_num_transactions: estTransactions,
-      avg_sale_amount: data.avgSaleAmount,
       defaults_applied: true,
       pct_handmade: data.pctHandmade,
       pct_agricultural: data.pctAgricultural,
@@ -95,22 +88,21 @@ export default function VendorTransactionsSheet({
     });
 
     onRowsChange(rows.map((row) => (row.id === rowId ? updatedRow : row)));
-    toast.success(`Applied defaults for ${updatedRow.vendor_name}.`);
-  }, [normalizeRow, onRowsChange, rows]);
+    toast.success(`Applied item percentages for ${updatedRow.vendor_name}.`);
+  };
+  const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  const isPersistedTransactionId = (value: string) => UUID_PATTERN.test(value);
 
-  const isDefaultsRequired = useCallback((row: VendorTransactionsSheetRow) => {
+  const isDefaultsRequired = (row: VendorTransactionsSheetRow) => {
     const vendor = vendorsWithDefaults.find(
       (item) =>
         item.id === row.vendor_id ||
         item.vendorName?.toLowerCase() === row.vendor_name.trim().toLowerCase()
     );
     return Boolean(vendor?.defaults);
-  }, [vendorsWithDefaults]);
+  };
 
-  // Helper: returns true only when all five percentage fields are absent (null/undefined)
-  // Used when deciding whether to auto-apply vendor defaults (we intentionally
-  // only auto-apply when the row has no percentage data at all).
-  const arePercentagesMissing = useCallback((row: VendorTransactionsSheetRow) => {
+  const arePercentagesMissing = (row: VendorTransactionsSheetRow) => {
     return (
       row.pct_handmade == null &&
       row.pct_agricultural == null &&
@@ -118,45 +110,7 @@ export default function VendorTransactionsSheet({
       row.pct_cottage_goods == null &&
       row.pct_manufactured == null
     );
-  }, []);
-
-  // Custom handler for marking defaults red with enhanced validation.
-  // Rules:
-  // - If vendor has no defaults configured, don't mark red.
-  // - If all percentages are missing → invalid (red).
-  // - If some percentages are set and some are null → invalid (incomplete).
-  // - If all five percentages are set, validate they sum to ~100 (tolerance 0.01).
-  const shouldMarkDefaultsRed = useCallback((row: VendorTransactionsSheetRow) => {
-    // First check if vendor requires defaults
-    if (!isDefaultsRequired(row)) return false;
-
-    // If all percentages are missing, mark red
-    if (arePercentagesMissing(row)) return true;
-
-    // Check if percentages are partially set but invalid
-    const percentages = [
-      row.pct_handmade,
-      row.pct_agricultural,
-      row.pct_prepared_food,
-      row.pct_cottage_goods,
-      row.pct_manufactured
-    ];
-
-    const setPercentages = percentages.filter(p => p != null);
-    const nullPercentages = percentages.filter(p => p == null);
-
-    // If some percentages are set and some are null, mark red (incomplete)
-    if (setPercentages.length > 0 && nullPercentages.length > 0) return true;
-
-    // If all percentages are set, check if they sum to 100%
-    if (setPercentages.length === 5) {
-      const total = setPercentages.reduce((sum, p) => sum + (p || 0), 0);
-      // Allow for small floating point errors
-      return Math.abs(total - 100) > 0.01;
-    }
-
-    return false;
-  }, [arePercentagesMissing, isDefaultsRequired]);
+  };
   const selectedRowIds = useMemo(() => {
     if (rowSelectionModel.type === 'exclude') {
       return rows
@@ -191,8 +145,6 @@ export default function VendorTransactionsSheet({
   };
 
   const handleApplyDefaultsToAll = () => {
-    // Find rows that require defaults and currently have no percentages set.
-    // We intentionally avoid overwriting partially-entered percentages.
     const rowsNeedingDefaults = rows.filter((row) => {
       const vendor = vendorsWithDefaults.find(
         (item) =>
@@ -229,7 +181,6 @@ export default function VendorTransactionsSheet({
         ...row,
         est_produce_sales: Math.round(produceSales * 100) / 100,
         est_num_transactions: estTransactions,
-        avg_sale_amount: avgSaleAmount > 0 ? avgSaleAmount : row.avg_sale_amount ?? null,
         defaults_applied: true,
         pct_handmade: parseFloat(defaults.pctHandmade || '0'),
         pct_agricultural: parseFloat(defaults.pctAgricultural || '0'),
@@ -240,7 +191,7 @@ export default function VendorTransactionsSheet({
     });
 
     onRowsChange(updatedRows);
-    toast.success(`Applied defaults to ${rowsNeedingDefaults.length} vendor(s).`);
+    toast.success(`Applied item percentages to ${rowsNeedingDefaults.length} vendor(s).`);
   };
 
   const processRowUpdate = (updatedRow: VendorTransactionsSheetRow) => {
@@ -336,14 +287,16 @@ export default function VendorTransactionsSheet({
       }),
       VendorTransactionsSheetColumn({
         field: 'defaults',
-        headerName: 'Sales Percentages',
+        headerName: 'Item Percentages',
         width: 120,
         align: 'center',
         headerAlign: 'center',
         editable: false,
         cellClassName: (params) => {
           const row = params.row as VendorTransactionsSheetRow;
-          return shouldMarkDefaultsRed(row)
+          const missingPercentages = arePercentagesMissing(row);
+          const requiresDefaults = isDefaultsRequired(row);
+          return requiresDefaults && missingPercentages
             ? 'bg-red-50 font-bold text-red-600'
             : '';
         },
@@ -370,34 +323,11 @@ export default function VendorTransactionsSheet({
         field: 'est_num_transactions',
         headerName: 'Trans.',
         type: 'number',
-        editable: false,
+        editable: true,
         width: 100,
         align: 'center',
         headerAlign: 'center',
-        valueGetter: (_value, row) => {
-          const vendor = vendorsWithDefaults.find(
-            (item) =>
-              item.id === row.vendor_id ||
-              item.vendorName?.toLowerCase() === row.vendor_name.trim().toLowerCase()
-          );
-          const rowAvgSaleAmount =
-            row.avg_sale_amount != null ? Number(row.avg_sale_amount) : NaN;
-          const vendorAvgSaleAmount = parseFloat(vendor?.defaults?.avgSaleAmount || '0');
-          const resolvedAvgSaleAmount =
-            Number.isFinite(rowAvgSaleAmount) && rowAvgSaleAmount > 0
-              ? rowAvgSaleAmount
-              : Number.isFinite(vendorAvgSaleAmount) && vendorAvgSaleAmount > 0
-              ? vendorAvgSaleAmount
-              : null;
-
-          if (!resolvedAvgSaleAmount) {
-            return row.est_num_transactions ?? null;
-          }
-
-          const sales = row.reported_sales || 0;
-          return Math.round(sales / resolvedAvgSaleAmount);
-        },
-        valueFormatter: (value) => (value == null ? '' : String(value)),
+        renderEditCell: vendorTransactionsSheetEditors.numeric,
       }),
       ...customColumns
         .filter((col) => col.id !== undefined)
@@ -443,7 +373,7 @@ export default function VendorTransactionsSheet({
           });
         }),
     ],
-    [customColumns, vendorsWithDefaults, handleApplyDefaults, shouldMarkDefaultsRed]
+    [customColumns, vendorsWithDefaults, handleApplyDefaults]
   );
 
   const Toolbar = () => (
@@ -452,8 +382,6 @@ export default function VendorTransactionsSheet({
         <MarketDatePicker
           value={currentMarketDate}
           onChange={onCurrentMarketDateChange}
-          onPrevClick={onNextMarketDate}
-          onNextClick={onPreviousMarketDate}
           compact
         />
       </div>
@@ -466,20 +394,13 @@ export default function VendorTransactionsSheet({
           className="rounded-lg border border-slate-200 bg-white px-2 py-1"
         />
         <button
-          onClick={() => {
-            // Confirm that the user wants to bulk-apply defaults.
-            // Note: this only applies defaults to rows that have no percentages set.
-            const ok = window.confirm(
-              "This will apply default percentages to all vendors without percentages already applied."
-            );
-            if (ok) handleApplyDefaultsToAll();
-          }}
+          onClick={handleApplyDefaultsToAll}
           className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
             'border border-dashboard-primary/30 bg-white text-dashboard-primary hover:bg-dashboard-primary/10'
           }`}
         >
           <Sparkles size={16} />
-          Apply All Defaults
+          Apply All Percentages
         </button>
         <button
           onClick={handleDeleteSelected}
@@ -572,7 +493,7 @@ export default function VendorTransactionsSheet({
         <Button
           variant="primary"
           onClick={onSave}
-          disabled={isSaving || (rows.length === 0 && !hasPendingDeletions) || invalidCount > 0}
+          disabled={isSaving || rows.length === 0 || invalidCount > 0}
           className="flex items-center gap-3 rounded-xl px-8 py-4 text-base font-semibold shadow-lg transition-all hover:scale-105 hover:shadow-xl"
         >
           {isSaving ? (
@@ -631,15 +552,12 @@ function VendorDefaultsCell({ row, vendorsWithDefaults, onApply }: VendorDefault
         defaults: localDefaults ?? vendor.defaults,
       }
     : undefined;
-  // Whether this transaction row already contains any percentage values.
-  // Used to pre-populate the dialog so the user can edit existing percentages
-  // instead of overwriting them with vendor defaults.
   const hasTransactionPercentages =
-    (row.pct_handmade !== null && row.pct_handmade !== undefined) ||
-    (row.pct_agricultural !== null && row.pct_agricultural !== undefined) ||
-    (row.pct_prepared_food !== null && row.pct_prepared_food !== undefined) ||
-    (row.pct_cottage_goods !== null && row.pct_cottage_goods !== undefined) ||
-    (row.pct_manufactured !== null && row.pct_manufactured !== undefined);
+    row.pct_handmade !== null && row.pct_handmade !== undefined ||
+    row.pct_agricultural !== null && row.pct_agricultural !== undefined ||
+    row.pct_prepared_food !== null && row.pct_prepared_food !== undefined ||
+    row.pct_cottage_goods !== null && row.pct_cottage_goods !== undefined ||
+    row.pct_manufactured !== null && row.pct_manufactured !== undefined;
 
   const handleOpen = async () => {
     if (!resolvedVendor) {
@@ -647,7 +565,6 @@ function VendorDefaultsCell({ row, vendorsWithDefaults, onApply }: VendorDefault
       return;
     }
 
-    // If defaults are already available locally, open dialog immediately.
     if (resolvedVendor.defaults) {
       setIsOpen(true);
       return;
@@ -697,7 +614,6 @@ function VendorDefaultsCell({ row, vendorsWithDefaults, onApply }: VendorDefault
           reportedSales={row.reported_sales || 0}
           isOpen={isOpen}
           onOpenChange={setIsOpen}
-          initialAvgSaleAmount={row.avg_sale_amount ?? null}
           initialPercentages={
             hasTransactionPercentages
               ? {

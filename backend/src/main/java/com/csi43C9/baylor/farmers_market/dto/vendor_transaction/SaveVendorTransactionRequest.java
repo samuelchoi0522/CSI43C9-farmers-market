@@ -81,6 +81,36 @@ public class SaveVendorTransactionRequest {
     private Long estNumTransactions;
 
     /**
+     * Percentage of reported sales that are handmade.
+     */
+    private Double pctHandmade;
+
+    /**
+     * Percentage of reported sales that are agricultural.
+     */
+    private Double pctAgricultural;
+
+    /**
+     * Percentage of reported sales that are prepared food.
+     */
+    private Double pctPreparedFood;
+
+    /**
+     * Percentage of reported sales that are cottage goods.
+     */
+    private Double pctCottageGoods;
+
+    /**
+     * Percentage of reported sales that are manufactured.
+     */
+    private Double pctManufactured;
+
+    /**
+     * Average sale amount override for this transaction.
+     */
+    private Double avgSaleAmount;
+
+    /**
      * Flexible payload for dynamic column data.
      */
     private Map<String, Object> customData;
