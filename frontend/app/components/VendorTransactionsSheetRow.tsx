@@ -18,8 +18,15 @@ export interface VendorTransactionsSheetRowModel {
   reimbursement_due: number;
   est_produce_sales: number;
   est_num_transactions: number;
+  pct_handmade?: number | null;
+  pct_agricultural?: number | null;
+  pct_prepared_food?: number | null;
+  pct_cottage_goods?: number | null;
+  pct_manufactured?: number | null;
+  avg_sale_amount?: number | null;
   isInvalid: boolean;
   customData?: Record<string, unknown>;
+  defaults_applied?: boolean;
 }
 
 const INVALID_ROW_CLASS = 'vendor-transactions-sheet-row--invalid';

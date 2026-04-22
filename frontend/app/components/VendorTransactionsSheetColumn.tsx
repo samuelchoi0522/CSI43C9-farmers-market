@@ -25,6 +25,7 @@ interface VendorTransactionsSheetColumnProps {
   valueGetter?: VendorTransactionsSheetColumn['valueGetter'];
   valueSetter?: VendorTransactionsSheetColumn['valueSetter'];
   valueFormatter?: VendorTransactionsSheetColumn['valueFormatter'];
+  renderCell?: VendorTransactionsSheetColumn['renderCell'];
   renderEditCell?: VendorTransactionsSheetColumn['renderEditCell'];
   cellClassName?: VendorTransactionsSheetColumn['cellClassName'];
   description?: string;
@@ -161,6 +162,7 @@ export default function VendorTransactionsSheetColumn({
   valueGetter,
   valueSetter,
   valueFormatter,
+  renderCell,
   renderEditCell,
   cellClassName,
   description,
@@ -179,6 +181,7 @@ export default function VendorTransactionsSheetColumn({
     valueGetter,
     valueSetter,
     valueFormatter,
+    renderCell,
     renderEditCell,
     cellClassName,
     description,

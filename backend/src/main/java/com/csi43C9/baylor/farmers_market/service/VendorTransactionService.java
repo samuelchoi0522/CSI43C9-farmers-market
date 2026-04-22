@@ -91,8 +91,35 @@ public class VendorTransactionService {
      * @return The updated VendorTransaction entity.
      */
     public VendorTransaction update(UUID uuid, SaveVendorTransactionRequest request) {
+        VendorTransaction existing = vendorTransactionRepository.findById(uuid)
+                .orElseThrow(() -> new IllegalArgumentException("Vendor transaction not found: " + uuid));
+
         validateCustomData(request.getCustomData());
         VendorTransaction transaction = new RequestMapper().mapRequest(request, uuid);
+
+        if (request.getCustomData() == null) {
+            transaction.setCustomData(existing.getCustomData());
+        }
+
+        if (request.getPctHandmade() == null) {
+            transaction.setPctHandmade(existing.getPctHandmade());
+        }
+        if (request.getPctAgricultural() == null) {
+            transaction.setPctAgricultural(existing.getPctAgricultural());
+        }
+        if (request.getPctPreparedFood() == null) {
+            transaction.setPctPreparedFood(existing.getPctPreparedFood());
+        }
+        if (request.getPctCottageGoods() == null) {
+            transaction.setPctCottageGoods(existing.getPctCottageGoods());
+        }
+        if (request.getPctManufactured() == null) {
+            transaction.setPctManufactured(existing.getPctManufactured());
+        }
+        if (request.getAvgSaleAmount() == null) {
+            transaction.setAvgSaleAmount(existing.getAvgSaleAmount());
+        }
+
         return vendorTransactionRepository.save(transaction);
     }
 
@@ -124,6 +151,15 @@ public class VendorTransactionService {
                 totalElements,
                 totalPages
         );
+    }
+
+    /**
+     * Returns all unique market dates ordered from most recent to oldest.
+     *
+     * @return list of market dates
+     */
+    public List<LocalDate> getMarketDates() {
+        return vendorTransactionRepository.findAllMarketDates();
     }
 
     /**
@@ -329,6 +365,12 @@ public class VendorTransactionService {
             transaction.setReportedSales(request.getReportedSales());
             transaction.setEstProduceSales(request.getEstProduceSales());
             transaction.setEstNumTransactions(request.getEstNumTransactions());
+            transaction.setPctHandmade(request.getPctHandmade());
+            transaction.setPctAgricultural(request.getPctAgricultural());
+            transaction.setPctPreparedFood(request.getPctPreparedFood());
+            transaction.setPctCottageGoods(request.getPctCottageGoods());
+            transaction.setPctManufactured(request.getPctManufactured());
+            transaction.setAvgSaleAmount(request.getAvgSaleAmount());
             transaction.setCustomData(request.getCustomData());
             return transaction;
         }

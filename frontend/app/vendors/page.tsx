@@ -194,7 +194,7 @@ function VendorsContent() {
         );
     };
 
-    const handleExportCSV = () => {
+    const handleExportCSV = async () => {
         if (allVendors.length === 0) return;
 
         const headers = [
@@ -237,15 +237,41 @@ function VendorsContent() {
             ].join(","))
         ].join("\n");
 
-        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const filename = `vendors_export_${new Date().toISOString().split('T')[0]}.csv`;
+
+        if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
+            try {
+                // @ts-ignore - Tauri plugins may not be installed in all environments
+                const { save } = await import("@tauri-apps/plugin-dialog");
+                // @ts-ignore - Tauri plugins may not be installed in all environments
+                const { writeFile } = await import("@tauri-apps/plugin-fs");
+                const filePath = await save({
+                    filters: [{ name: 'CSV', extensions: ['csv'] }],
+                    defaultPath: filename
+                });
+                if (filePath) {
+                    await writeFile(filePath, new TextEncoder().encode(csvContent));
+                }
+            } catch (error) {
+                console.error("Failed to save via Tauri:", error);
+                triggerCSVDownload(csvContent, filename);
+            }
+        } else {
+            triggerCSVDownload(csvContent, filename);
+        }
+    };
+
+    const triggerCSVDownload = (content: string, filename: string) => {
+        const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.setAttribute("href", url);
-        link.setAttribute("download", `vendors_export_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute("download", filename);
         link.style.visibility = "hidden";
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     };
 
     return (

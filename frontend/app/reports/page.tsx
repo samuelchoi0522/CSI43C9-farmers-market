@@ -28,6 +28,7 @@ import {
   useSmoothNumber,
 } from "@/lib/smoothNumbers";
 import { downloadFinancialReportPdf } from "@/lib/reportPdf";
+import { getActiveCustomColumns, type CustomColumnMetadata } from "@/lib/api/customColumns";
 
 type VendorLabelReportRow = {
   name: string;
@@ -42,7 +43,8 @@ type ReportType =
   | "vendorLabel"
   | "leaderboard"
   | "vendor"
-  | "token";
+  | "token"
+  | "customColumns";
 
 const REPORT_TABS: { id: ReportType; label: string }[] = [
   { id: "comprehensive", label: "Comprehensive" },
@@ -51,7 +53,80 @@ const REPORT_TABS: { id: ReportType; label: string }[] = [
   { id: "leaderboard", label: "Leaderboard" },
   { id: "vendor", label: "By Vendor" },
   { id: "token", label: "Token (SNAP, DUFB, etc)" },
+  { id: "customColumns", label: "Custom columns" },
 ];
+
+const CUSTOM_TX_TABLE_PAGE_SIZE = 25;
+
+function readTxCustomValue(t: VendorTransaction, columnId: number): unknown {
+  return t.customData?.[String(columnId)];
+}
+
+type CustomColumnAgg =
+  | { column: CustomColumnMetadata; kind: "numeric"; sum: number; count: number }
+  | {
+      column: CustomColumnMetadata;
+      kind: "boolean";
+      trueCount: number;
+      falseCount: number;
+      emptyCount: number;
+    }
+  | {
+      column: CustomColumnMetadata;
+      kind: "text";
+      filled: number;
+      empty: number;
+      top: { text: string; count: number }[];
+    };
+
+function describeCustomColumnAgg(agg: CustomColumnAgg): string {
+  switch (agg.kind) {
+    case "numeric": {
+      if (agg.count === 0) {
+        return "No values in this range";
+      }
+      const avg = agg.sum / agg.count;
+      if (agg.column.type === "usd") {
+        return `Sum ${formatCurrency(agg.sum)} · ${agg.count} row(s) · avg ${formatCurrency(avg)}`;
+      }
+      return `Sum ${agg.sum.toLocaleString()} · ${agg.count} row(s) · avg ${avg.toLocaleString(undefined, {
+        maximumFractionDigits: 2,
+      })}`;
+    }
+    case "boolean":
+      return `Yes ${agg.trueCount} · No ${agg.falseCount} · blank ${agg.emptyCount}`;
+    case "text": {
+      if (agg.top.length === 0) {
+        return agg.filled === 0 ? "No values in this range" : `${agg.filled} filled · ${agg.empty} blank`;
+      }
+      const topStr = agg.top.map((x) => `${x.text} (${x.count})`).join(", ");
+      return `${agg.filled} filled · ${agg.empty} blank · top: ${topStr}`;
+    }
+    default:
+      return "";
+  }
+}
+
+function formatCustomCellDisplay(col: CustomColumnMetadata, raw: unknown): string {
+  if (raw == null || raw === "") return "—";
+  switch (col.type) {
+    case "boolean":
+      if (raw === true || String(raw).toLowerCase() === "true") return "Yes";
+      if (raw === false || String(raw).toLowerCase() === "false") return "No";
+      return String(raw);
+    case "usd": {
+      const n = typeof raw === "number" ? raw : parseFloat(String(raw));
+      return Number.isFinite(n) ? formatCurrency(n) : "—";
+    }
+    case "number": {
+      const n = typeof raw === "number" ? raw : parseFloat(String(raw));
+      return Number.isFinite(n) ? String(n) : "—";
+    }
+    case "text":
+    default:
+      return String(raw);
+  }
+}
 
 function monthRangeStrings(d = new Date()) {
   const y = d.getFullYear();
@@ -245,6 +320,9 @@ function ReportsContent() {
   const vendorTotalsChartRef = useRef<HTMLDivElement | null>(null);
   const vendorLabelChartRef = useRef<HTMLDivElement | null>(null);
   const tokenChartRef = useRef<HTMLDivElement | null>(null);
+  const customColumnsChartRef = useRef<HTMLDivElement | null>(null);
+
+  const [customColumns, setCustomColumns] = useState<CustomColumnMetadata[]>([]);
 
   const dateRangeKey = useMemo(() => `${startDate}|${endDate}`, [startDate, endDate]);
 
@@ -252,11 +330,13 @@ function ReportsContent() {
     setLoading(true);
     setError(null);
     try {
-      const [tx, defaultsRes] = await Promise.all([
+      const [tx, defaultsRes, cols] = await Promise.all([
         fetchTransactionsInRange(startDate, endDate),
         getAllVendorDefaults(0, 1000),
+        getActiveCustomColumns(),
       ]);
       setTransactions(tx);
+      setCustomColumns(cols);
       const map = new Map<string, VendorDefaults>();
       const list = defaultsRes.data ?? [];
       for (const d of list) {
@@ -268,6 +348,7 @@ function ReportsContent() {
       setError("Could not load financial data for this range. Try another date range or check your connection.");
       setTransactions([]);
       setDefaultsByVendor(new Map());
+      setCustomColumns([]);
     } finally {
       setLoading(false);
     }
@@ -759,6 +840,77 @@ function ReportsContent() {
 
   const tokenTotal = tokenRows.reduce((s, r) => s + r.amount, 0);
 
+  const { customColumnAggs, customColumnsBarData, customColumnSummaryForPdf, customColumnDefsForPdf } = useMemo(() => {
+    const cols = customColumns.filter((c) => c.id !== undefined);
+    const aggs: CustomColumnAgg[] = [];
+    const barData: { name: string; total: number; valueKind: "usd" | "number" }[] = [];
+    for (const col of cols) {
+      const id = col.id as number;
+      if (col.type === "number" || col.type === "usd") {
+        let sum = 0;
+        let count = 0;
+        for (const t of transactions) {
+          const v = readTxCustomValue(t, id);
+          if (v == null || v === "") continue;
+          const n = typeof v === "number" ? v : parseFloat(String(v));
+          if (Number.isFinite(n)) {
+            sum += n;
+            count++;
+          }
+        }
+        aggs.push({ column: col, kind: "numeric", sum, count });
+        const label = col.name.length > 24 ? `${col.name.slice(0, 22)}…` : col.name;
+        barData.push({ name: label, total: sum, valueKind: col.type === "usd" ? "usd" : "number" });
+      } else if (col.type === "boolean") {
+        let trueCount = 0;
+        let falseCount = 0;
+        let emptyCount = 0;
+        for (const t of transactions) {
+          const v = readTxCustomValue(t, id);
+          if (v == null || v === "") {
+            emptyCount++;
+          } else if (v === true || String(v).toLowerCase() === "true") {
+            trueCount++;
+          } else {
+            falseCount++;
+          }
+        }
+        aggs.push({ column: col, kind: "boolean", trueCount, falseCount, emptyCount });
+      } else {
+        const freq = new Map<string, number>();
+        let filled = 0;
+        let empty = 0;
+        for (const t of transactions) {
+          const v = readTxCustomValue(t, id);
+          const s = v == null || v === "" ? null : String(v).trim();
+          if (!s) {
+            empty++;
+          } else {
+            filled++;
+            freq.set(s, (freq.get(s) ?? 0) + 1);
+          }
+        }
+        const top = [...freq.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+          .map(([text, count]) => ({ text, count }));
+        aggs.push({ column: col, kind: "text", filled, empty, top });
+      }
+    }
+    const summaryForPdf = aggs.map((a) => ({
+      name: a.column.name,
+      columnType: a.column.type,
+      detail: describeCustomColumnAgg(a),
+    }));
+    const defsForPdf = cols.map((c) => ({ id: c.id as number, name: c.name, type: c.type }));
+    return {
+      customColumnAggs: aggs,
+      customColumnsBarData: barData,
+      customColumnSummaryForPdf: summaryForPdf,
+      customColumnDefsForPdf: defsForPdf,
+    };
+  }, [transactions, customColumns]);
+
   const reportHeadline = useMemo(() => {
     switch (reportType) {
       case "comprehensive":
@@ -795,6 +947,12 @@ function ReportsContent() {
           title: "Token & program totals",
           subtitle: "SNAP, DUFB, WDFM, and voucher amounts summed across all transactions in range.",
         };
+      case "customColumns":
+        return {
+          title: "Custom column values",
+          subtitle:
+            "Rollups and per-transaction values for vendor-defined fields (same columns as the transactions sheet) within the selected dates.",
+        };
       default:
         return { title: "", subtitle: "" };
     }
@@ -803,6 +961,30 @@ function ReportsContent() {
   const sortedTxForTable = useMemo(() => {
     return [...transactions].sort((a, b) => b.marketDate.localeCompare(a.marketDate));
   }, [transactions]);
+
+  const [customTxTablePage, setCustomTxTablePage] = useState(0);
+
+  const customTxTableRowCount = sortedTxForTable.length;
+  const customTxTableTotalPages = Math.max(
+    1,
+    Math.ceil(customTxTableRowCount / CUSTOM_TX_TABLE_PAGE_SIZE),
+  );
+
+  const customTxPagedRows = useMemo(() => {
+    const start = customTxTablePage * CUSTOM_TX_TABLE_PAGE_SIZE;
+    return sortedTxForTable.slice(start, start + CUSTOM_TX_TABLE_PAGE_SIZE);
+  }, [sortedTxForTable, customTxTablePage]);
+
+  useEffect(() => {
+    setCustomTxTablePage(0);
+  }, [dateRangeKey]);
+
+  useEffect(() => {
+    const maxPage = Math.max(0, Math.ceil(customTxTableRowCount / CUSTOM_TX_TABLE_PAGE_SIZE) - 1);
+    if (customTxTablePage > maxPage) {
+      setCustomTxTablePage(maxPage);
+    }
+  }, [customTxTableRowCount, customTxTablePage]);
 
   const chartSvgToPngDataUrl = useCallback(async (container: HTMLDivElement | null): Promise<string | null> => {
     if (!container) return null;
@@ -942,6 +1124,21 @@ function ReportsContent() {
           });
           }
           break;
+        case "customColumns":
+          {
+            const customChart = await chartSvgToPngDataUrl(customColumnsChartRef.current);
+            await downloadFinancialReportPdf({
+              reportType: "customColumns",
+              ...base,
+              summaryRows: customColumnSummaryForPdf,
+              sortedTxForTable,
+              customColumnDefs: customColumnDefsForPdf,
+              chartImages: customChart
+                ? [{ title: "Totals for number & currency columns", dataUrl: customChart }]
+                : [],
+            });
+          }
+          break;
         default:
           break;
       }
@@ -969,71 +1166,73 @@ function ReportsContent() {
           </div>
         </header>
 
-        <section className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-8">
-          <div className="min-w-0 flex-1">
-            <nav
-              className="flex flex-wrap gap-x-6 gap-y-1 mb-4 border-b border-slate-200 dark:border-slate-700"
-              aria-label="Report type"
-            >
-              {REPORT_TABS.map((tab) => {
-                const active = reportType === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setReportType(tab.id)}
-                    className={`pb-3 text-sm font-semibold border-b-2 -mb-px transition-colors ${
-                      active
-                        ? "border-[#10b981] text-[#10b981]"
-                        : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </nav>
-            <h3 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-slate-100">{reportHeadline.title}</h3>
-            <p className="text-slate-600 dark:text-slate-400 mt-2 max-w-2xl text-sm leading-relaxed">
-              {reportHeadline.subtitle}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3 shrink-0 print:hidden">
-            <div className="flex items-center gap-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 shadow-sm">
-              <label className="sr-only" htmlFor="report-start">
-                Start date
-              </label>
-              <input
-                id="report-start"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="bg-transparent border-none text-sm font-medium outline-none w-[9.5rem]"
-              />
-              <span className="text-slate-400">–</span>
-              <label className="sr-only" htmlFor="report-end">
-                End date
-              </label>
-              <input
-                id="report-end"
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="bg-transparent border-none text-sm font-medium outline-none w-[9.5rem]"
-              />
+        <section className="flex flex-col gap-6 mb-8">
+          <nav
+            className="flex w-full border-b border-slate-200 dark:border-slate-700"
+            aria-label="Report type"
+          >
+            {REPORT_TABS.map((tab) => {
+              const active = reportType === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setReportType(tab.id)}
+                  className={`flex-1 min-w-0 px-1 sm:px-2 md:px-3 pb-3 text-center text-[11px] sm:text-sm font-semibold border-b-2 -mb-px transition-colors leading-tight ${
+                    active
+                      ? "border-[#10b981] text-[#10b981]"
+                      : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                  }`}
+                >
+                  <span className="inline-block max-w-full">{tab.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+            <div className="min-w-0 flex-1">
+              <h3 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-slate-100">{reportHeadline.title}</h3>
+              <p className="text-slate-600 dark:text-slate-400 mt-2 max-w-2xl text-sm leading-relaxed">
+                {reportHeadline.subtitle}
+              </p>
             </div>
-            <Button
-              type="button"
-              variant="primary"
-              className="flex items-center gap-2 shadow-md"
-              onClick={handleExportPdf}
-              disabled={loading || exportingPdf}
-            >
-              <span className="material-icons text-lg leading-none">
-                {exportingPdf ? "hourglass_empty" : "download"}
-              </span>
-              {exportingPdf ? "Generating PDF…" : "Export PDF"}
-            </Button>
+            <div className="flex flex-wrap items-center gap-3 shrink-0 print:hidden">
+              <div className="flex items-center gap-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 shadow-sm">
+                <label className="sr-only" htmlFor="report-start">
+                  Start date
+                </label>
+                <input
+                  id="report-start"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="bg-transparent border-none text-sm font-medium outline-none w-[9.5rem]"
+                />
+                <span className="text-slate-400">–</span>
+                <label className="sr-only" htmlFor="report-end">
+                  End date
+                </label>
+                <input
+                  id="report-end"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="bg-transparent border-none text-sm font-medium outline-none w-[9.5rem]"
+                />
+              </div>
+              <Button
+                type="button"
+                variant="primary"
+                className="flex items-center gap-2 shadow-md"
+                onClick={handleExportPdf}
+                disabled={loading || exportingPdf}
+              >
+                <span className="material-icons text-lg leading-none">
+                  {exportingPdf ? "hourglass_empty" : "download"}
+                </span>
+                {exportingPdf ? "Generating PDF…" : "Export PDF"}
+              </Button>
+            </div>
           </div>
         </section>
 
@@ -1944,6 +2143,197 @@ function ReportsContent() {
                     </table>
                   </div>
                 </div>
+              </>
+            )}
+
+            {reportType === "customColumns" && (
+              <>
+                {customColumns.filter((c) => c.id !== undefined).length === 0 ? (
+                  <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-8 text-center">
+                    <p className="text-slate-700 dark:text-slate-300 font-medium">No active custom columns</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-2 max-w-md mx-auto">
+                      Define fields under Admin → Custom Columns. They will appear here and on the transactions sheet.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden mb-8">
+                      <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+                        <h4 className="font-bold text-lg text-slate-900 dark:text-slate-100">Summary by column</h4>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                          Aggregates across all transactions in the selected date range.
+                        </p>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead className="bg-slate-50 dark:bg-slate-900/50 text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                            <tr>
+                              <th className="px-6 py-3 text-left">Column</th>
+                              <th className="px-6 py-3 text-left">Type</th>
+                              <th className="px-6 py-3 text-left">Summary</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                            {customColumnAggs.map((agg) => (
+                              <tr key={agg.column.id} className="hover:bg-green-50/80 dark:hover:bg-green-900/15 transition-colors">
+                                <td className="px-6 py-3 font-medium text-slate-900 dark:text-slate-100">{agg.column.name}</td>
+                                <td className="px-6 py-3 text-slate-600 dark:text-slate-400 capitalize">{agg.column.type}</td>
+                                <td className="px-6 py-3 text-slate-700 dark:text-slate-300">{describeCustomColumnAgg(agg)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {customColumnsBarData.some((r) => r.total !== 0) && (
+                      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 mb-8">
+                        <h4 className="font-bold text-lg mb-2 text-slate-900 dark:text-slate-100">Number &amp; currency totals</h4>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+                          Sum of values for each numeric or USD custom field (blank cells excluded). Axis uses plain numbers when both types are present; see tooltip for currency.
+                        </p>
+                        <div ref={customColumnsChartRef} className="h-72">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart
+                              data={customColumnsBarData}
+                              layout="vertical"
+                              margin={{ top: 8, right: 24, left: 8, bottom: 8 }}
+                            >
+                              <CartesianGrid strokeDasharray="4 4" stroke="#e2e8f0" className="dark:stroke-slate-600" />
+                              <XAxis
+                                type="number"
+                                tickFormatter={(v) =>
+                                  Number(v).toLocaleString(undefined, { maximumFractionDigits: 2 })
+                                }
+                              />
+                              <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11 }} />
+                              <Tooltip
+                                formatter={(v: number, _label: string, item: { payload?: { valueKind?: string } }) => {
+                                  const kind = item?.payload?.valueKind;
+                                  const formatted =
+                                    kind === "usd" ? formatCurrency(v) : Number(v).toLocaleString();
+                                  return [formatted, "Sum"];
+                                }}
+                              />
+                              <Bar dataKey="total" fill="#10b981" radius={[0, 4, 4, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                      <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+                        <h4 className="font-bold text-lg text-slate-900 dark:text-slate-100">Per-transaction values</h4>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                          One row per transaction in range; columns match active custom fields.
+                        </p>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm min-w-[640px]">
+                          <thead className="bg-slate-50 dark:bg-slate-900/50 text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                            <tr>
+                              <th className="px-6 py-3 text-left whitespace-nowrap">Date</th>
+                              <th className="px-6 py-3 text-left whitespace-nowrap">Vendor</th>
+                              {customColumns
+                                .filter((c) => c.id !== undefined)
+                                .map((col) => (
+                                  <th key={col.id} className="px-6 py-3 text-left whitespace-nowrap max-w-[14rem]">
+                                    {col.name}
+                                  </th>
+                                ))}
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                            {sortedTxForTable.length === 0 ? (
+                              <tr>
+                                <td
+                                  colSpan={2 + customColumns.filter((c) => c.id !== undefined).length}
+                                  className="px-6 py-8 text-center text-slate-500"
+                                >
+                                  No rows for this range.
+                                </td>
+                              </tr>
+                            ) : (
+                              customTxPagedRows.map((t) => (
+                                <tr key={t.id} className="hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
+                                  <td className="px-6 py-3 whitespace-nowrap align-top text-slate-900 dark:text-slate-100">
+                                    {t.marketDate}
+                                  </td>
+                                  <td className="px-6 py-3 whitespace-nowrap align-top text-slate-900 dark:text-slate-100">
+                                    {t.vendorName}
+                                  </td>
+                                  {customColumns
+                                    .filter((c) => c.id !== undefined)
+                                    .map((col) => (
+                                      <td
+                                        key={col.id}
+                                        className="px-6 py-3 align-top text-slate-900 dark:text-slate-100 max-w-[14rem]"
+                                      >
+                                        <span className="line-clamp-3 break-words">
+                                          {formatCustomCellDisplay(col, readTxCustomValue(t, col.id as number))}
+                                        </span>
+                                      </td>
+                                    ))}
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                      {sortedTxForTable.length > 0 && (
+                        <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3">
+                          <span className="text-sm text-slate-700 dark:text-slate-300">
+                            Showing{" "}
+                            <span className="font-medium tabular-nums">
+                              {customTxTableRowCount === 0
+                                ? 0
+                                : customTxTablePage * CUSTOM_TX_TABLE_PAGE_SIZE + 1}
+                            </span>{" "}
+                            to{" "}
+                            <span className="font-medium tabular-nums">
+                              {Math.min(
+                                (customTxTablePage + 1) * CUSTOM_TX_TABLE_PAGE_SIZE,
+                                customTxTableRowCount,
+                              )}
+                            </span>{" "}
+                            of <span className="font-medium tabular-nums">{customTxTableRowCount}</span>{" "}
+                            transactions
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="p-1 px-3"
+                              disabled={customTxTablePage === 0}
+                              onClick={() => setCustomTxTablePage((p) => Math.max(0, p - 1))}
+                            >
+                              <span className="material-icons text-lg leading-none">chevron_left</span>
+                            </Button>
+                            <span className="text-sm text-slate-600 dark:text-slate-400 px-2 tabular-nums">
+                              Page {customTxTablePage + 1} of {customTxTableTotalPages}
+                            </span>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="p-1 px-3"
+                              disabled={customTxTablePage >= customTxTableTotalPages - 1}
+                              onClick={() =>
+                                setCustomTxTablePage((p) =>
+                                  Math.min(customTxTableTotalPages - 1, p + 1),
+                                )
+                              }
+                            >
+                              <span className="material-icons text-lg leading-none">chevron_right</span>
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
               </>
             )}
           </>

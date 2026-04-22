@@ -7,6 +7,7 @@ create table if not exists vendors
     location      varchar(255)              null,
     miles         int                       null,
     products      varchar(255)              null,
+    avg_sale      double                    null,
     is_active     boolean default 1      null,
     created_at    timestamp  default now(),
     updated_at    timestamp on update now() null
@@ -26,6 +27,12 @@ create table if not exists vendor_transactions
     reported_sales       double                    null,
     est_produce_sales    double                    null,
     est_num_transactions bigint                    null,
+    pct_handmade         double,
+    pct_agricultural     double,
+    pct_prepared_food    double,
+    pct_cottage_goods    double,
+    pct_manufactured     double,
+    avg_sale             double                    null,
     custom_data          text                      null,
     created_at           timestamp  default now(),
     updated_at           timestamp on update now() null
@@ -54,7 +61,8 @@ create table if not exists vendor_defaults
     pct_agricultural  DECIMAL(5, 2)     not null default 0.00,
     pct_prepared_food DECIMAL(5, 2)     not null default 0.00,
     pct_cottage_goods DECIMAL(5, 2)     not null default 0.00,
-    pct_manufactured  DECIMAL(5, 2)     not null default 0.00
+    pct_manufactured  DECIMAL(5, 2)     not null default 0.00,
+    avg_sale          double                    null
 );
 
 create table if not exists category_labels
@@ -70,3 +78,16 @@ create table if not exists vendor_category_labels
     label_id  bigint     not null,
     primary key (vendor_id, label_id)
 );
+
+create table if not exists market_goals
+(
+    id            bigint auto_increment primary key,
+    name          varchar(255)              not null,
+    start_date    date                      not null,
+    end_date      date                      not null,
+    metric        varchar(64)               not null,
+    target_value  double                    not null,
+    created_at    timestamp default current_timestamp,
+    updated_at    timestamp default current_timestamp on update current_timestamp
+);
+create index if not exists market_goals_dates_idx on market_goals (start_date, end_date);
