@@ -21,7 +21,6 @@ import {
 import { getVendors, type Vendor as ApiVendor } from '@/lib/api/vendor';
 import { downloadVendorTransactionsTemplate, exportVendorTransactionsSpreadsheet } from '@/lib/transactionsTemplate';
 import { getAllVendorDefaults, type VendorDefaults } from '@/lib/api/defaults';
-import { downloadVendorTransactionsTemplate } from '@/lib/transactionsTemplate';
 import { getActiveCustomColumns, type CustomColumnMetadata } from '@/lib/api/customColumns';
 import { mostRecentSaturdayDate } from '@/lib/dashboardAggregates';
 import {
