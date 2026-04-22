@@ -19,8 +19,8 @@ import {
   type VendorTransaction,
 } from '@/lib/api/transactions';
 import { getVendors, type Vendor as ApiVendor } from '@/lib/api/vendor';
+import { downloadVendorTransactionsTemplate, exportVendorTransactionsSpreadsheet } from '@/lib/transactionsTemplate';
 import { getAllVendorDefaults, type VendorDefaults } from '@/lib/api/defaults';
-import { downloadVendorTransactionsTemplate } from '@/lib/transactionsTemplate';
 import { getActiveCustomColumns, type CustomColumnMetadata } from '@/lib/api/customColumns';
 import { mostRecentSaturdayDate } from '@/lib/dashboardAggregates';
 import {
@@ -197,6 +197,7 @@ function TransactionsContent() {
   const [vendorsLoading, setVendorsLoading] = useState(true);
   const [isImporting, setIsImporting] = useState(false);
   const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
   const [isAddVendorDialogOpen, setIsAddVendorDialogOpen] = useState(false);
@@ -535,6 +536,34 @@ function TransactionsContent() {
       toast.error('Unable to download template. Please try again.');
     } finally {
       setIsDownloadingTemplate(false);
+    }
+  };
+
+  const handleExportExcel = async () => {
+    setIsExporting(true);
+    try {
+      const exportRows = records.map((row) => {
+        return {
+          vendor_name: row.vendor_name,
+          present: row.present,
+          snap: row.snap,
+          dufb: row.dufb,
+          wdfm_tokens: row.wdfm_tokens,
+          voucher: row.voucher,
+          reported_sales: row.reported_sales,
+          est_produce_sales: row.est_produce_sales,
+          est_num_transactions: row.est_num_transactions,
+          customData: row.customData,
+        };
+      });
+
+      await exportVendorTransactionsSpreadsheet(currentMarketDate, exportRows, customColumns);
+      toast.success('Exported transactions to Excel.');
+    } catch (error) {
+      console.error('Failed to export transactions:', error);
+      toast.error('Unable to export. Please try again.');
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -933,6 +962,7 @@ function TransactionsContent() {
           rows={records}
           isLoading={isSheetLoading}
           isSaving={isSaving}
+          isExporting={isExporting}
           invalidCount={invalidCount}
           hasPendingDeletions={hasPendingDeletions}
           onPreviousMarketDate={previousMarketDate ? handlePreviousMarketDate : undefined}
@@ -940,6 +970,7 @@ function TransactionsContent() {
           normalizeRow={buildRecord}
           onRowsChange={(nextRows) => setRecords(nextRows)}
           onSave={handleSaveToBackend}
+          onExportExcel={handleExportExcel}
           vendorsWithDefaults={vendorDetails}
           customColumns={customColumns}
         />

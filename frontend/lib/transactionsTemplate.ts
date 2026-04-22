@@ -183,18 +183,12 @@ const applyDataValidations = (
   }
 };
 
-const addSummaryTable = (
-  worksheet: ExcelJS.Worksheet,
-  firstDataRow: number,
-  lastDataRow: number
-) => {
+const addSummaryTable = (worksheet: ExcelJS.Worksheet) => {
   const labelColumn = 1;
   const inputColumn = 2;
   const startRow = 2;
   const inputColumnLetter = columnLetter(inputColumn);
   const inputCellByLabel = new Map<string, string>();
-
-  const mainRange = (col: string) => `'Transactions'!${col}${firstDataRow}:${col}${lastDataRow}`;
 
   SUMMARY_FIELDS.forEach((field, index) => {
     const row = startRow + index;
@@ -212,18 +206,6 @@ const addSummaryTable = (
       };
     }
   });
-
-  const setFormula = (label: string, formula: string) => {
-    const address = inputCellByLabel.get(label);
-    if (!address) return;
-    worksheet.getCell(address).value = { formula };
-  };
-
-  const setValue = (label: string, value: string | number) => {
-    const address = inputCellByLabel.get(label);
-    if (!address) return;
-    worksheet.getCell(address).value = value;
-  };
 
   //TODO: FIX THE FORMULAS HERE!!!!
 
@@ -288,7 +270,7 @@ export async function downloadVendorTransactionsTemplate(marketDate: string): Pr
   const firstDataRow = 2;
   const lastDataRow = Math.max(vendorNames.length + 1, firstDataRow);
   const additionalValuesSheet = workbook.addWorksheet('Additional Values');
-  addSummaryTable(additionalValuesSheet, firstDataRow, lastDataRow);
+  addSummaryTable(additionalValuesSheet);
   const hasDataRows = vendorNames.length > 0;
 
   if (hasDataRows) {
@@ -338,6 +320,116 @@ function triggerBrowserDownload(buffer: ExcelJS.Buffer, filename: string) {
   const link = document.createElement('a');
   link.href = url;
   link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+type ExportTransactionRow = {
+  vendor_name: string;
+  present: boolean;
+  snap: number;
+  dufb: number;
+  wdfm_tokens: number;
+  voucher: number;
+  reported_sales: number;
+  est_produce_sales: number;
+  est_num_transactions: number | null;
+  customData?: Record<string, unknown>;
+};
+
+const formatExportFilename = (marketDate: string) => {
+  const date = toSafeDate(marketDate);
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${month}_${day}_${year} Trans Export.xlsx`;
+};
+
+const toCustomCellValue = (value: unknown, column: CustomColumnMetadata) => {
+  if (value == null) {
+    return column.type === 'number' || column.type === 'usd' ? 0 : '';
+  }
+
+  if (column.type === 'boolean') {
+    if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+    const normalized = String(value).trim().toLowerCase();
+    if (['y', 'yes', 'true', '1'].includes(normalized)) return 'Yes';
+    if (['n', 'no', 'false', '0'].includes(normalized)) return 'No';
+    return String(value);
+  }
+
+  if (column.type === 'number' || column.type === 'usd') {
+    const num = typeof value === 'number' ? value : Number(value);
+    return Number.isFinite(num) ? num : 0;
+  }
+
+  return String(value);
+};
+
+export async function exportVendorTransactionsSpreadsheet(
+  marketDate: string,
+  rows: ExportTransactionRow[],
+  customColumns: CustomColumnMetadata[]
+): Promise<void> {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Transactions');
+
+  const headers = [...BASE_HEADERS, ...customColumns.map(createCustomHeader)];
+  worksheet.addRow(headers);
+
+  rows.forEach((row) => {
+    const base = [
+      row.vendor_name,
+      row.present ? 'Yes' : 'No',
+      row.snap ?? 0,
+      row.dufb ?? 0,
+      row.wdfm_tokens ?? 0,
+      row.voucher ?? 0,
+      null, // formula set after insert
+      row.reported_sales ?? 0,
+      row.est_produce_sales ?? 0,
+      row.est_num_transactions ?? null,
+    ];
+
+    const customValues = customColumns.map((column) => {
+      const columnId = column.id;
+      if (columnId === undefined) return '';
+      return toCustomCellValue(row.customData?.[columnId], column);
+    });
+
+    worksheet.addRow([...base, ...customValues]);
+  });
+
+  const firstDataRow = 2;
+  const lastDataRow = Math.max(rows.length + 1, firstDataRow);
+  const hasDataRows = rows.length > 0;
+
+  const additionalValuesSheet = workbook.addWorksheet('Additional Values');
+  addSummaryTable(additionalValuesSheet);
+
+  if (hasDataRows) {
+    for (let row = firstDataRow; row <= lastDataRow; row += 1) {
+      worksheet.getCell(`G${row}`).value = { formula: `SUM(C${row}:F${row})` };
+    }
+  }
+
+  const metadataSheet = workbook.addWorksheet('Custom Column Metadata');
+  metadataSheet.addRow(['id', 'name', 'type', 'is_required']);
+  customColumns.forEach((column) => {
+    metadataSheet.addRow([column.id, column.name, column.type, column.isRequired ? 1 : 0]);
+  });
+  metadataSheet.state = 'hidden';
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = formatExportFilename(marketDate);
   document.body.appendChild(link);
   link.click();
   link.remove();
