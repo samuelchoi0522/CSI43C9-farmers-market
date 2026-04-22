@@ -405,6 +405,89 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
     }
 
     /**
+     * Sums reported sales for transactions with market dates in the inclusive range.
+     */
+    public double sumReportedSalesBetween(LocalDate start, LocalDate end) {
+        String sql = """
+                select coalesce(sum(reported_sales), 0)
+                from vendor_transactions
+                where market_date >= ? and market_date <= ?
+                """;
+        Double v = jdbcTemplate.queryForObject(sql, Double.class, start, end);
+        return v != null ? v : 0.0;
+    }
+
+    /**
+     * Sums reimbursement due for transactions with market dates in the inclusive range.
+     */
+    public double sumReimbursementBetween(LocalDate start, LocalDate end) {
+        String sql = """
+                select coalesce(sum(reimbursement_due), 0)
+                from vendor_transactions
+                where market_date >= ? and market_date <= ?
+                """;
+        Double v = jdbcTemplate.queryForObject(sql, Double.class, start, end);
+        return v != null ? v : 0.0;
+    }
+
+    /**
+     * Sums SNAP + DUFB + WDFM + voucher for transactions in the inclusive date range.
+     */
+    public double sumTokenVolumeBetween(LocalDate start, LocalDate end) {
+        String sql = """
+                select coalesce(sum(
+                    coalesce(snap, 0) + coalesce(dufb, 0) + coalesce(wdfm_tokens, 0) + coalesce(voucher, 0)
+                ), 0)
+                from vendor_transactions
+                where market_date >= ? and market_date <= ?
+                """;
+        Double v = jdbcTemplate.queryForObject(sql, Double.class, start, end);
+        return v != null ? v : 0.0;
+    }
+
+    /**
+     * Counts transaction rows in the inclusive date range.
+     */
+    public long countTransactionsBetween(LocalDate start, LocalDate end) {
+        String sql = """
+                select count(*) from vendor_transactions
+                where market_date >= ? and market_date <= ?
+                """;
+        Long c = jdbcTemplate.queryForObject(sql, Long.class, start, end);
+        return c != null ? c : 0L;
+    }
+
+    /**
+     * Counts vendor market-day attendances in range: present rows for vendors that are currently active.
+     * One row per vendor per market date; only {@code present = true} and {@code vendors.is_active = true}.
+     */
+    public long countActiveVendorAttendanceBetween(LocalDate start, LocalDate end) {
+        String sql = """
+                select count(*)
+                from vendor_transactions vt
+                inner join vendors v on v.id = vt.vendor_id and v.is_active = true
+                where vt.market_date >= ? and vt.market_date <= ?
+                  and vt.present = true
+                """;
+        Long c = jdbcTemplate.queryForObject(sql, Long.class, start, end);
+        return c != null ? c : 0L;
+    }
+
+    /**
+     * All vendor–market session rows in range for currently active vendors (present or not), for attendance %.
+     */
+    public long countActiveVendorSessionsBetween(LocalDate start, LocalDate end) {
+        String sql = """
+                select count(*)
+                from vendor_transactions vt
+                inner join vendors v on v.id = vt.vendor_id and v.is_active = true
+                where vt.market_date >= ? and vt.market_date <= ?
+                """;
+        Long c = jdbcTemplate.queryForObject(sql, Long.class, start, end);
+        return c != null ? c : 0L;
+    }
+
+    /**
      * Helper to safely convert the custom data map into a JSON string.
      */
     private String toJsonString(Map<String, Object> data) {

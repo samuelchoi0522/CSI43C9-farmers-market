@@ -89,3 +89,18 @@ create table if not exists vendor_category_labels
     foreign key (vendor_id) references vendors (id),
     foreign key (label_id) references category_labels (id)
 );
+
+create table if not exists market_goals
+(
+    id            bigint auto_increment primary key,
+    name          varchar(255)              not null,
+    start_date    date                      not null,
+    end_date      date                      not null,
+    metric        varchar(64)               not null,
+    target_value  double                    not null,
+    created_at    timestamp default current_timestamp,
+    updated_at    timestamp default current_timestamp on update current_timestamp,
+    check ( end_date >= start_date )
+);
+-- Metric values validated in MarketGoalService (avoids DB 409s when adding new metrics; relax old CHECKs by recreating DB or ALTER).
+create index if not exists market_goals_dates_idx on market_goals (start_date, end_date);
