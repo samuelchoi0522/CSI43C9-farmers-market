@@ -50,6 +50,7 @@ interface VendorFormData {
     pctPreparedFood: string;
     pctCottageGoods: string;
     pctManufactured: string;
+    avgSaleAmount: string;
 }
 
 export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: EditVendorDialogProps) {
@@ -78,6 +79,7 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
         pctPreparedFood: "0",
         pctCottageGoods: "0",
         pctManufactured: "0",
+        avgSaleAmount: "0",
     });
 
     useEffect(() => {
@@ -95,6 +97,7 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
                             pctPreparedFood: defaults.pctPreparedFood || "0",
                             pctCottageGoods: defaults.pctCottageGoods || "0",
                             pctManufactured: defaults.pctManufactured || "0",
+                            avgSaleAmount: defaults.avgSaleAmount || "0",
                         }));
                     }
                 } catch (error) {
@@ -185,6 +188,10 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
             newErrors.miles = "Miles must be a valid positive number";
         }
 
+        if (formData.avgSaleAmount && (isNaN(Number(formData.avgSaleAmount)) || Number(formData.avgSaleAmount) < 0)) {
+            newErrors.avgSaleAmount = "Average sale amount must be a valid positive number";
+        }
+
         const percentageFieldKeys = [
             'pctHandmade', 'pctAgricultural', 'pctPreparedFood',
             'pctCottageGoods', 'pctManufactured'
@@ -226,19 +233,22 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
                 pointPerson: formData.pointPerson || undefined,
                 email: formData.email || undefined,
                 location: formData.location || undefined,
-                miles: milesNumber,
+                miles: milesNumber, // This is already handled to be undefined if empty string
                 products: formData.products || undefined,
                 isActive: formData.isActive,
             });
 
-            if (hasNonZeroPercentage) {
-                const defaultsPayload = {
+            const hasAnyDefaults = hasNonZeroPercentage || parseFloat(formData.avgSaleAmount || "0") > 0;
+
+            if (hasAnyDefaults) {
+                const defaultsPayload = { // Convert string percentages to numbers for the API
                     vendorId: vendor.id,
                     pctHandmade: formData.pctHandmade,
                     pctAgricultural: formData.pctAgricultural,
                     pctPreparedFood: formData.pctPreparedFood,
                     pctCottageGoods: formData.pctCottageGoods,
-                    pctManufactured: formData.pctManufactured,
+                    pctManufactured: formData.pctManufactured ,
+                    avgSaleAmount: formData.avgSaleAmount,
                 };
 
                 if (existingDefaults) {
@@ -553,13 +563,45 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
                             )}
                         </section>
 
+                        {/* Average Sale Amount Section */}
+                        <section className="space-y-4">
+                            <h4 className="text-sm font-bold uppercase tracking-wider text-dashboard-primary flex items-center gap-2">
+                                <span className="material-icons text-lg">category</span>
+                                Vendor Average Sale amount
+                            </h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
+                                <div className="space-y-2">
+                                    <label htmlFor="avgSaleAmount" className="text-sm font-medium text-slate-700">
+                                        Average Sale Amount ($)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        id="avgSaleAmount"
+                                        name="avgSaleAmount"
+                                        value={formData.avgSaleAmount}
+                                        onChange={handleInputChange}
+                                        step="0.01"
+                                        min="0"
+                                        className={cn(
+                                            "w-full px-4 py-2 bg-slate-50 border rounded-lg focus:ring-2 focus:ring-dashboard-primary outline-none transition-all text-slate-900",
+                                            errors.avgSaleAmount ? "border-red-500" : "border-slate-200"
+                                        )}
+                                    />
+                                    {errors.avgSaleAmount && <p className="text-xs text-red-500">{errors.avgSaleAmount}</p>}
+                                </div>
+                            </div>
+                        </section>
+
                         {errors.submit && (
                             <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm flex items-center gap-2">
                                 <AlertCircle size={18} />
                                 {errors.submit}
                             </div>
                         )}
+                        
                     </form>
+
+                    
 
                     <div className="p-6 border-t border-slate-200 bg-slate-50 flex items-center justify-between shrink-0">
                         {formData.isActive ? (

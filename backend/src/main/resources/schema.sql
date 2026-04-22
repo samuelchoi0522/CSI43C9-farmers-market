@@ -27,6 +27,12 @@ create table if not exists vendor_transactions
     reported_sales       double                    null,
     est_produce_sales    double                    null,
     est_num_transactions bigint                    null,
+    pct_handmade         double                    null,
+    pct_agricultural     double                    null,
+    pct_prepared_food    double                    null,
+    pct_cottage_goods    double                    null,
+    pct_manufactured     double                    null,
+    avg_sale             double                    null,
     custom_data          text                      null,
     created_at           timestamp  default now(),
     updated_at           timestamp on update now() null,
@@ -59,6 +65,7 @@ create table if not exists vendor_defaults
     pct_prepared_food DECIMAL(5, 2)     not null default 0.00,
     pct_cottage_goods DECIMAL(5, 2)     not null default 0.00,
     pct_manufactured  DECIMAL(5, 2)     not null default 0.00,
+    avg_sale          double                    null,
     constraint fk_vendor foreign key (vendor_id) references vendors (id) on delete cascade,
     constraint check_core_total check (
         (

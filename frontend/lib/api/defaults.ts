@@ -1,22 +1,24 @@
 import { apiRequest, PagedResponse } from './client';
 
 export interface SaveVendorDefaultsRequest {
-    vendorId: string;
-    pctHandmade: string;
+    vendorId:        string;
+    pctHandmade:     string;
     pctAgricultural: string;
     pctPreparedFood: string;
     pctCottageGoods: string;
     pctManufactured: string;
+    avgSaleAmount:   string;
 }
 
 export interface VendorDefaults {
-    id: string;
-    vendorId: string;
-    pctHandmade: string;
+    id:              string;
+    vendorId:        string;
+    pctHandmade:     string;
     pctAgricultural: string;
     pctPreparedFood: string;
     pctCottageGoods: string;
     pctManufactured: string;
+    avgSaleAmount:   string;
 }
 
 /**
