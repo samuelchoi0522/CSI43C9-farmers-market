@@ -9,7 +9,8 @@ export type FinancialReportType =
   | "vendorLabel"
   | "leaderboard"
   | "vendor"
-  | "token";
+  | "token"
+  | "customColumns";
 
 type PdfChartImage = { title: string; dataUrl: string };
 
@@ -203,6 +204,17 @@ export type DownloadFinancialReportPdfArgs =
       tokenRows: { name: string; amount: number }[];
       tokenTotal: number;
       sortedTxForTable: VendorTransaction[];
+      chartImages?: PdfChartImage[];
+    }
+  | {
+      reportType: "customColumns";
+      startDate: string;
+      endDate: string;
+      reportTitle: string;
+      reportSubtitle: string;
+      summaryRows: { name: string; columnType: string; detail: string }[];
+      sortedTxForTable: VendorTransaction[];
+      customColumnDefs: { id: number; name: string; type: string }[];
       chartImages?: PdfChartImage[];
     };
 
@@ -435,6 +447,73 @@ export async function downloadFinancialReportPdf(args: DownloadFinancialReportPd
                 ];
               }),
       });
+      break;
+    }
+    case "customColumns": {
+      y = addChartImages(y, args.chartImages);
+      y = addSectionTitle("Column summaries", y);
+      autoTable(doc, {
+        ...tableDefaults,
+        startY: y,
+        head: [["Column", "Type", "Summary"]],
+        body:
+          args.summaryRows.length === 0
+            ? [["—", "—", "No custom columns configured"]]
+            : args.summaryRows.map((r) => [r.name, r.columnType, r.detail]),
+      });
+      const afterSummary = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? y + 40;
+      let nextY = afterSummary + 8;
+      nextY = ensureSpace(12, nextY);
+      nextY = addSectionTitle("Per-transaction values", nextY);
+
+      const fmtCell = (type: string, raw: unknown): string => {
+        if (raw == null || raw === "") return "—";
+        if (type === "boolean") {
+          if (raw === true || String(raw).toLowerCase() === "true") return "Yes";
+          if (raw === false || String(raw).toLowerCase() === "false") return "No";
+          return String(raw);
+        }
+        if (type === "usd" || type === "number") {
+          const n = typeof raw === "number" ? raw : parseFloat(String(raw));
+          return Number.isFinite(n) ? (type === "usd" ? formatCurrency(n) : String(n)) : "—";
+        }
+        return String(raw);
+      };
+
+      const defs = args.customColumnDefs;
+      if (defs.length === 0) {
+        autoTable(doc, {
+          ...tableDefaults,
+          startY: nextY,
+          head: [["Date", "Vendor"]],
+          body:
+            args.sortedTxForTable.length === 0
+              ? [["—", "No rows in range"]]
+              : args.sortedTxForTable.map((t) => [t.marketDate, t.vendorName]),
+        });
+      } else {
+        autoTable(doc, {
+          ...tableDefaults,
+          startY: nextY,
+          head: [
+            [
+              "Date",
+              "Vendor",
+              ...defs.map((d) => (d.name.length > 28 ? `${d.name.slice(0, 26)}…` : d.name)),
+            ],
+          ],
+          body:
+            args.sortedTxForTable.length === 0
+              ? [["—", "No rows in range", ...defs.map(() => "")]]
+              : args.sortedTxForTable.map((t) => [
+                  t.marketDate,
+                  t.vendorName,
+                  ...defs.map((d) =>
+                    fmtCell(d.type, (t.customData as Record<string, unknown> | undefined)?.[String(d.id)]),
+                  ),
+                ]),
+        });
+      }
       break;
     }
     default:

@@ -20,6 +20,7 @@ export default function SidebarNavigation({
     { id: "Vendors", label: "Vendors", icon: "store", href: "/vendors" },
     { id: "Transactions", label: "Transactions", icon: "receipt", href: "/transactions" },
     { id: "Reports", label: "Reports", icon: "assessment", href: "/reports" },
+    { id: "Goals", label: "Goals", icon: "flag", href: "/goals" },
     { id: "Admin", label: "Admin", icon: "admin_panel_settings", href: "/admin" },
   ];
 

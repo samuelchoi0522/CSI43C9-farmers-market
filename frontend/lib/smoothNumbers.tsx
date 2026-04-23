@@ -25,7 +25,8 @@ function subscribeReducedMotion(onChange: () => void) {
   return () => mq.removeEventListener("change", onChange);
 }
 
-function usePrefersReducedMotion() {
+/** Respects `prefers-reduced-motion` for animations (shared by smooth values and UI like goal bars). */
+export function usePrefersReducedMotion() {
   return useSyncExternalStore(
     subscribeReducedMotion,
     () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
@@ -139,6 +140,29 @@ export function SmoothIntegerValue({
   return (
     <span className={className} style={{ fontFeatureSettings: '"tnum"' }}>
       {Math.round(smooth)}
+    </span>
+  );
+}
+
+/** Smooth count-up for percentages (e.g. goal progress). */
+export function SmoothPercentValue({
+  value,
+  resetKey,
+  decimals = 1,
+  suffix = "%",
+  className,
+}: {
+  value: number;
+  resetKey: unknown;
+  decimals?: number;
+  suffix?: string;
+  className?: string;
+}) {
+  const smooth = useSmoothNumber(value, resetKey, TREND_REPORTED_SMOOTH_MS, REPORT_NUM_INTRO_MS);
+  return (
+    <span className={className} style={{ fontFeatureSettings: '"tnum"' }}>
+      {smooth.toFixed(decimals)}
+      {suffix}
     </span>
   );
 }

@@ -241,7 +241,9 @@ function VendorsContent() {
 
         if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
             try {
+                // @ts-ignore - Tauri plugins may not be installed in all environments
                 const { save } = await import("@tauri-apps/plugin-dialog");
+                // @ts-ignore - Tauri plugins may not be installed in all environments
                 const { writeFile } = await import("@tauri-apps/plugin-fs");
                 const filePath = await save({
                     filters: [{ name: 'CSV', extensions: ['csv'] }],
