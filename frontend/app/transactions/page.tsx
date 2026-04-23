@@ -694,7 +694,8 @@ function TransactionsContent() {
 
         const imported = dataRows.map((row) => {
           const vendorName = (vendorNameIndex >= 0 ? row[vendorNameIndex] : row[0])?.toString().trim() || "Unknown Vendor";
-          const presentValue = (presentIndex >= 0 ? row[presentIndex] : row[1])?.toString().trim().toUpperCase();
+          const rawPresentValue = (presentIndex >= 0 ? row[presentIndex] : row[1])?.toString().trim().toUpperCase();
+          const presentValue = ["Y", "YES", "TRUE", "1"].includes(rawPresentValue || "");
 
           const customData: Record<string, unknown> = {};
           // Attempt to map remaining columns to custom fields if headers match
@@ -707,21 +708,30 @@ function TransactionsContent() {
                 customData[columnId] = parseNumericValue(val);
               } else if (col.type === 'boolean') {
                 const s = String(val).toUpperCase();
-                customData[columnId] = s === 'Y' || s === 'YES' || s === 'TRUE';
+                customData[columnId] = ["Y", "YES", "TRUE", "1"].includes(s);
               } else {
                 customData[columnId] = String(val);
               }
             }
           });
 
+          // Try to match by ID first, then by vendor name to avoid duplicates
+          let recordId = transactionIdIndex >= 0 && row[transactionIdIndex]
+            ? String(row[transactionIdIndex]).trim()
+            : null;
+
+          if (!recordId) {
+            const existingRecord = records.find(
+              (r) => r.vendor_name.toLowerCase() === vendorName.toLowerCase()
+            );
+            recordId = existingRecord ? existingRecord.id : createLocalId();
+          }
+
           return buildRecord({
-            id:
-              transactionIdIndex >= 0 && row[transactionIdIndex]
-                ? String(row[transactionIdIndex]).trim()
-                : createLocalId(),
+            id: recordId,
             vendor_name: vendorName,
             market_date: currentMarketDate,
-            present: presentValue === "Y" || presentValue === "YES" || presentValue === "TRUE",
+            present: presentValue,
             snap: snapIndex >= 0 ? parseNumericValue(row[snapIndex]) : 0,
             dufb: dufbIndex >= 0 ? parseNumericValue(row[dufbIndex]) : 0,
             wdfm_tokens: wdfmIndex >= 0 ? parseNumericValue(row[wdfmIndex]) : 0,
