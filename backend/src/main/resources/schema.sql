@@ -104,3 +104,21 @@ create table if not exists market_goals
 );
 -- Metric values validated in MarketGoalService (avoids DB 409s when adding new metrics; relax old CHECKs by recreating DB or ALTER).
 create index if not exists market_goals_dates_idx on market_goals (start_date, end_date);
+
+create table if not exists market_day_data
+(
+    market_date                   date                      not null primary key,
+    snap_token_transactions       int                       default 0,
+    snap_tokens_purchased         double                    default 0.0,
+    snap_tokens_redeemed          double                    default 0.0,
+    dufb_token_transactions       int                       default 0,
+    dufb_tokens_distributed       double                    default 0.0,
+    dufb_tokens_redeemed          double                    default 0.0,
+    wdfm_token_transactions       int                       default 0,
+    wdfm_tokens_purchased         double                    default 0.0,
+    gift_cards_redeemed           double                    default 0.0,
+    wdfm_tokens_for_market_meals  double                    default 0.0,
+    wdfm_tokens_redeemed          double                    default 0.0,
+    created_at                    timestamp  default now(),
+    updated_at                    timestamp on update now() null
+);

@@ -4,3 +4,4 @@ export * from './auth';
 export * from './vendor';
 export * from './defaults';
 export * from './vendorLabels';
+export * from './marketDayData';
