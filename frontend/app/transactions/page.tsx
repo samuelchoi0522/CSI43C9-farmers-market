@@ -9,6 +9,7 @@ import { type VendorTransactionsSheetRowModel as VendorTransactionsSheetRow } fr
 import { toast, Toaster } from 'sonner';
 import * as XLSX from 'xlsx';
 import ActiveVendorPreviewDialog from '../components/ActiveVendorPreviewDialog';
+import MarketDayDataModule from '../components/MarketDayDataModule';
 import {
   bulkCreateVendorTransactions,
   deleteVendorTransaction,
@@ -938,6 +939,8 @@ function TransactionsContent() {
             </DropdownMenu>
           </div>
         </header>
+
+        <MarketDayDataModule marketDate={currentMarketDate} />
 
         <AddVendorDialog
           vendors={allVendors}

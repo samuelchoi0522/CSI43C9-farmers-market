@@ -59,12 +59,12 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
         if (transactions.isEmpty()) {
             return transactions;
         }
-
         transactions.forEach(transaction -> {
             if (transaction.getId() == null) {
                 transaction.setId(UUID.randomUUID());
             }
         });
+
 
         String sql = """
                 insert into vendor_transactions (
@@ -190,29 +190,19 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
     public Optional<VendorTransaction> findById(UUID uuid) {
         String sql = "select * from vendor_transactions where id = ?";
         try {
-            VendorTransaction transaction = jdbcTemplate.queryForObject(
-                    sql,
-                    new VendorTransactionRowMapper(objectMapper),
-                    UuidUtils.toBytes(uuid)
-            );
+            VendorTransaction transaction = jdbcTemplate.queryForObject(sql, new VendorTransactionRowMapper(objectMapper), UuidUtils.toBytes(uuid));
             return Optional.ofNullable(transaction);
         } catch (EmptyResultDataAccessException e) {
             return Optional.empty();
         }
     }
 
-    /**
-     * Retrieves all vendor transactions from the database.
-     */
     @Override
     public List<VendorTransaction> findAll() {
         String sql = "select * from vendor_transactions";
         return jdbcTemplate.query(sql, new VendorTransactionRowMapper(objectMapper));
     }
 
-    /**
-     * Retrieves a page of vendor transactions from the database.
-     */
     @Override
     public List<VendorTransaction> findAllPaged(int page, int size) {
         int offset = page * size;
@@ -296,9 +286,6 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
         return count != null ? count : 0L;
     }
 
-    /**
-     * Counts the number of vendor transactions in the database.
-     */
     @Override
     public Long count() {
         String sql = "select count(*) from vendor_transactions";
@@ -306,9 +293,6 @@ public class VendorTransactionRepository extends AbstractJdbcRepository implemen
         return count != null ? count : 0L;
     }
 
-    /**
-     * Deletes a vendor transaction from the database.
-     */
     @Override
     public void deleteById(UUID uuid) {
         String sql = "delete from vendor_transactions where id = ?";
