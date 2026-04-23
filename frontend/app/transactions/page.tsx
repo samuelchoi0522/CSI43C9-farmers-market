@@ -669,9 +669,23 @@ function TransactionsContent() {
         const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }) as unknown[][];
         const headers = rows[0] as string[];
         const dataRows = rows.slice(1).filter((row) => row.length > 0);
+
+        const getHeaderIndex = (search: string) =>
+          headers.findIndex((h) => normalizeHeader(h) === normalizeHeader(search));
+
         const transactionIdIndex = headers.findIndex((header) =>
           TRANSACTION_ID_HEADERS.has(normalizeHeader(header))
         );
+
+        const vendorNameIndex = getHeaderIndex("Vendor Name");
+        const presentIndex = getHeaderIndex("Present?");
+        const snapIndex = getHeaderIndex("SNAP Voucher");
+        const dufbIndex = getHeaderIndex("DUFB Voucher");
+        const wdfmIndex = getHeaderIndex("WDFM Tokens");
+        const voucherIndex = getHeaderIndex("Voucher");
+        const reportedSalesIndex = getHeaderIndex("Reported Sales");
+        const fmppEstIndex = getHeaderIndex("FMPP Est");
+        const estNumTransactionsIndex = getHeaderIndex("Est # of");
 
         if (dataRows.length === 0) {
           toast.error("The file appears to be empty.");
@@ -679,8 +693,8 @@ function TransactionsContent() {
         }
 
         const imported = dataRows.map((row) => {
-          const vendorName = row[0]?.toString().trim() || "Unknown Vendor";
-          const presentValue = row[1]?.toString().trim().toUpperCase();
+          const vendorName = (vendorNameIndex >= 0 ? row[vendorNameIndex] : row[0])?.toString().trim() || "Unknown Vendor";
+          const presentValue = (presentIndex >= 0 ? row[presentIndex] : row[1])?.toString().trim().toUpperCase();
 
           const customData: Record<string, unknown> = {};
           // Attempt to map remaining columns to custom fields if headers match
@@ -708,13 +722,13 @@ function TransactionsContent() {
             vendor_name: vendorName,
             market_date: currentMarketDate,
             present: presentValue === "Y" || presentValue === "YES" || presentValue === "TRUE",
-            snap: parseNumericValue(row[2]),
-            dufb: parseNumericValue(row[3]),
-            wdfm_tokens: parseNumericValue(row[4]),
-            voucher: parseNumericValue(row[5]),
-            reported_sales: parseNumericValue(row[6]),
-            est_produce_sales: parseNumericValue(row[7]),
-            est_num_transactions: parseNumericValue(row[8]),
+            snap: snapIndex >= 0 ? parseNumericValue(row[snapIndex]) : 0,
+            dufb: dufbIndex >= 0 ? parseNumericValue(row[dufbIndex]) : 0,
+            wdfm_tokens: wdfmIndex >= 0 ? parseNumericValue(row[wdfmIndex]) : 0,
+            voucher: voucherIndex >= 0 ? parseNumericValue(row[voucherIndex]) : 0,
+            reported_sales: reportedSalesIndex >= 0 ? parseNumericValue(row[reportedSalesIndex]) : 0,
+            est_produce_sales: fmppEstIndex >= 0 ? parseNumericValue(row[fmppEstIndex]) : 0,
+            est_num_transactions: estNumTransactionsIndex >= 0 ? parseNumericValue(row[estNumTransactionsIndex]) : 0,
             customData,
           });
         });

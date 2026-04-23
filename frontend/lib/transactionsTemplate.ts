@@ -2,18 +2,20 @@ import ExcelJS from 'exceljs';
 import { getVendors } from '@/lib/api/vendor';
 import { getActiveCustomColumns, type CustomColumnMetadata } from '@/lib/api/customColumns';
 
-const BASE_HEADERS = [
-  'Vendor Name',
-  'Present?',
-  'SNAP Voucher',
-  'DUFB Voucher',
-  'WDFM Tokens',
-  'Voucher',
-  'Reimb. Due',
-  'Reported Sales',
-  'FMPP Est',
-  'Est # of',
+const BASE_COLUMN_METADATA = [
+  { name: 'Vendor Name', type: 'text', width: 30 },
+  { name: 'Present?', type: 'boolean', width: 12 },
+  { name: 'SNAP Voucher', type: 'usd', width: 15 },
+  { name: 'DUFB Voucher', type: 'usd', width: 15 },
+  { name: 'WDFM Tokens', type: 'usd', width: 15 },
+  { name: 'Voucher', type: 'usd', width: 15 },
+  { name: 'Reimb. Due', type: 'usd', width: 15 },
+  { name: 'Reported Sales', type: 'usd', width: 15 },
+  { name: 'FMPP Est', type: 'usd', width: 15 },
+  { name: 'Est # of', type: 'number', width: 12 },
 ] as const;
+
+const BASE_HEADERS = BASE_COLUMN_METADATA.map((c) => c.name);
 
 const SUMMARY_FIELDS = [
   'Number of Vendors',
@@ -72,7 +74,7 @@ const formatTemplateFilename = (marketDate: string) => {
 };
 
 const createCustomHeader = (column: CustomColumnMetadata) => column.name;
-const TEMPLATE_MAX_ROWS = 5000;
+const TEMPLATE_MAX_ROWS = 500;
 
 const buildTemplateRows = (vendorNames: string[], customColumns: CustomColumnMetadata[]) => {
   const headers = [...BASE_HEADERS, ...customColumns.map(createCustomHeader)];
@@ -81,19 +83,18 @@ const buildTemplateRows = (vendorNames: string[], customColumns: CustomColumnMet
     const base = [
       vendorName,
       'No',
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
     ];
 
     const customDefaults = customColumns.map((column) => {
-      if (column.type === 'number') return 0;
-      return '';
+      return null;
     });
 
     return [...base, ...customDefaults];
@@ -122,7 +123,7 @@ const applyDataValidations = (
     worksheet.getCell(`A${row}`).dataValidation = {
       type: 'custom',
       allowBlank: false,
-      formulae: [`AND(A${row}<>"",ISTEXT(A${row}))`],
+      formulae: [`ISTEXT(A${row})`],
       showErrorMessage: true,
       errorTitle: 'Invalid Vendor Name',
       error: 'Vendor Name is required and must be text.',
@@ -133,15 +134,16 @@ const applyDataValidations = (
       allowBlank: true,
       formulae: ['"Yes,No,Y,N,True,False,1,0"'],
       showErrorMessage: true,
-      errorTitle: 'Invalid Boolean',
-      error: 'Use Yes/No, Y/N, True/False, or 1/0.',
+      errorTitle: 'Invalid Selection',
+      error: 'Please select a value from the list.',
     };
 
-    for (const col of ['C', 'D', 'E', 'F', 'G', 'H', 'I']) {
+    // Skip G because it's a formula column
+    for (const col of ['C', 'D', 'E', 'F', 'H', 'I']) {
       worksheet.getCell(`${col}${row}`).dataValidation = {
         type: 'custom',
         allowBlank: true,
-        formulae: [`OR(${col}${row}="",ISNUMBER(${col}${row}))`],
+        formulae: [`ISNUMBER(${col}${row})`],
         showErrorMessage: true,
         errorTitle: 'Invalid Number',
         error: 'This column requires a numeric value.',
@@ -151,23 +153,20 @@ const applyDataValidations = (
     worksheet.getCell(`J${row}`).dataValidation = {
       type: 'custom',
       allowBlank: true,
-      formulae: [`OR(J${row}="",AND(ISNUMBER(J${row}),INT(J${row})=J${row}))`],
+      formulae: [`AND(ISNUMBER(J${row}),INT(J${row})=J${row})`],
       showErrorMessage: true,
       errorTitle: 'Invalid Integer',
       error: 'This column requires an integer value.',
     };
 
     customColumns.forEach((column, customIndex) => {
-      const excelCol = columnLetter(11 + customIndex);
+      const excelCol = columnLetter(BASE_COLUMN_METADATA.length + 1 + customIndex);
       const required = column.isRequired;
-      const isNumber = column.type === 'number';
+      const isNumber = column.type === 'number' || column.type === 'usd';
+      
       const formula = isNumber
-        ? (required
-          ? `AND(${excelCol}${row}<>"",ISNUMBER(${excelCol}${row}))`
-          : `OR(${excelCol}${row}="",ISNUMBER(${excelCol}${row}))`)
-        : (required
-          ? `AND(${excelCol}${row}<>"",ISTEXT(${excelCol}${row}))`
-          : `OR(${excelCol}${row}="",ISTEXT(${excelCol}${row}))`);
+        ? `ISNUMBER(${excelCol}${row})`
+        : `ISTEXT(${excelCol}${row})`;
 
       worksheet.getCell(`${excelCol}${row}`).dataValidation = {
         type: 'custom',
@@ -176,11 +175,69 @@ const applyDataValidations = (
         showErrorMessage: true,
         errorTitle: `Invalid ${isNumber ? 'Number' : 'Text'}`,
         error: isNumber
-          ? `${column.name} must be ${required ? 'a required number' : 'a number or blank'}.`
-          : `${column.name} must be ${required ? 'required text' : 'text or blank'}.`,
+          ? `${column.name} must be a number.`
+          : `${column.name} must be text.`,
       };
     });
   }
+};
+
+const applyWorksheetStyling = (
+  worksheet: ExcelJS.Worksheet,
+  customColumns: CustomColumnMetadata[],
+  rowCount: number
+) => {
+  const headerRow = worksheet.getRow(1);
+  headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  headerRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FF10B981' }, // Emerald-500
+  };
+  headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
+
+  // Set column widths and number formats
+  BASE_COLUMN_METADATA.forEach((meta, index) => {
+    const col = worksheet.getColumn(index + 1);
+    col.width = meta.width;
+    if (meta.type === 'usd') {
+      col.numFmt = '$#,##0.00';
+    } else if (meta.type === 'number') {
+      col.numFmt = '#,##0';
+    }
+  });
+
+  customColumns.forEach((colMeta, index) => {
+    const col = worksheet.getColumn(BASE_COLUMN_METADATA.length + index + 1);
+    col.width = 15;
+    if (colMeta.type === 'usd') {
+      col.numFmt = '$#,##0.00';
+    } else if (colMeta.type === 'number') {
+      col.numFmt = '#,##0';
+    }
+  });
+
+  // Zebra striping and borders
+  for (let i = 2; i <= rowCount; i++) {
+    const row = worksheet.getRow(i);
+    if (i % 2 === 0) {
+      row.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFF9FAFB' }, // Slate-50
+      };
+    }
+    row.border = {
+      bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+    };
+  }
+
+  // Freeze panes: Freeze first row and first column
+  worksheet.views = [{ state: 'frozen', xSplit: 1, ySplit: 1 }];
+
+  // Add auto-filters to the header row
+  const lastColLetter = columnLetter(BASE_COLUMN_METADATA.length + customColumns.length);
+  worksheet.autoFilter = `A1:${lastColLetter}1`;
 };
 
 const addSummaryTable = (worksheet: ExcelJS.Worksheet) => {
@@ -267,6 +324,10 @@ export async function downloadVendorTransactionsTemplate(marketDate: string): Pr
   const rows = buildTemplateRows(vendorNames, customColumns);
   const worksheet = workbook.addWorksheet('Transactions');
   rows.forEach((row) => worksheet.addRow(row));
+
+  const rowCount = worksheet.rowCount;
+  applyWorksheetStyling(worksheet, customColumns, rowCount);
+
   const firstDataRow = 2;
   const lastDataRow = Math.max(vendorNames.length + 1, firstDataRow);
   const additionalValuesSheet = workbook.addWorksheet('Additional Values');
@@ -383,24 +444,28 @@ export async function exportVendorTransactionsSpreadsheet(
     const base = [
       row.vendor_name,
       row.present ? 'Yes' : 'No',
-      row.snap ?? 0,
-      row.dufb ?? 0,
-      row.wdfm_tokens ?? 0,
-      row.voucher ?? 0,
+      row.snap ?? null,
+      row.dufb ?? null,
+      row.wdfm_tokens ?? null,
+      row.voucher ?? null,
       null, // formula set after insert
-      row.reported_sales ?? 0,
-      row.est_produce_sales ?? 0,
+      row.reported_sales ?? null,
+      row.est_produce_sales ?? null,
       row.est_num_transactions ?? null,
     ];
 
     const customValues = customColumns.map((column) => {
       const columnId = column.id;
-      if (columnId === undefined) return '';
-      return toCustomCellValue(row.customData?.[columnId], column);
+      if (columnId === undefined) return null;
+      const val = row.customData?.[columnId];
+      return val === undefined ? null : toCustomCellValue(val, column);
     });
 
     worksheet.addRow([...base, ...customValues]);
   });
+
+  const rowCount = worksheet.rowCount;
+  applyWorksheetStyling(worksheet, customColumns, rowCount);
 
   const firstDataRow = 2;
   const lastDataRow = Math.max(rows.length + 1, firstDataRow);
