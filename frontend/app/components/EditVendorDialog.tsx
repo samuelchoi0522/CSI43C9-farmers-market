@@ -492,40 +492,6 @@ export function EditVendorDialog({ vendor, isOpen, onOpenChange, onSuccess }: Ed
                             </div>
                         </section>
 
-                        {/* Classifications Section */}
-                        <section className="space-y-4">
-                            <h4 className="text-sm font-bold uppercase tracking-wider text-dashboard-primary flex items-center gap-2">
-                                <span className="material-icons text-lg">category</span>
-                                Vendor Classifications
-                            </h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
-                                {[
-                                    { key: 'isFarmer', label: 'Is Farmer' },
-                                    { key: 'isProduce', label: 'Is Produce' },
-                                    { key: 'womanOwned', label: 'Woman Owned' },
-                                    { key: 'bipocOwned', label: 'BIPOC Owned' },
-                                    { key: 'veteranOwned', label: 'Veteran Owned' },
-                                ].map(({ key, label }) => (
-                                    <div key={key} className="flex items-center justify-between py-2 border-b border-slate-100">
-                                        <span className="text-sm font-medium text-slate-700">{label}</span>
-                                        <button
-                                            type="button"
-                                            onClick={() => handleToggle(key as keyof VendorFormData)}
-                                            className={cn(
-                                                "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-dashboard-primary focus:ring-offset-2",
-                                                formData[key as keyof VendorFormData] ? "bg-dashboard-primary" : "bg-slate-300"
-                                            )}
-                                        >
-                                            <span className={cn(
-                                                "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
-                                                formData[key as keyof VendorFormData] ? "translate-x-6" : "translate-x-1"
-                                            )} />
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        </section>
-
                         {/* Percentages Section */}
                         <section className="space-y-4">
                             <div className="flex items-center justify-between">
