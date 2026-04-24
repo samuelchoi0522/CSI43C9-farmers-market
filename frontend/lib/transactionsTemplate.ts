@@ -1,19 +1,22 @@
 import ExcelJS from 'exceljs';
 import { getVendors } from '@/lib/api/vendor';
 import { getActiveCustomColumns, type CustomColumnMetadata } from '@/lib/api/customColumns';
+import { type MarketDayData } from '@/lib/api/marketDayData';
 
-const BASE_HEADERS = [
-  'Vendor Name',
-  'Present?',
-  'SNAP Voucher',
-  'DUFB Voucher',
-  'WDFM Tokens',
-  'Voucher',
-  'Reimb. Due',
-  'Reported Sales',
-  'FMPP Est',
-  'Est # of',
+const BASE_COLUMN_METADATA = [
+  { name: 'Vendor Name', type: 'text', width: 30 },
+  { name: 'Present?', type: 'boolean', width: 12 },
+  { name: 'SNAP Voucher', type: 'usd', width: 15 },
+  { name: 'DUFB Voucher', type: 'usd', width: 15 },
+  { name: 'WDFM Tokens', type: 'usd', width: 15 },
+  { name: 'Voucher', type: 'usd', width: 15 },
+  { name: 'Reimb. Due', type: 'usd', width: 15 },
+  { name: 'Reported Sales', type: 'usd', width: 15 },
+  { name: 'FMPP Est', type: 'usd', width: 15 },
+  { name: 'Est # of', type: 'number', width: 12 },
 ] as const;
+
+const BASE_HEADERS = BASE_COLUMN_METADATA.map((c) => c.name);
 
 const SUMMARY_FIELDS = [
   'Number of Vendors',
@@ -72,31 +75,30 @@ const formatTemplateFilename = (marketDate: string) => {
 };
 
 const createCustomHeader = (column: CustomColumnMetadata) => column.name;
-const TEMPLATE_MAX_ROWS = 5000;
+const TEMPLATE_MAX_ROWS = 2000;
 
 const buildTemplateRows = (vendorNames: string[], customColumns: CustomColumnMetadata[]) => {
-  const headers = [...BASE_HEADERS, ...customColumns.map(createCustomHeader)];
+  const headers = [...BASE_HEADERS, ...customColumns.map(createCustomHeader), 'Transaction ID'];
 
   const dataRows = vendorNames.map((vendorName) => {
     const base = [
       vendorName,
       'No',
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
     ];
 
     const customDefaults = customColumns.map((column) => {
-      if (column.type === 'number') return 0;
-      return '';
+      return null;
     });
 
-    return [...base, ...customDefaults];
+    return [...base, ...customDefaults, null];
   });
 
   return [headers, ...dataRows];
@@ -122,7 +124,7 @@ const applyDataValidations = (
     worksheet.getCell(`A${row}`).dataValidation = {
       type: 'custom',
       allowBlank: false,
-      formulae: [`AND(A${row}<>"",ISTEXT(A${row}))`],
+      formulae: [`ISTEXT(A${row})`],
       showErrorMessage: true,
       errorTitle: 'Invalid Vendor Name',
       error: 'Vendor Name is required and must be text.',
@@ -133,15 +135,16 @@ const applyDataValidations = (
       allowBlank: true,
       formulae: ['"Yes,No,Y,N,True,False,1,0"'],
       showErrorMessage: true,
-      errorTitle: 'Invalid Boolean',
-      error: 'Use Yes/No, Y/N, True/False, or 1/0.',
+      errorTitle: 'Invalid Selection',
+      error: 'Please select a value from the list.',
     };
 
-    for (const col of ['C', 'D', 'E', 'F', 'G', 'H', 'I']) {
+    // Skip G because it's a formula column
+    for (const col of ['C', 'D', 'E', 'F', 'H', 'I']) {
       worksheet.getCell(`${col}${row}`).dataValidation = {
         type: 'custom',
         allowBlank: true,
-        formulae: [`OR(${col}${row}="",ISNUMBER(${col}${row}))`],
+        formulae: [`ISNUMBER(${col}${row})`],
         showErrorMessage: true,
         errorTitle: 'Invalid Number',
         error: 'This column requires a numeric value.',
@@ -151,23 +154,20 @@ const applyDataValidations = (
     worksheet.getCell(`J${row}`).dataValidation = {
       type: 'custom',
       allowBlank: true,
-      formulae: [`OR(J${row}="",AND(ISNUMBER(J${row}),INT(J${row})=J${row}))`],
+      formulae: [`AND(ISNUMBER(J${row}),INT(J${row})=J${row})`],
       showErrorMessage: true,
       errorTitle: 'Invalid Integer',
       error: 'This column requires an integer value.',
     };
 
     customColumns.forEach((column, customIndex) => {
-      const excelCol = columnLetter(11 + customIndex);
+      const excelCol = columnLetter(BASE_COLUMN_METADATA.length + 1 + customIndex);
       const required = column.isRequired;
-      const isNumber = column.type === 'number';
+      const isNumber = column.type === 'number' || column.type === 'usd';
+      
       const formula = isNumber
-        ? (required
-          ? `AND(${excelCol}${row}<>"",ISNUMBER(${excelCol}${row}))`
-          : `OR(${excelCol}${row}="",ISNUMBER(${excelCol}${row}))`)
-        : (required
-          ? `AND(${excelCol}${row}<>"",ISTEXT(${excelCol}${row}))`
-          : `OR(${excelCol}${row}="",ISTEXT(${excelCol}${row}))`);
+        ? `ISNUMBER(${excelCol}${row})`
+        : `ISTEXT(${excelCol}${row})`;
 
       worksheet.getCell(`${excelCol}${row}`).dataValidation = {
         type: 'custom',
@@ -176,17 +176,114 @@ const applyDataValidations = (
         showErrorMessage: true,
         errorTitle: `Invalid ${isNumber ? 'Number' : 'Text'}`,
         error: isNumber
-          ? `${column.name} must be ${required ? 'a required number' : 'a number or blank'}.`
-          : `${column.name} must be ${required ? 'required text' : 'text or blank'}.`,
+          ? `${column.name} must be a number.`
+          : `${column.name} must be text.`,
       };
     });
   }
 };
 
-const addSummaryTable = (worksheet: ExcelJS.Worksheet) => {
+const applyWorksheetStyling = (
+  worksheet: ExcelJS.Worksheet,
+  customColumns: CustomColumnMetadata[],
+  rangeEnd: number,
+  dataRowCount: number
+) => {
+  const headerRow = worksheet.getRow(1);
+  headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  headerRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FF10B981' }, // Emerald-500
+  };
+  headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
+
+  // Set column widths and number formats for the full range
+  BASE_COLUMN_METADATA.forEach((meta, index) => {
+    const col = worksheet.getColumn(index + 1);
+    col.width = meta.width;
+    if (meta.type === 'usd') {
+      col.numFmt = '$#,##0.00';
+    } else if (meta.type === 'number') {
+      col.numFmt = '#,##0';
+    }
+  });
+
+  customColumns.forEach((colMeta, index) => {
+    const col = worksheet.getColumn(BASE_COLUMN_METADATA.length + index + 1);
+    col.width = 15;
+    if (colMeta.type === 'usd') {
+      col.numFmt = '$#,##0.00';
+    } else if (colMeta.type === 'number') {
+      col.numFmt = '#,##0';
+    }
+  });
+
+  // Zebra striping and borders ONLY for rows with data
+  for (let i = 2; i <= dataRowCount; i++) {
+    const row = worksheet.getRow(i);
+    if (i % 2 === 0) {
+      row.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFF9FAFB' }, // Slate-50
+      };
+    }
+    row.border = {
+      bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+    };
+  }
+
+  // Freeze panes: Freeze first row and first column
+  worksheet.views = [{ state: 'frozen', xSplit: 1, ySplit: 1 }];
+
+  // Add auto-filters to the header row
+  const lastColLetter = columnLetter(BASE_COLUMN_METADATA.length + customColumns.length);
+  worksheet.autoFilter = `A1:${lastColLetter}1`;
+
+  // Hide the Transaction ID column (last column)
+  const idCol = worksheet.getColumn(BASE_COLUMN_METADATA.length + customColumns.length + 1);
+  idCol.hidden = true;
+};
+
+const applySummarySheetStyling = (worksheet: ExcelJS.Worksheet) => {
+  worksheet.getColumn(1).width = 40;
+  worksheet.getColumn(2).width = 20;
+
+  worksheet.eachRow((row) => {
+    const labelCell = row.getCell(1);
+    const valueCell = row.getCell(2);
+
+    if (labelCell.value) {
+      labelCell.font = { bold: true };
+      labelCell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFF1F5F9' }, // Slate-100
+      };
+      labelCell.border = {
+        bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+      };
+
+      valueCell.border = {
+        bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+      };
+
+      const labelText = labelCell.value.toString();
+      if (labelText.includes('$$') || labelText.includes('Sales') || labelText.includes('Fees') || labelText.includes('Reimbursed')) {
+        valueCell.numFmt = '$#,##0.00';
+      } else if (labelText.includes('%') || labelText.includes('Rate')) {
+        valueCell.numFmt = '0.00%';
+      }
+    }
+  });
+};
+
+const addSummaryTable = (worksheet: ExcelJS.Worksheet, lastDataRow: number, marketDayData?: MarketDayData) => {
   const labelColumn = 1;
   const inputColumn = 2;
-  const startRow = 2;
+  const startRow = 1;
   const inputColumnLetter = columnLetter(inputColumn);
   const inputCellByLabel = new Map<string, string>();
 
@@ -196,60 +293,70 @@ const addSummaryTable = (worksheet: ExcelJS.Worksheet) => {
 
     if (field) {
       const inputCell = worksheet.getCell(row, inputColumn);
-      inputCell.value = '';
       inputCellByLabel.set(field, `${inputColumnLetter}${row}`);
-      inputCell.border = {
-        top: { style: 'thin' },
-        bottom: { style: 'thin' },
-        left: { style: 'thin' },
-        right: { style: 'thin' },
-      };
+      inputCell.value = null;
     }
   });
 
-  //TODO: FIX THE FORMULAS HERE!!!!
+  const setFormula = (label: string, formula: string) => {
+    const cellRef = inputCellByLabel.get(label);
+    if (cellRef) {
+      worksheet.getCell(cellRef).value = { formula };
+    }
+  };
 
-  // setFormula('Number of Vendors', `COUNTA(${mainRange('A')})`);
-  // setFormula('Total Reported Sales', `SUM(${mainRange('H')})`);
-  // setFormula('Number of Vendors Reporting', `COUNTIF(${mainRange('H')},">0")`);
-  // setFormula('% Reporting', `${inputCellByLabel.get('Number of Vendors Reporting')}/${inputCellByLabel.get('Number of Vendors')}`);
-  // setFormula('Est Total Market Sales', `${inputCellByLabel.get('Total Reported Sales')}/${inputCellByLabel.get('% Reporting')}`);
-  // setFormula('Average Vendor Sales', `${inputCellByLabel.get('Est Total Market Sales')}/${inputCellByLabel.get('Number of Vendors')}`);
+  const setValue = (label: string, value: number | string | null) => {
+    const cellRef = inputCellByLabel.get(label);
+    if (cellRef) {
+      worksheet.getCell(cellRef).value = value;
+    }
+  };
 
-  // setValue('# of SNAP Token Transactions', 3);
-  // setValue('$$ SNAP Tokens purchased', 50);
-  // setFormula('$$ SNAP Tokens redeemed', `SUM(${mainRange('C')})`);
-  // setFormula('SNAP Redemption Rate', `${inputCellByLabel.get('$$ SNAP Tokens redeemed')}/${inputCellByLabel.get('$$ SNAP Tokens purchased')}`);
-  // setValue('# of DUFB Token Transactions', 3);
-  // setValue('$$ DUFB Tokens Distributed', 50);
-  // setFormula('$$ DUFB Tokens redeemed', `SUM(${mainRange('D')})`);
-  // setFormula('DUFB Redemption Rate', `${inputCellByLabel.get('$$ DUFB Tokens redeemed')}/${inputCellByLabel.get('$$ DUFB Tokens Distributed')}`);
-  // setValue('# of WDFM Token Transactions', 16);
-  // setValue('$$ WDFM Tokens purchased', 203);
-  // setValue('Gift Cards Redeemed for Tokens', 5);
-  // setValue('$$$ WDFM Tokens for Market Meals', 60);
-  // setFormula(
-  //   'TOTAL Tokens Distributed',
-  //   `${inputCellByLabel.get('$$ SNAP Tokens purchased')}+${inputCellByLabel.get('$$ DUFB Tokens Distributed')}+${inputCellByLabel.get('$$ WDFM Tokens purchased')}`
-  // );
-  // setFormula('$$ WDFM Tokens redeemed', `SUM(${mainRange('E')})`);
-  // setFormula('WDFM Token Redemption Rate', `${inputCellByLabel.get('$$ WDFM Tokens redeemed')}/${inputCellByLabel.get('TOTAL Tokens Distributed')}`);
+  const mainRange = (col: string) => `Transactions!${col}2:${col}${lastDataRow}`;
 
-  // setFormula('Total Tokens/Vouchers Reimbursed', `SUM(${mainRange('G')})`);
+  // Transactions Sheet Formulas
+  setFormula('Number of Vendors', `COUNTA(${mainRange('A')})`);
+  setFormula('Total Reported Sales', `SUM(${mainRange('H')})`);
+  setFormula('Number of Vendors Reporting', `COUNTIF(${mainRange('H')},">0")`);
+  setFormula('% Reporting', `IF(${inputCellByLabel.get('Number of Vendors')}>0,${inputCellByLabel.get('Number of Vendors Reporting')}/${inputCellByLabel.get('Number of Vendors')},0)`);
+  setFormula('Est Total Market Sales', `IF(${inputCellByLabel.get('% Reporting')}>0,${inputCellByLabel.get('Total Reported Sales')}/${inputCellByLabel.get('% Reporting')},0)`);
+  setFormula('Average Vendor Sales', `IF(${inputCellByLabel.get('Number of Vendors')}>0,${inputCellByLabel.get('Est Total Market Sales')}/${inputCellByLabel.get('Number of Vendors')},0)`);
 
-  // setValue('Other Fees', -6);
-  // setValue('Donations', '-');
-  // setValue('Cash Merch Sales', 40);
-  // setValue('Tokens Reimbursed with Cash', -85);
-  // setFormula('Net Collected', `SUM(${inputCellByLabel.get('Total Cash Booth Fees')}:${inputCellByLabel.get('Volunteer Lunches')})`);
-  // setValue('Petty Cash', 200);
-  // setFormula('Fees Not Paid', `SUM(${mainRange('I')})`);
-  // setFormula(
-  //   'Cash Held by Market Manager',
-  //   `${inputCellByLabel.get('Net Collected')}+${inputCellByLabel.get('Petty Cash')}+${inputCellByLabel.get('Fees Not Paid')}`
-  // );
+  // SNAP Formulas/Values
+  setValue('# of SNAP Token Transactions', marketDayData?.snapTokenTransactions ?? null);
+  setValue('$$ SNAP Tokens purchased', marketDayData?.snapTokensPurchased ?? null);
+  setFormula('$$ SNAP Tokens redeemed', `SUM(${mainRange('C')})`);
+  setFormula('SNAP Redemption Rate', `IF(${inputCellByLabel.get('$$ SNAP Tokens purchased')}>0,${inputCellByLabel.get('$$ SNAP Tokens redeemed')}/${inputCellByLabel.get('$$ SNAP Tokens purchased')},0)`);
 
-  // setValue('Weekly Wellness Attendance', 'n/a');
+  // DUFB Formulas/Values
+  setValue('# of DUFB Token Transactions', marketDayData?.dufbTokenTransactions ?? null);
+  setValue('$$ DUFB Tokens Distributed', marketDayData?.dufbTokensDistributed ?? null);
+  setFormula('$$ DUFB Tokens redeemed', `SUM(${mainRange('D')})`);
+  setFormula('DUFB Redemption Rate', `IF(${inputCellByLabel.get('$$ DUFB Tokens Distributed')}>0,${inputCellByLabel.get('$$ DUFB Tokens redeemed')}/${inputCellByLabel.get('$$ DUFB Tokens Distributed')},0)`);
+
+  // WDFM/Total Tokens Formulas/Values
+  setValue('# of WDFM Token Transactions', marketDayData?.wdfmTokenTransactions ?? null);
+  setValue('$$ WDFM Tokens purchased', marketDayData?.wdfmTokensPurchased ?? null);
+  setValue('Gift Cards Redeemed for Tokens', marketDayData?.giftCardsRedeemed ?? null);
+  setValue('$$$ WDFM Tokens for Market Meals', marketDayData?.wdfmTokensForMarketMeals ?? null);
+  setFormula(
+    'TOTAL Tokens Distributed',
+    `${inputCellByLabel.get('$$ SNAP Tokens purchased')}+${inputCellByLabel.get('$$ DUFB Tokens Distributed')}+${inputCellByLabel.get('$$ WDFM Tokens purchased')}`
+  );
+  setFormula('$$ WDFM Tokens redeemed', `SUM(${mainRange('E')})`);
+  setFormula('WDFM Token Redemption Rate', `IF(${inputCellByLabel.get('TOTAL Tokens Distributed')}>0,${inputCellByLabel.get('$$ WDFM Tokens redeemed')}/${inputCellByLabel.get('TOTAL Tokens Distributed')},0)`);
+
+  setFormula('Total Tokens/Vouchers Reimbursed', `SUM(${mainRange('G')})`);
+
+  // Net Collected & Manager Cash
+  setFormula('Net Collected', `SUM(${inputCellByLabel.get('Total Cash Booth Fees')}:${inputCellByLabel.get('Volunteer Lunches')})`);
+  setFormula('Fees Not Paid', `SUM(${mainRange('I')})`);
+  setFormula(
+    'Cash Held by Market Manager',
+    `${inputCellByLabel.get('Net Collected')}+${inputCellByLabel.get('Petty Cash')}+${inputCellByLabel.get('Fees Not Paid')}`
+  );
+
+  applySummarySheetStyling(worksheet);
 };
 
 export async function downloadVendorTransactionsTemplate(marketDate: string): Promise<void> {
@@ -267,10 +374,16 @@ export async function downloadVendorTransactionsTemplate(marketDate: string): Pr
   const rows = buildTemplateRows(vendorNames, customColumns);
   const worksheet = workbook.addWorksheet('Transactions');
   rows.forEach((row) => worksheet.addRow(row));
+
+  const dataRowCount = worksheet.rowCount;
+  const rangeEnd = Math.max(vendorNames.length + 200, TEMPLATE_MAX_ROWS);
+  applyWorksheetStyling(worksheet, customColumns, rangeEnd, dataRowCount);
+  applyDataValidations(worksheet, customColumns, rangeEnd);
+
   const firstDataRow = 2;
   const lastDataRow = Math.max(vendorNames.length + 1, firstDataRow);
   const additionalValuesSheet = workbook.addWorksheet('Additional Values');
-  addSummaryTable(additionalValuesSheet);
+  addSummaryTable(additionalValuesSheet, lastDataRow);
   const hasDataRows = vendorNames.length > 0;
 
   if (hasDataRows) {
@@ -278,9 +391,6 @@ export async function downloadVendorTransactionsTemplate(marketDate: string): Pr
       worksheet.getCell(`G${row}`).value = { formula: `SUM(C${row}:F${row})` };
     }
   }
-
-  const rangeEnd = Math.max(vendorNames.length + 200, TEMPLATE_MAX_ROWS);
-  applyDataValidations(worksheet, customColumns, rangeEnd);
 
   const metadataSheet = workbook.addWorksheet('Custom Column Metadata');
   metadataSheet.addRow(['id', 'name', 'type', 'is_required']);
@@ -327,6 +437,7 @@ function triggerBrowserDownload(buffer: ExcelJS.Buffer, filename: string) {
 }
 
 type ExportTransactionRow = {
+  id: string;
   vendor_name: string;
   present: boolean;
   snap: number;
@@ -371,43 +482,48 @@ const toCustomCellValue = (value: unknown, column: CustomColumnMetadata) => {
 export async function exportVendorTransactionsSpreadsheet(
   marketDate: string,
   rows: ExportTransactionRow[],
-  customColumns: CustomColumnMetadata[]
+  customColumns: CustomColumnMetadata[],
+  marketDayData?: MarketDayData
 ): Promise<void> {
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet('Transactions');
 
-  const headers = [...BASE_HEADERS, ...customColumns.map(createCustomHeader)];
+  const headers = [...BASE_HEADERS, ...customColumns.map(createCustomHeader), 'Transaction ID'];
   worksheet.addRow(headers);
 
   rows.forEach((row) => {
     const base = [
       row.vendor_name,
       row.present ? 'Yes' : 'No',
-      row.snap ?? 0,
-      row.dufb ?? 0,
-      row.wdfm_tokens ?? 0,
-      row.voucher ?? 0,
+      row.snap ?? null,
+      row.dufb ?? null,
+      row.wdfm_tokens ?? null,
+      row.voucher ?? null,
       null, // formula set after insert
-      row.reported_sales ?? 0,
-      row.est_produce_sales ?? 0,
+      row.reported_sales ?? null,
+      row.est_produce_sales ?? null,
       row.est_num_transactions ?? null,
     ];
 
     const customValues = customColumns.map((column) => {
       const columnId = column.id;
-      if (columnId === undefined) return '';
-      return toCustomCellValue(row.customData?.[columnId], column);
+      if (columnId === undefined) return null;
+      const val = row.customData?.[columnId];
+      return val === undefined ? null : toCustomCellValue(val, column);
     });
 
-    worksheet.addRow([...base, ...customValues]);
+    worksheet.addRow([...base, ...customValues, row.id]);
   });
+
+  const dataRowCount = worksheet.rowCount;
+  applyWorksheetStyling(worksheet, customColumns, dataRowCount, dataRowCount);
 
   const firstDataRow = 2;
   const lastDataRow = Math.max(rows.length + 1, firstDataRow);
   const hasDataRows = rows.length > 0;
 
   const additionalValuesSheet = workbook.addWorksheet('Additional Values');
-  addSummaryTable(additionalValuesSheet);
+  addSummaryTable(additionalValuesSheet, lastDataRow, marketDayData);
 
   if (hasDataRows) {
     for (let row = firstDataRow; row <= lastDataRow; row += 1) {

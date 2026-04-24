@@ -23,6 +23,7 @@ import { getVendors, type Vendor as ApiVendor } from '@/lib/api/vendor';
 import { downloadVendorTransactionsTemplate, exportVendorTransactionsSpreadsheet } from '@/lib/transactionsTemplate';
 import { getAllVendorDefaults, type VendorDefaults } from '@/lib/api/defaults';
 import { getActiveCustomColumns, type CustomColumnMetadata } from '@/lib/api/customColumns';
+import { getMarketDayData, saveMarketDayData, type MarketDayData } from '@/lib/api/marketDayData';
 import { mostRecentSaturdayDate } from '@/lib/dashboardAggregates';
 import {
   DropdownMenu,
@@ -199,6 +200,9 @@ function TransactionsContent() {
   const [isImporting, setIsImporting] = useState(false);
   const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [marketDayData, setMarketDayData] = useState<MarketDayData | null>(null);
+  const [isMarketDayDataLoading, setIsMarketDayDataLoading] = useState(false);
+  const [isMarketDayDataSaving, setIsMarketDayDataSaving] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
   const [isAddVendorDialogOpen, setIsAddVendorDialogOpen] = useState(false);
@@ -437,23 +441,37 @@ function TransactionsContent() {
 
     const loadTransactions = async () => {
       setIsLoadingTransactions(true);
+      setIsMarketDayDataLoading(true);
 
       try {
-        const nextRecords = await fetchTransactionsForDate(currentMarketDate);
+        const [nextRecords, mdd] = await Promise.all([
+          fetchTransactionsForDate(currentMarketDate),
+          getMarketDayData(currentMarketDate)
+        ]);
 
         if (!isActive) return;
         setRecords(nextRecords);
+        
+        // If the backend returns an empty object (no data found), 
+        // ensure we have at least the marketDate set so saves don't fail.
+        const effectiveMdd = mdd && mdd.marketDate 
+          ? mdd 
+          : { ...(mdd || {}), marketDate: currentMarketDate } as MarketDayData;
+        
+        setMarketDayData(effectiveMdd);
         persistedPayloadsRef.current = buildPersistedPayloadSnapshot(nextRecords);
       } catch (error) {
-        console.error("Failed to load transactions:", error);
+        console.error("Failed to load transactions or market day data:", error);
         if (!isActive) return;
 
         setRecords([]);
+        setMarketDayData(null);
         persistedPayloadsRef.current = {};
-        toast.error("Failed to load transactions for the selected market date.");
+        toast.error("Failed to load some data for the selected market date.");
       } finally {
         if (isActive) {
           setIsLoadingTransactions(false);
+          setIsMarketDayDataLoading(false);
         }
       }
     };
@@ -475,11 +493,25 @@ function TransactionsContent() {
     currentMarketDate
   );
 
+  const handleSaveMarketDayData = useCallback(async () => {
+    if (!marketDayData) return;
+    setIsMarketDayDataSaving(true);
+    try {
+      await saveMarketDayData(marketDayData);
+      toast.success("Market day statistics saved.");
+    } catch (error) {
+      console.error("Failed to save market day data:", error);
+      toast.error("Failed to save market day statistics.");
+    } finally {
+      setIsMarketDayDataSaving(false);
+    }
+  }, [marketDayData]);
+
   const handlePreviousMarketDate = useCallback(() => {
     if (previousMarketDate) {
       setCurrentMarketDate(previousMarketDate);
     }
-  }, [previousMarketDate]);
+  }, [previousMarketDate, setCurrentMarketDate]);
 
   const handleNextMarketDate = useCallback(() => {
     if (nextMarketDate) {
@@ -540,11 +572,12 @@ function TransactionsContent() {
     }
   };
 
-  const handleExportExcel = async () => {
+  const handleExportExcel = useCallback(async () => {
     setIsExporting(true);
     try {
       const exportRows = records.map((row) => {
         return {
+          id: row.id,
           vendor_name: row.vendor_name,
           present: row.present,
           snap: row.snap,
@@ -558,15 +591,20 @@ function TransactionsContent() {
         };
       });
 
-      await exportVendorTransactionsSpreadsheet(currentMarketDate, exportRows, customColumns);
-      toast.success('Exported transactions to Excel.');
+      await exportVendorTransactionsSpreadsheet(
+        currentMarketDate, 
+        exportRows, 
+        customColumns,
+        marketDayData || undefined
+      );
+      toast.success('Exported transactions and statistics to Excel.');
     } catch (error) {
       console.error('Failed to export transactions:', error);
       toast.error('Unable to export. Please try again.');
     } finally {
       setIsExporting(false);
     }
-  };
+  }, [currentMarketDate, records, customColumns, marketDayData]);
 
   const handleAddVendor = (vendor: Vendor) => {
     if (records.some((record) => record.vendor_id === vendor.id)) {
@@ -665,22 +703,39 @@ function TransactionsContent() {
       try {
         const data = loadEvent.target?.result;
         const workbook = XLSX.read(data, { type: "binary" });
+        
+        // 1. Process Transactions Sheet (Existing Logic)
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }) as unknown[][];
         const headers = rows[0] as string[];
         const dataRows = rows.slice(1).filter((row) => row.length > 0);
+
+        const getHeaderIndex = (search: string) =>
+          headers.findIndex((h) => normalizeHeader(h) === normalizeHeader(search));
+
         const transactionIdIndex = headers.findIndex((header) =>
           TRANSACTION_ID_HEADERS.has(normalizeHeader(header))
         );
+
+        const vendorNameIndex = getHeaderIndex("Vendor Name");
+        const presentIndex = getHeaderIndex("Present?");
+        const snapIndex = getHeaderIndex("SNAP Voucher");
+        const dufbIndex = getHeaderIndex("DUFB Voucher");
+        const wdfmIndex = getHeaderIndex("WDFM Tokens");
+        const voucherIndex = getHeaderIndex("Voucher");
+        const reportedSalesIndex = getHeaderIndex("Reported Sales");
+        const fmppEstIndex = getHeaderIndex("FMPP Est");
+        const estNumTransactionsIndex = getHeaderIndex("Est # of");
 
         if (dataRows.length === 0) {
           toast.error("The file appears to be empty.");
           return;
         }
 
-        const imported = dataRows.map((row) => {
-          const vendorName = row[0]?.toString().trim() || "Unknown Vendor";
-          const presentValue = row[1]?.toString().trim().toUpperCase();
+        const importedTransactions = dataRows.map((row) => {
+          const vendorName = (vendorNameIndex >= 0 ? row[vendorNameIndex] : row[0])?.toString().trim() || "Unknown Vendor";
+          const rawPresentValue = (presentIndex >= 0 ? row[presentIndex] : row[1])?.toString().trim().toUpperCase();
+          const presentValue = ["Y", "YES", "TRUE", "1"].includes(rawPresentValue || "");
 
           const customData: Record<string, unknown> = {};
           // Attempt to map remaining columns to custom fields if headers match
@@ -693,34 +748,76 @@ function TransactionsContent() {
                 customData[columnId] = parseNumericValue(val);
               } else if (col.type === 'boolean') {
                 const s = String(val).toUpperCase();
-                customData[columnId] = s === 'Y' || s === 'YES' || s === 'TRUE';
+                customData[columnId] = ["Y", "YES", "TRUE", "1"].includes(s);
               } else {
                 customData[columnId] = String(val);
               }
             }
           });
 
+          // Try to match by ID first, then by vendor name to avoid duplicates
+          let recordId = transactionIdIndex >= 0 && row[transactionIdIndex]
+            ? String(row[transactionIdIndex]).trim()
+            : null;
+
+          if (!recordId) {
+            const existingRecord = records.find(
+              (r) => r.vendor_name.toLowerCase() === vendorName.toLowerCase()
+            );
+            recordId = existingRecord ? existingRecord.id : createLocalId();
+          }
+
           return buildRecord({
-            id:
-              transactionIdIndex >= 0 && row[transactionIdIndex]
-                ? String(row[transactionIdIndex]).trim()
-                : createLocalId(),
+            id: recordId,
             vendor_name: vendorName,
             market_date: currentMarketDate,
-            present: presentValue === "Y" || presentValue === "YES" || presentValue === "TRUE",
-            snap: parseNumericValue(row[2]),
-            dufb: parseNumericValue(row[3]),
-            wdfm_tokens: parseNumericValue(row[4]),
-            voucher: parseNumericValue(row[5]),
-            reported_sales: parseNumericValue(row[6]),
-            est_produce_sales: parseNumericValue(row[7]),
-            est_num_transactions: parseNumericValue(row[8]),
+            present: presentValue,
+            snap: snapIndex >= 0 ? parseNumericValue(row[snapIndex]) : 0,
+            dufb: dufbIndex >= 0 ? parseNumericValue(row[dufbIndex]) : 0,
+            wdfm_tokens: wdfmIndex >= 0 ? parseNumericValue(row[wdfmIndex]) : 0,
+            voucher: voucherIndex >= 0 ? parseNumericValue(row[voucherIndex]) : 0,
+            reported_sales: reportedSalesIndex >= 0 ? parseNumericValue(row[reportedSalesIndex]) : 0,
+            est_produce_sales: fmppEstIndex >= 0 ? parseNumericValue(row[fmppEstIndex]) : 0,
+            est_num_transactions: estNumTransactionsIndex >= 0 ? parseNumericValue(row[estNumTransactionsIndex]) : 0,
             customData,
           });
         });
 
+        // 2. Process Additional Values (Market Statistics)
+        const summarySheetName = workbook.SheetNames.find(n => n.toLowerCase().includes('additional') || n.toLowerCase().includes('summary'));
+        if (summarySheetName) {
+          const summarySheet = workbook.Sheets[summarySheetName];
+          const summaryRows = XLSX.utils.sheet_to_json(summarySheet, { header: 1 }) as unknown[][];
+          
+          const getVal = (label: string) => {
+            const row = summaryRows.find(r => r[0] && String(r[0]).trim() === label);
+            return row ? row[1] : undefined;
+          };
+
+          const parseNum = (v: any) => {
+            if (v === undefined || v === null || v === '') return 0;
+            const n = parseFloat(String(v).replace(/[^0-9.-]/g, ''));
+            return isNaN(n) ? 0 : Math.round(n * 100) / 100;
+          };
+
+          setMarketDayData(prev => ({
+            marketDate: currentMarketDate,
+            snapTokenTransactions: parseNum(getVal('# of SNAP Token Transactions')) || prev?.snapTokenTransactions || 0,
+            snapTokensPurchased: parseNum(getVal('$$ SNAP Tokens purchased')) || prev?.snapTokensPurchased || 0,
+            snapTokensRedeemed: parseNum(getVal('$$ SNAP Tokens redeemed')) || prev?.snapTokensRedeemed || 0,
+            dufbTokenTransactions: parseNum(getVal('# of DUFB Token Transactions')) || prev?.dufbTokenTransactions || 0,
+            dufbTokensDistributed: parseNum(getVal('$$ DUFB Tokens Distributed')) || prev?.dufbTokensDistributed || 0,
+            dufbTokensRedeemed: parseNum(getVal('$$ DUFB Tokens redeemed')) || prev?.dufbTokensRedeemed || 0,
+            wdfmTokenTransactions: parseNum(getVal('# of WDFM Token Transactions')) || prev?.wdfmTokenTransactions || 0,
+            wdfmTokensPurchased: parseNum(getVal('$$ WDFM Tokens purchased')) || prev?.wdfmTokensPurchased || 0,
+            giftCardsRedeemed: parseNum(getVal('Gift Cards Redeemed for Tokens')) || prev?.giftCardsRedeemed || 0,
+            wdfmTokensForMarketMeals: parseNum(getVal('$$$ WDFM Tokens for Market Meals')) || prev?.wdfmTokensForMarketMeals || 0,
+            wdfmTokensRedeemed: parseNum(getVal('$$ WDFM Tokens redeemed')) || prev?.wdfmTokensRedeemed || 0,
+          }));
+        }
+
         const dedupedImported = Array.from(
-          new Map(imported.map((record) => [record.id, record])).values()
+          new Map(importedTransactions.map((record) => [record.id, record])).values()
         );
 
         setRecords((previous) => {
@@ -740,7 +837,7 @@ function TransactionsContent() {
             `${invalidImportedCount} vendor name(s) could not be matched. Review the highlighted rows.`
           );
         } else {
-          toast.success(`Imported ${dedupedImported.length} transaction row(s) from ${file.name}.`);
+          toast.success(`Imported ${dedupedImported.length} transactions and market statistics from ${file.name}.`);
         }
       } catch (error) {
         console.error("Error parsing file:", error);
@@ -940,7 +1037,28 @@ function TransactionsContent() {
           </div>
         </header>
 
-        <MarketDayDataModule marketDate={currentMarketDate} />
+        <MarketDayDataModule 
+          marketDate={currentMarketDate} 
+          vendorRecords={records} 
+          data={marketDayData || {
+            marketDate: currentMarketDate,
+            snapTokenTransactions: 0,
+            snapTokensPurchased: 0,
+            snapTokensRedeemed: 0,
+            dufbTokenTransactions: 0,
+            dufbTokensDistributed: 0,
+            dufbTokensRedeemed: 0,
+            wdfmTokenTransactions: 0,
+            wdfmTokensPurchased: 0,
+            giftCardsRedeemed: 0,
+            wdfmTokensForMarketMeals: 0,
+            wdfmTokensRedeemed: 0,
+          }}
+          onDataChange={setMarketDayData}
+          loading={isMarketDayDataLoading}
+          saving={isMarketDayDataSaving}
+          onSave={handleSaveMarketDayData}
+        />
 
         <AddVendorDialog
           vendors={allVendors}
