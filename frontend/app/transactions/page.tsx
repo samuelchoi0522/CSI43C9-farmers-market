@@ -702,6 +702,8 @@ function TransactionsContent() {
       try {
         const data = loadEvent.target?.result;
         const workbook = XLSX.read(data, { type: "binary" });
+        
+        // 1. Process Transactions Sheet (Existing Logic)
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }) as unknown[][];
         const headers = rows[0] as string[];
@@ -729,7 +731,7 @@ function TransactionsContent() {
           return;
         }
 
-        const imported = dataRows.map((row) => {
+        const importedTransactions = dataRows.map((row) => {
           const vendorName = (vendorNameIndex >= 0 ? row[vendorNameIndex] : row[0])?.toString().trim() || "Unknown Vendor";
           const rawPresentValue = (presentIndex >= 0 ? row[presentIndex] : row[1])?.toString().trim().toUpperCase();
           const presentValue = ["Y", "YES", "TRUE", "1"].includes(rawPresentValue || "");
@@ -780,8 +782,41 @@ function TransactionsContent() {
           });
         });
 
+        // 2. Process Additional Values (Market Statistics)
+        const summarySheetName = workbook.SheetNames.find(n => n.toLowerCase().includes('additional') || n.toLowerCase().includes('summary'));
+        if (summarySheetName) {
+          const summarySheet = workbook.Sheets[summarySheetName];
+          const summaryRows = XLSX.utils.sheet_to_json(summarySheet, { header: 1 }) as unknown[][];
+          
+          const getVal = (label: string) => {
+            const row = summaryRows.find(r => r[0] && String(r[0]).trim() === label);
+            return row ? row[1] : undefined;
+          };
+
+          const parseNum = (v: any) => {
+            if (v === undefined || v === null || v === '') return 0;
+            const n = parseFloat(String(v).replace(/[^0-9.-]/g, ''));
+            return isNaN(n) ? 0 : n;
+          };
+
+          setMarketDayData(prev => ({
+            marketDate: currentMarketDate,
+            snapTokenTransactions: parseNum(getVal('# of SNAP Token Transactions')) || prev?.snapTokenTransactions || 0,
+            snapTokensPurchased: parseNum(getVal('$$ SNAP Tokens purchased')) || prev?.snapTokensPurchased || 0,
+            snapTokensRedeemed: parseNum(getVal('$$ SNAP Tokens redeemed')) || prev?.snapTokensRedeemed || 0,
+            dufbTokenTransactions: parseNum(getVal('# of DUFB Token Transactions')) || prev?.dufbTokenTransactions || 0,
+            dufbTokensDistributed: parseNum(getVal('$$ DUFB Tokens Distributed')) || prev?.dufbTokensDistributed || 0,
+            dufbTokensRedeemed: parseNum(getVal('$$ DUFB Tokens redeemed')) || prev?.dufbTokensRedeemed || 0,
+            wdfmTokenTransactions: parseNum(getVal('# of WDFM Token Transactions')) || prev?.wdfmTokenTransactions || 0,
+            wdfmTokensPurchased: parseNum(getVal('$$ WDFM Tokens purchased')) || prev?.wdfmTokensPurchased || 0,
+            giftCardsRedeemed: parseNum(getVal('Gift Cards Redeemed for Tokens')) || prev?.giftCardsRedeemed || 0,
+            wdfmTokensForMarketMeals: parseNum(getVal('$$$ WDFM Tokens for Market Meals')) || prev?.wdfmTokensForMarketMeals || 0,
+            wdfmTokensRedeemed: parseNum(getVal('$$ WDFM Tokens redeemed')) || prev?.wdfmTokensRedeemed || 0,
+          }));
+        }
+
         const dedupedImported = Array.from(
-          new Map(imported.map((record) => [record.id, record])).values()
+          new Map(importedTransactions.map((record) => [record.id, record])).values()
         );
 
         setRecords((previous) => {
@@ -801,7 +836,7 @@ function TransactionsContent() {
             `${invalidImportedCount} vendor name(s) could not be matched. Review the highlighted rows.`
           );
         } else {
-          toast.success(`Imported ${dedupedImported.length} transaction row(s) from ${file.name}.`);
+          toast.success(`Imported ${dedupedImported.length} transactions and market statistics from ${file.name}.`);
         }
       } catch (error) {
         console.error("Error parsing file:", error);
