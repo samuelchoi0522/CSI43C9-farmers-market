@@ -23,6 +23,7 @@ import { getVendors, type Vendor as ApiVendor } from '@/lib/api/vendor';
 import { downloadVendorTransactionsTemplate, exportVendorTransactionsSpreadsheet } from '@/lib/transactionsTemplate';
 import { getAllVendorDefaults, type VendorDefaults } from '@/lib/api/defaults';
 import { getActiveCustomColumns, type CustomColumnMetadata } from '@/lib/api/customColumns';
+import { getMarketDayData, saveMarketDayData, type MarketDayData } from '@/lib/api/marketDayData';
 import { mostRecentSaturdayDate } from '@/lib/dashboardAggregates';
 import {
   DropdownMenu,
@@ -199,6 +200,9 @@ function TransactionsContent() {
   const [isImporting, setIsImporting] = useState(false);
   const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [marketDayData, setMarketDayData] = useState<MarketDayData | null>(null);
+  const [isMarketDayDataLoading, setIsMarketDayDataLoading] = useState(false);
+  const [isMarketDayDataSaving, setIsMarketDayDataSaving] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
   const [isAddVendorDialogOpen, setIsAddVendorDialogOpen] = useState(false);
@@ -437,23 +441,37 @@ function TransactionsContent() {
 
     const loadTransactions = async () => {
       setIsLoadingTransactions(true);
+      setIsMarketDayDataLoading(true);
 
       try {
-        const nextRecords = await fetchTransactionsForDate(currentMarketDate);
+        const [nextRecords, mdd] = await Promise.all([
+          fetchTransactionsForDate(currentMarketDate),
+          getMarketDayData(currentMarketDate)
+        ]);
 
         if (!isActive) return;
         setRecords(nextRecords);
+        
+        // If the backend returns an empty object (no data found), 
+        // ensure we have at least the marketDate set so saves don't fail.
+        const effectiveMdd = mdd && mdd.marketDate 
+          ? mdd 
+          : { ...(mdd || {}), marketDate: currentMarketDate } as MarketDayData;
+        
+        setMarketDayData(effectiveMdd);
         persistedPayloadsRef.current = buildPersistedPayloadSnapshot(nextRecords);
       } catch (error) {
-        console.error("Failed to load transactions:", error);
+        console.error("Failed to load transactions or market day data:", error);
         if (!isActive) return;
 
         setRecords([]);
+        setMarketDayData(null);
         persistedPayloadsRef.current = {};
-        toast.error("Failed to load transactions for the selected market date.");
+        toast.error("Failed to load some data for the selected market date.");
       } finally {
         if (isActive) {
           setIsLoadingTransactions(false);
+          setIsMarketDayDataLoading(false);
         }
       }
     };
@@ -475,11 +493,25 @@ function TransactionsContent() {
     currentMarketDate
   );
 
+  const handleSaveMarketDayData = useCallback(async () => {
+    if (!marketDayData) return;
+    setIsMarketDayDataSaving(true);
+    try {
+      await saveMarketDayData(marketDayData);
+      toast.success("Market day statistics saved.");
+    } catch (error) {
+      console.error("Failed to save market day data:", error);
+      toast.error("Failed to save market day statistics.");
+    } finally {
+      setIsMarketDayDataSaving(false);
+    }
+  }, [marketDayData]);
+
   const handlePreviousMarketDate = useCallback(() => {
     if (previousMarketDate) {
       setCurrentMarketDate(previousMarketDate);
     }
-  }, [previousMarketDate]);
+  }, [previousMarketDate, setCurrentMarketDate]);
 
   const handleNextMarketDate = useCallback(() => {
     if (nextMarketDate) {
@@ -540,7 +572,7 @@ function TransactionsContent() {
     }
   };
 
-  const handleExportExcel = async () => {
+  const handleExportExcel = useCallback(async () => {
     setIsExporting(true);
     try {
       const exportRows = records.map((row) => {
@@ -558,15 +590,20 @@ function TransactionsContent() {
         };
       });
 
-      await exportVendorTransactionsSpreadsheet(currentMarketDate, exportRows, customColumns);
-      toast.success('Exported transactions to Excel.');
+      await exportVendorTransactionsSpreadsheet(
+        currentMarketDate, 
+        exportRows, 
+        customColumns,
+        marketDayData || undefined
+      );
+      toast.success('Exported transactions and statistics to Excel.');
     } catch (error) {
       console.error('Failed to export transactions:', error);
       toast.error('Unable to export. Please try again.');
     } finally {
       setIsExporting(false);
     }
-  };
+  }, [currentMarketDate, records, customColumns, marketDayData]);
 
   const handleAddVendor = (vendor: Vendor) => {
     if (records.some((record) => record.vendor_id === vendor.id)) {
@@ -964,7 +1001,28 @@ function TransactionsContent() {
           </div>
         </header>
 
-        <MarketDayDataModule marketDate={currentMarketDate} />
+        <MarketDayDataModule 
+          marketDate={currentMarketDate} 
+          vendorRecords={records} 
+          data={marketDayData || {
+            marketDate: currentMarketDate,
+            snapTokenTransactions: 0,
+            snapTokensPurchased: 0,
+            snapTokensRedeemed: 0,
+            dufbTokenTransactions: 0,
+            dufbTokensDistributed: 0,
+            dufbTokensRedeemed: 0,
+            wdfmTokenTransactions: 0,
+            wdfmTokensPurchased: 0,
+            giftCardsRedeemed: 0,
+            wdfmTokensForMarketMeals: 0,
+            wdfmTokensRedeemed: 0,
+          }}
+          onDataChange={setMarketDayData}
+          loading={isMarketDayDataLoading}
+          saving={isMarketDayDataSaving}
+          onSave={handleSaveMarketDayData}
+        />
 
         <AddVendorDialog
           vendors={allVendors}

@@ -30,7 +30,7 @@ public class MarketDayDataController {
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         return service.findByMarketDate(date)
                 .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.ok(new MarketDayData())); // Return empty data if not found
+                .orElse(ResponseEntity.ok(MarketDayData.builder().marketDate(date).build()));
     }
 
     @PostMapping

@@ -5,65 +5,56 @@ import { Label } from './figma/label';
 import { getMarketDayData, saveMarketDayData, MarketDayData } from '@/lib/api/marketDayData';
 import { toast } from 'sonner';
 import { Loader2, Save } from 'lucide-react';
+import { type VendorTransactionsSheetRowModel as VendorTransactionsSheetRow } from './VendorTransactionsSheetRow';
 
 interface MarketDayDataModuleProps {
   marketDate: string;
+  vendorRecords?: VendorTransactionsSheetRow[];
+  data: MarketDayData;
+  onDataChange: (newData: MarketDayData) => void;
+  loading?: boolean;
+  saving?: boolean;
+  onSave?: () => void;
 }
 
-const MarketDayDataModule: React.FC<MarketDayDataModuleProps> = ({ marketDate }) => {
-  const [data, setData] = useState<MarketDayData>({
-    marketDate,
-    snapTokenTransactions: 0,
-    snapTokensPurchased: 0,
-    snapTokensRedeemed: 0,
-    dufbTokenTransactions: 0,
-    dufbTokensDistributed: 0,
-    dufbTokensRedeemed: 0,
-    wdfmTokenTransactions: 0,
-    wdfmTokensPurchased: 0,
-    giftCardsRedeemed: 0,
-    wdfmTokensForMarketMeals: 0,
-    wdfmTokensRedeemed: 0,
-  });
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-
+const MarketDayDataModule: React.FC<MarketDayDataModuleProps> = ({ 
+  marketDate, 
+  vendorRecords = [], 
+  data, 
+  onDataChange,
+  loading,
+  saving,
+  onSave
+}) => {
+  // Automatically sync redeemed values from vendor records when they change
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const result = await getMarketDayData(marketDate);
-        setData({
-            ...result,
-            marketDate, // Ensure date matches current market date
-            snapTokenTransactions: result.snapTokenTransactions ?? 0,
-            snapTokensPurchased: result.snapTokensPurchased ?? 0,
-            snapTokensRedeemed: result.snapTokensRedeemed ?? 0,
-            dufbTokenTransactions: result.dufbTokenTransactions ?? 0,
-            dufbTokensDistributed: result.dufbTokensDistributed ?? 0,
-            dufbTokensRedeemed: result.dufbTokensRedeemed ?? 0,
-            wdfmTokenTransactions: result.wdfmTokenTransactions ?? 0,
-            wdfmTokensPurchased: result.wdfmTokensPurchased ?? 0,
-            giftCardsRedeemed: result.giftCardsRedeemed ?? 0,
-            wdfmTokensForMarketMeals: result.wdfmTokensForMarketMeals ?? 0,
-            wdfmTokensRedeemed: result.wdfmTokensRedeemed ?? 0,
+    if (vendorRecords && vendorRecords.length > 0) {
+      const snapRedeemed = vendorRecords.reduce((sum, r) => sum + (r.snap || 0), 0);
+      const dufbRedeemed = vendorRecords.reduce((sum, r) => sum + (r.dufb || 0), 0);
+      const wdfmRedeemed = vendorRecords.reduce((sum, r) => sum + (r.wdfm_tokens || 0), 0);
+
+      if (
+        data.snapTokensRedeemed !== snapRedeemed ||
+        data.dufbTokensRedeemed !== dufbRedeemed ||
+        data.wdfmTokensRedeemed !== wdfmRedeemed
+      ) {
+        onDataChange({
+          ...data,
+          snapTokensRedeemed: snapRedeemed,
+          dufbTokensRedeemed: dufbRedeemed,
+          wdfmTokensRedeemed: wdfmRedeemed,
         });
-      } catch (error) {
-        console.error('Failed to fetch market day data:', error);
-        toast.error('Failed to load market day data');
-      } finally {
-        setLoading(false);
       }
-    };
-    fetchData();
-  }, [marketDate]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vendorRecords]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type } = e.target;
+    const { name, value } = e.target;
     
     // If value is empty, set to 0
     if (value === '') {
-      setData((prev) => ({ ...prev, [name]: 0 }));
+      onDataChange({ ...data, [name]: 0 });
       return;
     }
 
@@ -72,29 +63,16 @@ const MarketDayDataModule: React.FC<MarketDayDataModuleProps> = ({ marketDate })
     // Prevent negative numbers
     if (parsedValue < 0) return;
 
-    setData((prev) => ({
-      ...prev,
+    onDataChange({
+      ...data,
       [name]: parsedValue,
-    }));
+    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     // Prevent '-' and 'e' (scientific notation) from being typed
     if (e.key === '-' || e.key === 'e' || e.key === 'E') {
       e.preventDefault();
-    }
-  };
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      await saveMarketDayData(data);
-      toast.success('Market day data saved');
-    } catch (error) {
-      console.error('Failed to save market day data:', error);
-      toast.error('Failed to save market day data');
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -109,7 +87,7 @@ const MarketDayDataModule: React.FC<MarketDayDataModuleProps> = ({ marketDate })
   }, [data.dufbTokensDistributed, data.dufbTokensRedeemed]);
 
   const totalWdfmDistributed = useMemo(() => {
-    return data.wdfmTokensPurchased + data.giftCardsRedeemed + data.wdfmTokensForMarketMeals;
+    return (data.wdfmTokensPurchased || 0) + (data.giftCardsRedeemed || 0) + (data.wdfmTokensForMarketMeals || 0);
   }, [data.wdfmTokensPurchased, data.giftCardsRedeemed, data.wdfmTokensForMarketMeals]);
 
   const wdfmRedemptionRate = useMemo(() => {
@@ -131,14 +109,16 @@ const MarketDayDataModule: React.FC<MarketDayDataModuleProps> = ({ marketDate })
     <Card className="mb-8 border-slate-200 bg-white shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
         <CardTitle className="text-lg font-bold text-slate-900">Market Day Statistics</CardTitle>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="inline-flex items-center gap-2 rounded-lg bg-[#10b981] px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#059669] disabled:opacity-50"
-        >
-          {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-          Save Stats
-        </button>
+        {onSave && (
+          <button
+            onClick={onSave}
+            disabled={saving}
+            className="inline-flex items-center gap-2 rounded-lg bg-[#10b981] px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#059669] disabled:opacity-50"
+          >
+            {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+            Save Stats
+          </button>
+        )}
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
@@ -186,6 +166,7 @@ const MarketDayDataModule: React.FC<MarketDayDataModuleProps> = ({ marketDate })
                   onChange={handleChange}
                   onKeyDown={handleKeyDown}
                   className="bg-white"
+                  readOnly
                 />
               </div>
               <div className="mt-2 flex items-center justify-between text-sm font-medium text-slate-600">
@@ -239,6 +220,7 @@ const MarketDayDataModule: React.FC<MarketDayDataModuleProps> = ({ marketDate })
                   onChange={handleChange}
                   onKeyDown={handleKeyDown}
                   className="bg-white"
+                  readOnly
                 />
               </div>
               <div className="mt-2 flex items-center justify-between text-sm font-medium text-slate-600">
@@ -320,6 +302,7 @@ const MarketDayDataModule: React.FC<MarketDayDataModuleProps> = ({ marketDate })
                   onChange={handleChange}
                   onKeyDown={handleKeyDown}
                   className="bg-white"
+                  readOnly
                 />
               </div>
               <div className="mt-2 space-y-1">

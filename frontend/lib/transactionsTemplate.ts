@@ -1,6 +1,7 @@
 import ExcelJS from 'exceljs';
 import { getVendors } from '@/lib/api/vendor';
 import { getActiveCustomColumns, type CustomColumnMetadata } from '@/lib/api/customColumns';
+import { type MarketDayData } from '@/lib/api/marketDayData';
 
 const BASE_COLUMN_METADATA = [
   { name: 'Vendor Name', type: 'text', width: 30 },
@@ -279,7 +280,7 @@ const applySummarySheetStyling = (worksheet: ExcelJS.Worksheet) => {
   });
 };
 
-const addSummaryTable = (worksheet: ExcelJS.Worksheet, lastDataRow: number) => {
+const addSummaryTable = (worksheet: ExcelJS.Worksheet, lastDataRow: number, marketDayData?: MarketDayData) => {
   const labelColumn = 1;
   const inputColumn = 2;
   const startRow = 1;
@@ -293,7 +294,7 @@ const addSummaryTable = (worksheet: ExcelJS.Worksheet, lastDataRow: number) => {
     if (field) {
       const inputCell = worksheet.getCell(row, inputColumn);
       inputCellByLabel.set(field, `${inputColumnLetter}${row}`);
-      inputCell.value = null; // Default to null for manual entry fields
+      inputCell.value = null;
     }
   });
 
@@ -301,6 +302,13 @@ const addSummaryTable = (worksheet: ExcelJS.Worksheet, lastDataRow: number) => {
     const cellRef = inputCellByLabel.get(label);
     if (cellRef) {
       worksheet.getCell(cellRef).value = { formula };
+    }
+  };
+
+  const setValue = (label: string, value: number | string | null) => {
+    const cellRef = inputCellByLabel.get(label);
+    if (cellRef) {
+      worksheet.getCell(cellRef).value = value;
     }
   };
 
@@ -314,15 +322,23 @@ const addSummaryTable = (worksheet: ExcelJS.Worksheet, lastDataRow: number) => {
   setFormula('Est Total Market Sales', `IF(${inputCellByLabel.get('% Reporting')}>0,${inputCellByLabel.get('Total Reported Sales')}/${inputCellByLabel.get('% Reporting')},0)`);
   setFormula('Average Vendor Sales', `IF(${inputCellByLabel.get('Number of Vendors')}>0,${inputCellByLabel.get('Est Total Market Sales')}/${inputCellByLabel.get('Number of Vendors')},0)`);
 
-  // SNAP Formulas
+  // SNAP Formulas/Values
+  setValue('# of SNAP Token Transactions', marketDayData?.snapTokenTransactions ?? null);
+  setValue('$$ SNAP Tokens purchased', marketDayData?.snapTokensPurchased ?? null);
   setFormula('$$ SNAP Tokens redeemed', `SUM(${mainRange('C')})`);
   setFormula('SNAP Redemption Rate', `IF(${inputCellByLabel.get('$$ SNAP Tokens purchased')}>0,${inputCellByLabel.get('$$ SNAP Tokens redeemed')}/${inputCellByLabel.get('$$ SNAP Tokens purchased')},0)`);
 
-  // DUFB Formulas
+  // DUFB Formulas/Values
+  setValue('# of DUFB Token Transactions', marketDayData?.dufbTokenTransactions ?? null);
+  setValue('$$ DUFB Tokens Distributed', marketDayData?.dufbTokensDistributed ?? null);
   setFormula('$$ DUFB Tokens redeemed', `SUM(${mainRange('D')})`);
   setFormula('DUFB Redemption Rate', `IF(${inputCellByLabel.get('$$ DUFB Tokens Distributed')}>0,${inputCellByLabel.get('$$ DUFB Tokens redeemed')}/${inputCellByLabel.get('$$ DUFB Tokens Distributed')},0)`);
 
-  // WDFM/Total Tokens Formulas
+  // WDFM/Total Tokens Formulas/Values
+  setValue('# of WDFM Token Transactions', marketDayData?.wdfmTokenTransactions ?? null);
+  setValue('$$ WDFM Tokens purchased', marketDayData?.wdfmTokensPurchased ?? null);
+  setValue('Gift Cards Redeemed for Tokens', marketDayData?.giftCardsRedeemed ?? null);
+  setValue('$$$ WDFM Tokens for Market Meals', marketDayData?.wdfmTokensForMarketMeals ?? null);
   setFormula(
     'TOTAL Tokens Distributed',
     `${inputCellByLabel.get('$$ SNAP Tokens purchased')}+${inputCellByLabel.get('$$ DUFB Tokens Distributed')}+${inputCellByLabel.get('$$ WDFM Tokens purchased')}`
@@ -367,7 +383,7 @@ export async function downloadVendorTransactionsTemplate(marketDate: string): Pr
   const firstDataRow = 2;
   const lastDataRow = Math.max(vendorNames.length + 1, firstDataRow);
   const additionalValuesSheet = workbook.addWorksheet('Additional Values');
-  addSummaryTable(additionalValuesSheet, lastDataRow);
+  addSummaryTable(additionalValuesSheet, lastDataRow, marketDayData);
   const hasDataRows = vendorNames.length > 0;
 
   if (hasDataRows) {
@@ -465,7 +481,8 @@ const toCustomCellValue = (value: unknown, column: CustomColumnMetadata) => {
 export async function exportVendorTransactionsSpreadsheet(
   marketDate: string,
   rows: ExportTransactionRow[],
-  customColumns: CustomColumnMetadata[]
+  customColumns: CustomColumnMetadata[],
+  marketDayData?: MarketDayData
 ): Promise<void> {
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet('Transactions');
@@ -505,7 +522,7 @@ export async function exportVendorTransactionsSpreadsheet(
   const hasDataRows = rows.length > 0;
 
   const additionalValuesSheet = workbook.addWorksheet('Additional Values');
-  addSummaryTable(additionalValuesSheet, lastDataRow);
+  addSummaryTable(additionalValuesSheet, lastDataRow, marketDayData);
 
   if (hasDataRows) {
     for (let row = firstDataRow; row <= lastDataRow; row += 1) {
