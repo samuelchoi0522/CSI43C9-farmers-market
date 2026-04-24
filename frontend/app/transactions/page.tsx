@@ -577,6 +577,7 @@ function TransactionsContent() {
     try {
       const exportRows = records.map((row) => {
         return {
+          id: row.id,
           vendor_name: row.vendor_name,
           present: row.present,
           snap: row.snap,

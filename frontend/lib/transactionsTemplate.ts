@@ -383,7 +383,7 @@ export async function downloadVendorTransactionsTemplate(marketDate: string): Pr
   const firstDataRow = 2;
   const lastDataRow = Math.max(vendorNames.length + 1, firstDataRow);
   const additionalValuesSheet = workbook.addWorksheet('Additional Values');
-  addSummaryTable(additionalValuesSheet, lastDataRow, marketDayData);
+  addSummaryTable(additionalValuesSheet, lastDataRow);
   const hasDataRows = vendorNames.length > 0;
 
   if (hasDataRows) {
@@ -437,6 +437,7 @@ function triggerBrowserDownload(buffer: ExcelJS.Buffer, filename: string) {
 }
 
 type ExportTransactionRow = {
+  id: string;
   vendor_name: string;
   present: boolean;
   snap: number;
