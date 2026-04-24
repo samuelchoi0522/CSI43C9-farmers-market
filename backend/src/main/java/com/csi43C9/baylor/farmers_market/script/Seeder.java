@@ -6,11 +6,13 @@ import com.csi43C9.baylor.farmers_market.dto.vendor.CategoryLabelDto;
 import com.csi43C9.baylor.farmers_market.entity.Vendor;
 import com.csi43C9.baylor.farmers_market.entity.VendorTransaction;
 import com.csi43C9.baylor.farmers_market.entity.VendorDefaults;
+import com.csi43C9.baylor.farmers_market.entity.MarketDayData;
 import com.csi43C9.baylor.farmers_market.repository.CustomColumnRepository;
 import com.csi43C9.baylor.farmers_market.repository.VendorCategoryRepository;
 import com.csi43C9.baylor.farmers_market.repository.VendorDefaultsRepository;
 import com.csi43C9.baylor.farmers_market.repository.VendorRepository;
 import com.csi43C9.baylor.farmers_market.repository.VendorTransactionRepository;
+import com.csi43C9.baylor.farmers_market.repository.MarketDayDataRepository;
 import io.github.cdimascio.dotenv.Dotenv;
 import net.datafaker.Faker;
 import org.springframework.boot.SpringApplication;
@@ -59,6 +61,7 @@ public class Seeder {
             VendorDefaultsRepository vendorDefaultsRepository = context.getBean(VendorDefaultsRepository.class);
             CustomColumnRepository customColumnRepository = context.getBean(CustomColumnRepository.class);
             VendorCategoryRepository vendorCategoryRepository = context.getBean(VendorCategoryRepository.class);
+            MarketDayDataRepository marketDayDataRepository = context.getBean(MarketDayDataRepository.class);
 
             // Comment out the seeds you don't want to run
             Seeder seeder = new Seeder();
@@ -67,6 +70,7 @@ public class Seeder {
             seeder.populateCustomColumns(customColumnRepository);
             seeder.populateVendorDefaults(vendorRepository, vendorDefaultsRepository);
             seeder.populateVendorTransactions(vendorRepository, transactionRepository, customColumnRepository);
+            seeder.populateMarketDayData(marketDayDataRepository);
         } catch (Exception e) {
             // Catch the silent exit exception
             System.out.println(e);
@@ -327,6 +331,39 @@ public class Seeder {
 
         transactionRepository.saveAll(allTransactions);
         System.out.println("Done seeding transactions! (" + allTransactions.size() + " records)");
+    }
+
+    /**
+     * Seeds the database with market day data.
+     */
+    private void populateMarketDayData(MarketDayDataRepository repository) {
+        System.out.println("Seeding market day data...");
+
+        LocalDate mostRecentSaturday = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.SATURDAY));
+        List<LocalDate> marketDates = IntStream.range(0, 52)
+                .mapToObj(mostRecentSaturday::minusWeeks)
+                .toList();
+
+        for (LocalDate date : marketDates) {
+            MarketDayData data = MarketDayData.builder()
+                    .marketDate(date)
+                    .snapTokenTransactions(faker.number().numberBetween(1, 20))
+                    .snapTokensPurchased(faker.number().randomDouble(2, 100, 1000))
+                    .snapTokensRedeemed(faker.number().randomDouble(2, 50, 900))
+                    .dufbTokenTransactions(faker.number().numberBetween(1, 20))
+                    .dufbTokensDistributed(faker.number().randomDouble(2, 50, 500))
+                    .dufbTokensRedeemed(faker.number().randomDouble(2, 25, 450))
+                    .wdfmTokenTransactions(faker.number().numberBetween(1, 10))
+                    .wdfmTokensPurchased(faker.number().randomDouble(2, 10, 200))
+                    .giftCardsRedeemed(faker.number().randomDouble(2, 0, 100))
+                    .wdfmTokensForMarketMeals(faker.number().randomDouble(2, 0, 100))
+                    .wdfmTokensRedeemed(faker.number().randomDouble(2, 50, 500))
+                    .build();
+
+            repository.save(data);
+        }
+
+        System.out.println("Done seeding market day data!");
     }
 
     private double[] randomPercentageSplit(int buckets) {
