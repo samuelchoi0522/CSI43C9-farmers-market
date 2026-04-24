@@ -26,12 +26,19 @@ const MarketDayDataModule: React.FC<MarketDayDataModuleProps> = ({
   saving,
   onSave
 }) => {
+  const [localData, setLocalData] = useState<MarketDayData>(data);
+
+  // Sync local state when external data (props) changes
+  useEffect(() => {
+    setLocalData(data);
+  }, [data]);
+
   // Automatically sync redeemed values from vendor records when they change
   useEffect(() => {
     if (vendorRecords && vendorRecords.length > 0) {
-      const snapRedeemed = vendorRecords.reduce((sum, r) => sum + (r.snap || 0), 0);
-      const dufbRedeemed = vendorRecords.reduce((sum, r) => sum + (r.dufb || 0), 0);
-      const wdfmRedeemed = vendorRecords.reduce((sum, r) => sum + (r.wdfm_tokens || 0), 0);
+      const snapRedeemed = Math.round(vendorRecords.reduce((sum, r) => sum + (r.snap || 0), 0) * 100) / 100;
+      const dufbRedeemed = Math.round(vendorRecords.reduce((sum, r) => sum + (r.dufb || 0), 0) * 100) / 100;
+      const wdfmRedeemed = Math.round(vendorRecords.reduce((sum, r) => sum + (r.wdfm_tokens || 0), 0) * 100) / 100;
 
       if (
         data.snapTokensRedeemed !== snapRedeemed ||
@@ -52,16 +59,27 @@ const MarketDayDataModule: React.FC<MarketDayDataModuleProps> = ({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     
-    // If value is empty, set to 0
+    // Update local state immediately for snappy UI
+    setLocalData(prev => ({
+      ...prev,
+      [name]: value === '' ? 0 : parseFloat(value)
+    }));
+  };
+
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
     if (value === '') {
       onDataChange({ ...data, [name]: 0 });
       return;
     }
 
-    const parsedValue = parseFloat(value);
-    
-    // Prevent negative numbers
-    if (parsedValue < 0) return;
+    let parsedValue = parseFloat(value);
+    if (parsedValue < 0) parsedValue = 0;
+
+    // Round to 2 decimal places for currency fields
+    if (name.includes('Purchased') || name.includes('Redeemed') || name.includes('Distributed') || name.includes('Cards') || name.includes('Meals')) {
+      parsedValue = Math.round(parsedValue * 100) / 100;
+    }
 
     onDataChange({
       ...data,
@@ -77,23 +95,23 @@ const MarketDayDataModule: React.FC<MarketDayDataModuleProps> = ({
   };
 
   const snapRedemptionRate = useMemo(() => {
-    if (data.snapTokensPurchased === 0) return 0;
-    return (data.snapTokensRedeemed / data.snapTokensPurchased) * 100;
-  }, [data.snapTokensPurchased, data.snapTokensRedeemed]);
+    if (localData.snapTokensPurchased === 0) return 0;
+    return (localData.snapTokensRedeemed / localData.snapTokensPurchased) * 100;
+  }, [localData.snapTokensPurchased, localData.snapTokensRedeemed]);
 
   const dufbRedemptionRate = useMemo(() => {
-    if (data.dufbTokensDistributed === 0) return 0;
-    return (data.dufbTokensRedeemed / data.dufbTokensDistributed) * 100;
-  }, [data.dufbTokensDistributed, data.dufbTokensRedeemed]);
+    if (localData.dufbTokensDistributed === 0) return 0;
+    return (localData.dufbTokensRedeemed / localData.dufbTokensDistributed) * 100;
+  }, [localData.dufbTokensDistributed, localData.dufbTokensRedeemed]);
 
   const totalWdfmDistributed = useMemo(() => {
-    return (data.wdfmTokensPurchased || 0) + (data.giftCardsRedeemed || 0) + (data.wdfmTokensForMarketMeals || 0);
-  }, [data.wdfmTokensPurchased, data.giftCardsRedeemed, data.wdfmTokensForMarketMeals]);
+    return (localData.wdfmTokensPurchased || 0) + (localData.giftCardsRedeemed || 0) + (localData.wdfmTokensForMarketMeals || 0);
+  }, [localData.wdfmTokensPurchased, localData.giftCardsRedeemed, localData.wdfmTokensForMarketMeals]);
 
   const wdfmRedemptionRate = useMemo(() => {
     if (totalWdfmDistributed === 0) return 0;
-    return (data.wdfmTokensRedeemed / totalWdfmDistributed) * 100;
-  }, [totalWdfmDistributed, data.wdfmTokensRedeemed]);
+    return (localData.wdfmTokensRedeemed / totalWdfmDistributed) * 100;
+  }, [totalWdfmDistributed, localData.wdfmTokensRedeemed]);
 
   if (loading) {
     return (
@@ -134,8 +152,9 @@ const MarketDayDataModule: React.FC<MarketDayDataModuleProps> = ({
                   type="number"
                   min="0"
                   step="1"
-                  value={data.snapTokenTransactions || ''}
+                  value={localData.snapTokenTransactions || ''}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   onKeyDown={handleKeyDown}
                   className="bg-white"
                 />
@@ -148,8 +167,9 @@ const MarketDayDataModule: React.FC<MarketDayDataModuleProps> = ({
                   type="number"
                   min="0"
                   step="0.01"
-                  value={data.snapTokensPurchased || ''}
+                  value={localData.snapTokensPurchased || ''}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   onKeyDown={handleKeyDown}
                   className="bg-white"
                 />
@@ -162,8 +182,9 @@ const MarketDayDataModule: React.FC<MarketDayDataModuleProps> = ({
                   type="number"
                   min="0"
                   step="0.01"
-                  value={data.snapTokensRedeemed || ''}
+                  value={localData.snapTokensRedeemed || ''}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   onKeyDown={handleKeyDown}
                   className="bg-white"
                   readOnly
@@ -188,8 +209,9 @@ const MarketDayDataModule: React.FC<MarketDayDataModuleProps> = ({
                   type="number"
                   min="0"
                   step="1"
-                  value={data.dufbTokenTransactions || ''}
+                  value={localData.dufbTokenTransactions || ''}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   onKeyDown={handleKeyDown}
                   className="bg-white"
                 />
@@ -202,8 +224,9 @@ const MarketDayDataModule: React.FC<MarketDayDataModuleProps> = ({
                   type="number"
                   min="0"
                   step="0.01"
-                  value={data.dufbTokensDistributed || ''}
+                  value={localData.dufbTokensDistributed || ''}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   onKeyDown={handleKeyDown}
                   className="bg-white"
                 />
@@ -216,8 +239,9 @@ const MarketDayDataModule: React.FC<MarketDayDataModuleProps> = ({
                   type="number"
                   min="0"
                   step="0.01"
-                  value={data.dufbTokensRedeemed || ''}
+                  value={localData.dufbTokensRedeemed || ''}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   onKeyDown={handleKeyDown}
                   className="bg-white"
                   readOnly
@@ -242,8 +266,9 @@ const MarketDayDataModule: React.FC<MarketDayDataModuleProps> = ({
                   type="number"
                   min="0"
                   step="1"
-                  value={data.wdfmTokenTransactions || ''}
+                  value={localData.wdfmTokenTransactions || ''}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   onKeyDown={handleKeyDown}
                   className="bg-white"
                 />
@@ -256,8 +281,9 @@ const MarketDayDataModule: React.FC<MarketDayDataModuleProps> = ({
                   type="number"
                   min="0"
                   step="0.01"
-                  value={data.wdfmTokensPurchased || ''}
+                  value={localData.wdfmTokensPurchased || ''}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   onKeyDown={handleKeyDown}
                   className="bg-white"
                 />
@@ -270,8 +296,9 @@ const MarketDayDataModule: React.FC<MarketDayDataModuleProps> = ({
                   type="number"
                   min="0"
                   step="0.01"
-                  value={data.giftCardsRedeemed || ''}
+                  value={localData.giftCardsRedeemed || ''}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   onKeyDown={handleKeyDown}
                   className="bg-white"
                 />
@@ -284,8 +311,9 @@ const MarketDayDataModule: React.FC<MarketDayDataModuleProps> = ({
                   type="number"
                   min="0"
                   step="0.01"
-                  value={data.wdfmTokensForMarketMeals || ''}
+                  value={localData.wdfmTokensForMarketMeals || ''}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   onKeyDown={handleKeyDown}
                   className="bg-white"
                 />
@@ -298,8 +326,9 @@ const MarketDayDataModule: React.FC<MarketDayDataModuleProps> = ({
                   type="number"
                   min="0"
                   step="0.01"
-                  value={data.wdfmTokensRedeemed || ''}
+                  value={localData.wdfmTokensRedeemed || ''}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   onKeyDown={handleKeyDown}
                   className="bg-white"
                   readOnly

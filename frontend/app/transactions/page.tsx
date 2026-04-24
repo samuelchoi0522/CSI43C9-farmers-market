@@ -796,7 +796,7 @@ function TransactionsContent() {
           const parseNum = (v: any) => {
             if (v === undefined || v === null || v === '') return 0;
             const n = parseFloat(String(v).replace(/[^0-9.-]/g, ''));
-            return isNaN(n) ? 0 : n;
+            return isNaN(n) ? 0 : Math.round(n * 100) / 100;
           };
 
           setMarketDayData(prev => ({
