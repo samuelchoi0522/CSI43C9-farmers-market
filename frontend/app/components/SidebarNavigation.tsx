@@ -55,24 +55,6 @@ export default function SidebarNavigation({
           );
         })}
       </nav>
-      
-      <div className="p-4 mt-auto">
-        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-          <p className="text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Market Status</p>
-          <p className="text-sm font-bold truncate">Downtown Saturday Mar...</p>
-          <div className="mt-3 flex items-center">
-            <span
-              className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                isSaturday
-                  ? "bg-[#10b981]/20 text-[#10b981] dark:bg-[#10b981]/30 dark:text-[#34d399]"
-                  : "bg-amber-400/30 text-amber-900 dark:bg-amber-500/20 dark:text-amber-300"
-              }`}
-            >
-              {isSaturday ? "Live" : "Upcoming"}
-            </span>
-          </div>
-        </div>
-      </div>
     </aside>
   );
 }

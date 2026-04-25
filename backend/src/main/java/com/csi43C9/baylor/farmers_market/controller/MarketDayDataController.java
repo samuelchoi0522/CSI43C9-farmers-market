@@ -2,6 +2,7 @@ package com.csi43C9.baylor.farmers_market.controller;
 
 import com.csi43C9.baylor.farmers_market.entity.MarketDayData;
 import com.csi43C9.baylor.farmers_market.service.MarketDayDataService;
+import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -17,6 +18,7 @@ import java.time.LocalDate;
 @CrossOrigin(origins = {"*"})
 @RestController
 @RequestMapping("/api/market-day-data")
+@RegisterReflectionForBinding({MarketDayData.class})
 public class MarketDayDataController {
 
     private final MarketDayDataService service;

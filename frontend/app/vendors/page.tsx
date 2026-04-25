@@ -83,7 +83,7 @@ function VendorsContent() {
     const fetchAllVendors = async () => {
         try {
             const [allVendorsList, defaultsList] = await Promise.all([
-                fetchAllVendorsFromApi(showInactive),
+                fetchAllVendorsFromApi(true), // Always fetch all for stats
                 fetchAllDefaultsFromApi(),
             ]);
 
@@ -97,10 +97,10 @@ function VendorsContent() {
             console.error("Error fetching all vendors for stats:", error);
         }
     };
-    // Fetch all vendors for stats calculation
+    // Fetch all vendors for stats calculation once on mount
     useEffect(() => {
         fetchAllVendors();
-    }, [showInactive]);
+    }, []);
 
     // Fetch vendors and vendor defaults for current page
     useEffect(() => {
@@ -169,9 +169,9 @@ function VendorsContent() {
         return { active };
     }, [allVendors]);
 
-    const totalVendorCount = totalElements > 0 ? totalElements : allVendors.length;
+    const totalVendorCount = allVendors.length;
 
-    const subtitleCountValue = searchQuery.trim() === "" ? totalVendorCount : filteredVendors.length;
+    const subtitleCountValue = searchQuery.trim() === "" ? (showInactive ? allVendors.length : vendorStats.active) : filteredVendors.length;
     const subtitleResetKey =
         searchQuery.trim() === ""
             ? statsResetKey
