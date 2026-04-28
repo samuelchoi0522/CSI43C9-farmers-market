@@ -29,6 +29,7 @@ import {
 } from "@/lib/smoothNumbers";
 import { downloadFinancialReportPdf } from "@/lib/reportPdf";
 import { getActiveCustomColumns, type CustomColumnMetadata } from "@/lib/api/customColumns";
+import { getMarketDayData, type MarketDayData } from "@/lib/api/marketDayData";
 
 type VendorLabelReportRow = {
   name: string;
@@ -56,7 +57,12 @@ const REPORT_TABS: { id: ReportType; label: string }[] = [
   { id: "customColumns", label: "Custom columns" },
 ];
 
-const CUSTOM_TX_TABLE_PAGE_SIZE = 25;
+/** Page size for all per-transaction tables on this page (comprehensive, token, custom columns). */
+const REPORTS_TX_TABLE_PAGE_SIZE = 10;
+
+/** Cap market-day API calls per load (slice to most recent days if the range is longer). */
+const REPORTS_MARKET_DAY_MAX_DAYS = 372;
+const REPORTS_MARKET_DAY_FETCH_BATCH = 12;
 
 function readTxCustomValue(t: VendorTransaction, columnId: number): unknown {
   return t.customData?.[String(columnId)];
@@ -147,6 +153,301 @@ function formatMarketDateLabel(isoDate: string) {
   } catch {
     return isoDate;
   }
+}
+
+function enumerateIsoDatesInclusive(startIso: string, endIso: string): string[] {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const a = new Date(`${startIso}T12:00:00`);
+  const b = new Date(`${endIso}T12:00:00`);
+  if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return [];
+  let start = a;
+  let end = b;
+  if (start > end) {
+    start = b;
+    end = a;
+  }
+  const out: string[] = [];
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    out.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+  }
+  return out;
+}
+
+function emptyMarketDayRow(marketDate: string): MarketDayData {
+  return {
+    marketDate,
+    snapTokenTransactions: 0,
+    snapTokensPurchased: 0,
+    snapTokensRedeemed: 0,
+    dufbTokenTransactions: 0,
+    dufbTokensDistributed: 0,
+    dufbTokensRedeemed: 0,
+    wdfmTokenTransactions: 0,
+    wdfmTokensPurchased: 0,
+    giftCardsRedeemed: 0,
+    wdfmTokensForMarketMeals: 0,
+    wdfmTokensRedeemed: 0,
+  };
+}
+
+async function fetchMarketDayDataBatched(dates: string[]): Promise<MarketDayData[]> {
+  const out: MarketDayData[] = [];
+  for (let i = 0; i < dates.length; i += REPORTS_MARKET_DAY_FETCH_BATCH) {
+    const batch = dates.slice(i, i + REPORTS_MARKET_DAY_FETCH_BATCH);
+    const chunk = await Promise.all(
+      batch.map(async (marketDate) => {
+        try {
+          const row = await getMarketDayData(marketDate);
+          return { ...row, marketDate };
+        } catch {
+          return emptyMarketDayRow(marketDate);
+        }
+      }),
+    );
+    out.push(...chunk);
+  }
+  return out.sort((a, b) => b.marketDate.localeCompare(a.marketDate));
+}
+
+function ReportsMarketDayTokenStatsSection({
+  rows,
+  rangeTruncated,
+  className = "mb-8",
+}: {
+  rows: MarketDayData[];
+  rangeTruncated: boolean;
+  className?: string;
+}) {
+  const totals = useMemo(() => {
+    let snapTokenTransactions = 0;
+    let snapTokensPurchased = 0;
+    let snapTokensRedeemed = 0;
+    let dufbTokenTransactions = 0;
+    let dufbTokensDistributed = 0;
+    let dufbTokensRedeemed = 0;
+    let wdfmTokenTransactions = 0;
+    let wdfmTokensPurchased = 0;
+    let giftCardsRedeemed = 0;
+    let wdfmTokensForMarketMeals = 0;
+    let wdfmTokensRedeemed = 0;
+    for (const r of rows) {
+      snapTokenTransactions += r.snapTokenTransactions ?? 0;
+      snapTokensPurchased += r.snapTokensPurchased ?? 0;
+      snapTokensRedeemed += r.snapTokensRedeemed ?? 0;
+      dufbTokenTransactions += r.dufbTokenTransactions ?? 0;
+      dufbTokensDistributed += r.dufbTokensDistributed ?? 0;
+      dufbTokensRedeemed += r.dufbTokensRedeemed ?? 0;
+      wdfmTokenTransactions += r.wdfmTokenTransactions ?? 0;
+      wdfmTokensPurchased += r.wdfmTokensPurchased ?? 0;
+      giftCardsRedeemed += r.giftCardsRedeemed ?? 0;
+      wdfmTokensForMarketMeals += r.wdfmTokensForMarketMeals ?? 0;
+      wdfmTokensRedeemed += r.wdfmTokensRedeemed ?? 0;
+    }
+    return {
+      snapTokenTransactions,
+      snapTokensPurchased,
+      snapTokensRedeemed,
+      dufbTokenTransactions,
+      dufbTokensDistributed,
+      dufbTokensRedeemed,
+      wdfmTokenTransactions,
+      wdfmTokensPurchased,
+      giftCardsRedeemed,
+      wdfmTokensForMarketMeals,
+      wdfmTokensRedeemed,
+    };
+  }, [rows]);
+
+  return (
+    <div
+      className={`rounded-2xl border border-slate-200 shadow-sm overflow-hidden bg-[#ffffff] text-slate-900 dark:!bg-[#ffffff] dark:!text-slate-900 dark:border-slate-200 ${className}`}
+    >
+      <div className="p-6 border-b border-slate-200 dark:border-slate-200">
+        <h4 className="font-bold text-lg text-slate-900 dark:!text-slate-900">Market day token statistics</h4>
+        <p className="text-sm text-slate-600 dark:!text-slate-600 mt-1">
+          Program-level counts and dollars recorded per market day (same fields as on the Transactions page). Vendor
+          rows below are from submitted vendor sheets.
+        </p>
+        {rangeTruncated && (
+          <p className="text-sm text-amber-800 dark:!text-amber-800 mt-2 font-medium">
+            Date range exceeds {REPORTS_MARKET_DAY_MAX_DAYS} days; only the most recent {REPORTS_MARKET_DAY_MAX_DAYS}{" "}
+            market days are loaded here.
+          </p>
+        )}
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[960px]">
+          <thead className="bg-[#f8fafc] text-xs font-bold uppercase tracking-wider text-slate-600 dark:!bg-[#f8fafc] dark:!text-slate-600">
+            <tr>
+              <th
+                rowSpan={2}
+                className="px-6 py-3 text-left align-bottom whitespace-nowrap border-r border-slate-200 dark:border-slate-200"
+              >
+                Date
+              </th>
+              <th colSpan={3} className="px-4 py-2 text-center border-r border-slate-200 dark:border-slate-200">
+                SNAP
+              </th>
+              <th colSpan={3} className="px-4 py-2 text-center border-r border-slate-200 dark:border-slate-200">
+                DUFB
+              </th>
+              <th colSpan={5} className="px-4 py-2 text-center">
+                WDFM
+              </th>
+            </tr>
+            <tr>
+              <th className="px-3 py-2 text-right font-semibold normal-case"># Tx</th>
+              <th className="px-3 py-2 text-right font-semibold normal-case">Purchased</th>
+              <th className="px-3 py-2 text-right font-semibold normal-case border-r border-slate-200 dark:border-slate-200">
+                Redeemed
+              </th>
+              <th className="px-3 py-2 text-right font-semibold normal-case"># Tx</th>
+              <th className="px-3 py-2 text-right font-semibold normal-case">Distributed</th>
+              <th className="px-3 py-2 text-right font-semibold normal-case border-r border-slate-200 dark:border-slate-200">
+                Redeemed
+              </th>
+              <th className="px-3 py-2 text-right font-semibold normal-case"># Tx</th>
+              <th className="px-3 py-2 text-right font-semibold normal-case">Purchased</th>
+              <th className="px-3 py-2 text-right font-semibold normal-case">Gift cards</th>
+              <th className="px-3 py-2 text-right font-semibold normal-case">Market meals</th>
+              <th className="px-3 py-2 text-right font-semibold normal-case">Redeemed</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-100">
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={12} className="px-6 py-8 text-center text-slate-500 dark:!text-slate-500">
+                  No market days in this date range.
+                </td>
+              </tr>
+            ) : (
+              rows.map((r) => (
+                <tr
+                  key={r.marketDate}
+                  className="hover:bg-green-50/80 dark:hover:bg-green-50/80 transition-colors"
+                >
+                  <td className="px-6 py-3 whitespace-nowrap border-r border-slate-100 dark:border-slate-200">
+                    {formatMarketDateLabel(r.marketDate)}
+                  </td>
+                  <td className="px-6 py-3 text-right tabular-nums">{r.snapTokenTransactions ?? 0}</td>
+                  <td className="px-6 py-3 text-right font-mono">{formatCurrency(r.snapTokensPurchased ?? 0)}</td>
+                  <td className="px-6 py-3 text-right font-mono border-r border-slate-100 dark:border-slate-200">
+                    {formatCurrency(r.snapTokensRedeemed ?? 0)}
+                  </td>
+                  <td className="px-6 py-3 text-right tabular-nums">{r.dufbTokenTransactions ?? 0}</td>
+                  <td className="px-6 py-3 text-right font-mono">{formatCurrency(r.dufbTokensDistributed ?? 0)}</td>
+                  <td className="px-6 py-3 text-right font-mono border-r border-slate-100 dark:border-slate-200">
+                    {formatCurrency(r.dufbTokensRedeemed ?? 0)}
+                  </td>
+                  <td className="px-6 py-3 text-right tabular-nums">{r.wdfmTokenTransactions ?? 0}</td>
+                  <td className="px-6 py-3 text-right font-mono">{formatCurrency(r.wdfmTokensPurchased ?? 0)}</td>
+                  <td className="px-6 py-3 text-right font-mono">{formatCurrency(r.giftCardsRedeemed ?? 0)}</td>
+                  <td className="px-6 py-3 text-right font-mono">{formatCurrency(r.wdfmTokensForMarketMeals ?? 0)}</td>
+                  <td className="px-6 py-3 text-right font-mono">{formatCurrency(r.wdfmTokensRedeemed ?? 0)}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+          {rows.length > 0 && (
+            <tfoot className="border-t-2 border-slate-200 bg-[#f8fafc] text-xs font-bold uppercase tracking-wider text-slate-600 dark:!bg-[#f8fafc] dark:border-slate-200 dark:!text-slate-600">
+              <tr>
+                <td className="px-6 py-3 text-left border-r border-slate-200 dark:border-slate-200 normal-case text-slate-900 dark:!text-slate-900">
+                  Range totals
+                </td>
+                <td className="px-6 py-3 text-right tabular-nums normal-case text-slate-900 dark:!text-slate-900">
+                  {totals.snapTokenTransactions}
+                </td>
+                <td className="px-6 py-3 text-right font-mono normal-case text-slate-900 dark:!text-slate-900">
+                  {formatCurrency(totals.snapTokensPurchased)}
+                </td>
+                <td className="px-6 py-3 text-right font-mono border-r border-slate-200 dark:border-slate-200 normal-case text-slate-900 dark:!text-slate-900">
+                  {formatCurrency(totals.snapTokensRedeemed)}
+                </td>
+                <td className="px-6 py-3 text-right tabular-nums normal-case text-slate-900 dark:!text-slate-900">
+                  {totals.dufbTokenTransactions}
+                </td>
+                <td className="px-6 py-3 text-right font-mono normal-case text-slate-900 dark:!text-slate-900">
+                  {formatCurrency(totals.dufbTokensDistributed)}
+                </td>
+                <td className="px-6 py-3 text-right font-mono border-r border-slate-200 dark:border-slate-200 normal-case text-slate-900 dark:!text-slate-900">
+                  {formatCurrency(totals.dufbTokensRedeemed)}
+                </td>
+                <td className="px-6 py-3 text-right tabular-nums normal-case text-slate-900 dark:!text-slate-900">
+                  {totals.wdfmTokenTransactions}
+                </td>
+                <td className="px-6 py-3 text-right font-mono normal-case text-slate-900 dark:!text-slate-900">
+                  {formatCurrency(totals.wdfmTokensPurchased)}
+                </td>
+                <td className="px-6 py-3 text-right font-mono normal-case text-slate-900 dark:!text-slate-900">
+                  {formatCurrency(totals.giftCardsRedeemed)}
+                </td>
+                <td className="px-6 py-3 text-right font-mono normal-case text-slate-900 dark:!text-slate-900">
+                  {formatCurrency(totals.wdfmTokensForMarketMeals)}
+                </td>
+                <td className="px-6 py-3 text-right font-mono normal-case text-slate-900 dark:!text-slate-900">
+                  {formatCurrency(totals.wdfmTokensRedeemed)}
+                </td>
+              </tr>
+            </tfoot>
+          )}
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function ReportsTxPaginationBar({
+  page,
+  pageSize,
+  rowCount,
+  totalPages,
+  onPrev,
+  onNext,
+}: {
+  page: number;
+  pageSize: number;
+  rowCount: number;
+  totalPages: number;
+  onPrev: () => void;
+  onNext: () => void;
+}) {
+  if (rowCount === 0) return null;
+  const from = page * pageSize + 1;
+  const to = Math.min((page + 1) * pageSize, rowCount);
+  return (
+    <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3">
+      <span className="text-sm text-slate-700 dark:text-slate-300">
+        Showing <span className="font-medium tabular-nums">{from}</span> to{" "}
+        <span className="font-medium tabular-nums">{to}</span> of{" "}
+        <span className="font-medium tabular-nums">{rowCount}</span> transactions
+      </span>
+      <div className="flex items-center gap-1">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="p-1 px-3"
+          disabled={page === 0}
+          onClick={onPrev}
+        >
+          <span className="material-icons text-lg leading-none">chevron_left</span>
+        </Button>
+        <span className="text-sm text-slate-600 dark:text-slate-400 px-2 tabular-nums">
+          Page {page + 1} of {totalPages}
+        </span>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="p-1 px-3"
+          disabled={page >= totalPages - 1}
+          onClick={onNext}
+        >
+          <span className="material-icons text-lg leading-none">chevron_right</span>
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 function PaymentShareRow({
@@ -323,6 +624,8 @@ function ReportsContent() {
   const customColumnsChartRef = useRef<HTMLDivElement | null>(null);
 
   const [customColumns, setCustomColumns] = useState<CustomColumnMetadata[]>([]);
+  const [marketDayRows, setMarketDayRows] = useState<MarketDayData[]>([]);
+  const [marketDayRangeTruncated, setMarketDayRangeTruncated] = useState(false);
 
   const dateRangeKey = useMemo(() => `${startDate}|${endDate}`, [startDate, endDate]);
 
@@ -343,12 +646,30 @@ function ReportsContent() {
         map.set(d.vendorId, d);
       }
       setDefaultsByVendor(map);
+
+      try {
+        let dates = enumerateIsoDatesInclusive(startDate, endDate);
+        let truncated = false;
+        if (dates.length > REPORTS_MARKET_DAY_MAX_DAYS) {
+          truncated = true;
+          dates = dates.slice(-REPORTS_MARKET_DAY_MAX_DAYS);
+        }
+        const mdd = dates.length > 0 ? await fetchMarketDayDataBatched(dates) : [];
+        setMarketDayRows(mdd);
+        setMarketDayRangeTruncated(truncated);
+      } catch (mddErr) {
+        console.error(mddErr);
+        setMarketDayRows([]);
+        setMarketDayRangeTruncated(false);
+      }
     } catch (e) {
       console.error(e);
       setError("Could not load financial data for this range. Try another date range or check your connection.");
       setTransactions([]);
       setDefaultsByVendor(new Map());
       setCustomColumns([]);
+      setMarketDayRows([]);
+      setMarketDayRangeTruncated(false);
     } finally {
       setLoading(false);
     }
@@ -962,29 +1283,29 @@ function ReportsContent() {
     return [...transactions].sort((a, b) => b.marketDate.localeCompare(a.marketDate));
   }, [transactions]);
 
-  const [customTxTablePage, setCustomTxTablePage] = useState(0);
+  const [reportsTxTablePage, setReportsTxTablePage] = useState(0);
 
-  const customTxTableRowCount = sortedTxForTable.length;
-  const customTxTableTotalPages = Math.max(
+  const reportsTxTableRowCount = sortedTxForTable.length;
+  const reportsTxTableTotalPages = Math.max(
     1,
-    Math.ceil(customTxTableRowCount / CUSTOM_TX_TABLE_PAGE_SIZE),
+    Math.ceil(reportsTxTableRowCount / REPORTS_TX_TABLE_PAGE_SIZE),
   );
 
-  const customTxPagedRows = useMemo(() => {
-    const start = customTxTablePage * CUSTOM_TX_TABLE_PAGE_SIZE;
-    return sortedTxForTable.slice(start, start + CUSTOM_TX_TABLE_PAGE_SIZE);
-  }, [sortedTxForTable, customTxTablePage]);
+  const reportsTxPagedRows = useMemo(() => {
+    const start = reportsTxTablePage * REPORTS_TX_TABLE_PAGE_SIZE;
+    return sortedTxForTable.slice(start, start + REPORTS_TX_TABLE_PAGE_SIZE);
+  }, [sortedTxForTable, reportsTxTablePage]);
 
   useEffect(() => {
-    setCustomTxTablePage(0);
+    setReportsTxTablePage(0);
   }, [dateRangeKey]);
 
   useEffect(() => {
-    const maxPage = Math.max(0, Math.ceil(customTxTableRowCount / CUSTOM_TX_TABLE_PAGE_SIZE) - 1);
-    if (customTxTablePage > maxPage) {
-      setCustomTxTablePage(maxPage);
+    const maxPage = Math.max(0, Math.ceil(reportsTxTableRowCount / REPORTS_TX_TABLE_PAGE_SIZE) - 1);
+    if (reportsTxTablePage > maxPage) {
+      setReportsTxTablePage(maxPage);
     }
-  }, [customTxTableRowCount, customTxTablePage]);
+  }, [reportsTxTableRowCount, reportsTxTablePage]);
 
   const chartSvgToPngDataUrl = useCallback(async (container: HTMLDivElement | null): Promise<string | null> => {
     if (!container) return null;
@@ -1397,15 +1718,6 @@ function ReportsContent() {
                 <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
                   <div className="p-6 border-b border-slate-200 dark:border-slate-700">
                     <h4 className="font-bold text-lg text-slate-900 dark:text-slate-100">Transactions</h4>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                      Newest first (up to{" "}
-                      <SmoothIntegerValue
-                        value={sortedTxForTable.length}
-                        resetKey={dateRangeKey}
-                        className="font-semibold text-slate-800 dark:text-slate-200"
-                      />{" "}
-                      rows loaded)
-                    </p>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
@@ -1427,7 +1739,7 @@ function ReportsContent() {
                             </td>
                           </tr>
                         ) : (
-                          sortedTxForTable.map((t) => (
+                          reportsTxPagedRows.map((t) => (
                             <tr key={t.id} className="hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
                               <td className="px-6 py-3 whitespace-nowrap">{t.marketDate}</td>
                               <td className="px-6 py-3 whitespace-nowrap">{t.vendorName}</td>
@@ -1457,6 +1769,16 @@ function ReportsContent() {
                       </tbody>
                     </table>
                   </div>
+                  <ReportsTxPaginationBar
+                    page={reportsTxTablePage}
+                    pageSize={REPORTS_TX_TABLE_PAGE_SIZE}
+                    rowCount={reportsTxTableRowCount}
+                    totalPages={reportsTxTableTotalPages}
+                    onPrev={() => setReportsTxTablePage((p) => Math.max(0, p - 1))}
+                    onNext={() =>
+                      setReportsTxTablePage((p) => Math.min(reportsTxTableTotalPages - 1, p + 1))
+                    }
+                  />
                 </div>
               </>
             )}
@@ -2084,6 +2406,11 @@ function ReportsContent() {
                     </div>
                   )}
                 </div>
+                <ReportsMarketDayTokenStatsSection
+                  rows={marketDayRows}
+                  rangeTruncated={marketDayRangeTruncated}
+                  className="mb-8"
+                />
                 <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
                   <div className="p-6 border-b border-slate-200 dark:border-slate-700">
                     <h4 className="font-bold text-lg text-slate-900 dark:text-slate-100">Per-transaction tokens</h4>
@@ -2109,7 +2436,7 @@ function ReportsContent() {
                             </td>
                           </tr>
                         ) : (
-                          sortedTxForTable.map((t) => {
+                          reportsTxPagedRows.map((t) => {
                             const rowTot =
                               (t.snap ?? 0) + (t.dufb ?? 0) + (t.wdfmTokens ?? 0) + (t.voucher ?? 0);
                             return (
@@ -2142,6 +2469,16 @@ function ReportsContent() {
                       </tbody>
                     </table>
                   </div>
+                  <ReportsTxPaginationBar
+                    page={reportsTxTablePage}
+                    pageSize={REPORTS_TX_TABLE_PAGE_SIZE}
+                    rowCount={reportsTxTableRowCount}
+                    totalPages={reportsTxTableTotalPages}
+                    onPrev={() => setReportsTxTablePage((p) => Math.max(0, p - 1))}
+                    onNext={() =>
+                      setReportsTxTablePage((p) => Math.min(reportsTxTableTotalPages - 1, p + 1))
+                    }
+                  />
                 </div>
               </>
             )}
@@ -2255,7 +2592,7 @@ function ReportsContent() {
                                 </td>
                               </tr>
                             ) : (
-                              customTxPagedRows.map((t) => (
+                              reportsTxPagedRows.map((t) => (
                                 <tr key={t.id} className="hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
                                   <td className="px-6 py-3 whitespace-nowrap align-top text-slate-900 dark:text-slate-100">
                                     {t.marketDate}
@@ -2281,56 +2618,16 @@ function ReportsContent() {
                           </tbody>
                         </table>
                       </div>
-                      {sortedTxForTable.length > 0 && (
-                        <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3">
-                          <span className="text-sm text-slate-700 dark:text-slate-300">
-                            Showing{" "}
-                            <span className="font-medium tabular-nums">
-                              {customTxTableRowCount === 0
-                                ? 0
-                                : customTxTablePage * CUSTOM_TX_TABLE_PAGE_SIZE + 1}
-                            </span>{" "}
-                            to{" "}
-                            <span className="font-medium tabular-nums">
-                              {Math.min(
-                                (customTxTablePage + 1) * CUSTOM_TX_TABLE_PAGE_SIZE,
-                                customTxTableRowCount,
-                              )}
-                            </span>{" "}
-                            of <span className="font-medium tabular-nums">{customTxTableRowCount}</span>{" "}
-                            transactions
-                          </span>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="p-1 px-3"
-                              disabled={customTxTablePage === 0}
-                              onClick={() => setCustomTxTablePage((p) => Math.max(0, p - 1))}
-                            >
-                              <span className="material-icons text-lg leading-none">chevron_left</span>
-                            </Button>
-                            <span className="text-sm text-slate-600 dark:text-slate-400 px-2 tabular-nums">
-                              Page {customTxTablePage + 1} of {customTxTableTotalPages}
-                            </span>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="p-1 px-3"
-                              disabled={customTxTablePage >= customTxTableTotalPages - 1}
-                              onClick={() =>
-                                setCustomTxTablePage((p) =>
-                                  Math.min(customTxTableTotalPages - 1, p + 1),
-                                )
-                              }
-                            >
-                              <span className="material-icons text-lg leading-none">chevron_right</span>
-                            </Button>
-                          </div>
-                        </div>
-                      )}
+                      <ReportsTxPaginationBar
+                        page={reportsTxTablePage}
+                        pageSize={REPORTS_TX_TABLE_PAGE_SIZE}
+                        rowCount={reportsTxTableRowCount}
+                        totalPages={reportsTxTableTotalPages}
+                        onPrev={() => setReportsTxTablePage((p) => Math.max(0, p - 1))}
+                        onNext={() =>
+                          setReportsTxTablePage((p) => Math.min(reportsTxTableTotalPages - 1, p + 1))
+                        }
+                      />
                     </div>
                   </>
                 )}

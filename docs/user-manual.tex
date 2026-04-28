@@ -1,0 +1,333 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{needspace}
+\setlist[itemize]{leftmargin=1.25em}
+\setlist[enumerate]{leftmargin=1.5em}
+
+\title{MarketOS User Manual\\\large CSI43C9 Farmers Market Application}
+\author{}
+\date{\today}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+\section{What This App Is}
+MarketOS is a farmers market management app. It helps staff keep everything in one place:
+\begin{itemize}
+  \item vendor information,
+  \item weekly market-day transactions,
+  \item program token activity (SNAP, DUFB, WDFM, vouchers),
+  \item market goals,
+  \item financial reports,
+  \item and admin-level setup.
+\end{itemize}
+
+If you are brand new, this manual walks you through each screen in plain language.
+
+\section{Quick Start (For Non-Technical Users)}
+\subsection{Open the App}
+Depending on how your team runs it, you may use:
+\begin{itemize}
+  \item \textbf{Desktop app} (preferred for day-to-day use), or
+  \item \textbf{Browser app} (development/testing setup).
+\end{itemize}
+
+If your team already installed it, open \textbf{MarketOS} and skip to Section \ref{sec:main-navigation}.
+
+\subsection{If You Need to Run It Locally}
+Ask your technical lead for help with first-time setup. The short version:
+\begin{enumerate}
+  \item Start backend server (in \texttt{backend}): \texttt{./gradlew bootRun}
+  \item Start frontend (in \texttt{frontend}): \texttt{yarn dev}
+\end{enumerate}
+
+The app then runs with a local database file in your application data folder.
+
+\section{Main Navigation}
+\label{sec:main-navigation}
+The left sidebar has six main pages:
+\begin{enumerate}
+  \item \textbf{Dashboard}
+  \item \textbf{Vendors}
+  \item \textbf{Transactions}
+  \item \textbf{Reports}
+  \item \textbf{Goals}
+  \item \textbf{Admin}
+\end{enumerate}
+
+\section{Dashboard}
+The Dashboard gives a quick snapshot of the \textbf{most recent Saturday market day}.
+
+\subsection{What You See}
+\begin{itemize}
+  \item Total reported sales
+  \item Total reimbursement due
+  \item Program token volume
+  \item Sales by category chart
+  \item Goal progress widget
+  \item Vendor tracking table
+\end{itemize}
+
+\subsection{How to Use It}
+\begin{itemize}
+  \item Use it for a fast health check before or after market day.
+  \item Search vendors in the table.
+  \item Look for unusual alerts, like:
+  \begin{itemize}
+    \item an inactive vendor showing sales,
+    \item or an active vendor with no sales entered.
+  \end{itemize}
+\end{itemize}
+
+\section{Vendors}
+Use this area to manage your master vendor list.
+
+\subsection{What You Can Do}
+\begin{itemize}
+  \item View all vendors (active and optional inactive)
+  \item Search by name, contact, email, location, or products
+  \item Add a new vendor
+  \item Edit an existing vendor
+  \item Open vendor details
+  \item Export vendor list to CSV
+\end{itemize}
+
+\subsection{Vendor Fields Explained}
+\begin{longtable}{p{0.3\textwidth}p{0.65\textwidth}}
+\textbf{Field} & \textbf{Meaning} \\
+\hline
+Vendor Name & Business name shown throughout the app. \\
+Point Person & Main contact person. \\
+Email & Contact email for vendor communication. \\
+Location & Vendor location or stall reference. \\
+Miles & Distance from market. \\
+Products & What they sell (high-level and detailed notes). \\
+Status & Active or Inactive. \\
+Category Labels & Tags like Organic, Local, etc. \\
+Defaults (percentages) & Product category split used in reports/estimates. \\
+Average Sale Amount & Optional value used for transaction estimates. \\
+\end{longtable}
+
+\subsection{Add Vendor Workflow}
+\begin{enumerate}
+  \item Go to \textbf{Vendors} $\rightarrow$ \textbf{Add Vendor}.
+  \item Fill in basic details.
+  \item Add product category and product details.
+  \item (Optional) Apply labels.
+  \item (Optional) Set average sale amount.
+  \item (Optional) Set category percentages.
+  \item Review overview screen, then click \textbf{Create Vendor}.
+\end{enumerate}
+
+\textbf{Important rule:} if you enter category percentages, they must total exactly \textbf{100\%}.
+
+\section{Transactions}
+This is where you enter and maintain market-day transaction rows.
+
+\subsection{Core Concept}
+Each row is usually one vendor for one market date, including:
+\begin{itemize}
+  \item present/absent,
+  \item token amounts (SNAP, DUFB, WDFM, voucher),
+  \item reported sales,
+  \item estimates and custom column values.
+\end{itemize}
+
+\subsection{Main Actions Menu}
+On the Transactions page, use \textbf{Actions} for:
+\begin{itemize}
+  \item \textbf{Import Excel} --- upload worksheet data.
+  \item \textbf{Download Template} --- get the official import format.
+  \item \textbf{Add Vendor} --- add a vendor row manually.
+  \item \textbf{Add Active Vendors} --- auto-add all currently active vendors.
+\end{itemize}
+
+\subsection{Typical Weekly Process}
+\begin{enumerate}
+  \item Select the correct market date.
+  \item Add missing vendors to the sheet.
+  \item Enter token and sales values.
+  \item Fill required custom columns.
+  \item Resolve any red/invalid rows.
+  \item Save market-day statistics block (if used).
+  \item Click \textbf{Save} to write all row changes.
+\end{enumerate}
+
+\subsection{Importing From Spreadsheet}
+\begin{enumerate}
+  \item Download template first.
+  \item Fill it out.
+  \item Click \textbf{Import Excel}.
+\end{enumerate}
+
+The app tries to match by transaction ID or vendor name and merges rows intelligently.
+
+\subsection{Validation Checks Before Save}
+The app blocks save when:
+\begin{itemize}
+  \item vendor names cannot be matched,
+  \item required custom-column values are missing,
+  \item percentage/default data is incomplete or invalid.
+\end{itemize}
+
+\section{Reports}
+Reports are date-range based and can be exported as PDF.
+
+\subsection{How Reports Work}
+\begin{enumerate}
+  \item Choose start and end date.
+  \item Pick a report tab.
+  \item Review charts/tables.
+  \item Click \textbf{Export PDF}.
+\end{enumerate}
+
+\subsection{Report Tabs}
+\begin{itemize}
+  \item \textbf{Comprehensive}: overall totals, trend, and transaction table.
+  \item \textbf{Category}: sales allocated by product category defaults.
+  \item \textbf{Vendor Label}: sales split by vendor labels.
+  \item \textbf{Leaderboard}: top vendors by total reported sales.
+  \item \textbf{By Vendor}: deep dive for one vendor over time.
+  \item \textbf{Token}: SNAP/DUFB/WDFM/voucher totals and related views.
+  \item \textbf{Custom Columns}: rollups for admin-defined transaction fields.
+\end{itemize}
+
+\subsection{Reading Report Numbers}
+\begin{itemize}
+  \item \textbf{Reported Sales}: what vendors reported for the day/range.
+  \item \textbf{Reimbursement Due}: amount owed back based on token redemptions.
+  \item \textbf{Token Volume}: combined token-related amounts.
+\end{itemize}
+
+\section{Goals}
+Goals let you track targets over a date range.
+
+\subsection{What You Can Do}
+\begin{itemize}
+  \item Create goal
+  \item Edit goal
+  \item Delete goal
+\end{itemize}
+
+\subsection{Goal Setup}
+Each goal includes:
+\begin{itemize}
+  \item Name
+  \item Start date and end date
+  \item Metric (for example, reported sales or attendance percentage)
+  \item Target value
+\end{itemize}
+
+The app automatically calculates:
+\begin{itemize}
+  \item current value from transaction data,
+  \item percent toward goal.
+\end{itemize}
+
+\textbf{Note:} Attendance-type goals are limited to \textbf{0--100\%}.
+
+\section{Admin}
+Admin is for configuration and system-level maintenance.
+
+\subsection{Category Labels}
+\begin{itemize}
+  \item Create, edit, delete labels.
+  \item Labels can be color-coded.
+  \item Labels are reusable across vendors.
+\end{itemize}
+
+\subsection{Custom Columns}
+Add fields that appear on transaction rows for your whole market.
+
+\textbf{Column types:}
+\begin{itemize}
+  \item text
+  \item number
+  \item boolean (yes/no)
+  \item usd (currency)
+\end{itemize}
+
+You can also:
+\begin{itemize}
+  \item mark fields required,
+  \item deactivate/reactivate columns,
+  \item permanently delete inactive columns.
+\end{itemize}
+
+\subsection{Database Management (Desktop Mode)}
+\begin{itemize}
+  \item \textbf{Export Database}: create a backup \texttt{.mv.db} file.
+  \item \textbf{Import Database}: restore from a backup file.
+\end{itemize}
+
+\textbf{Warning:} database import overwrites current data.
+
+\section{Data and Safety Tips}
+\subsection{Before Market Day}
+\begin{itemize}
+  \item Verify active vendor list is current.
+  \item Verify required custom columns are set correctly.
+  \item Download fresh transaction template if importing.
+\end{itemize}
+
+\subsection{After Market Day}
+\begin{itemize}
+  \item Save transactions.
+  \item Review dashboard totals.
+  \item Run reports for archive and stakeholders.
+  \item Export database backup.
+\end{itemize}
+
+\section{Common Problems and Fixes}
+\subsection{``No data'' in reports}
+\begin{itemize}
+  \item Check date range.
+  \item Confirm transactions were saved for those dates.
+\end{itemize}
+
+\subsection{Cannot save transactions}
+\begin{itemize}
+  \item Fix unmatched vendor rows.
+  \item Fill required custom fields.
+  \item Ensure percentage/default requirements are valid.
+\end{itemize}
+
+\subsection{Import did not map correctly}
+\begin{itemize}
+  \item Use official template.
+  \item Keep vendor names consistent with vendor master list.
+\end{itemize}
+
+\subsection{Database backup/import buttons do not work}
+Those actions are available only in the desktop app runtime (Tauri), not standard browser mode.
+
+\Needspace{12\baselineskip}
+\section{Glossary}
+\begin{tabularx}{\textwidth}{p{0.3\textwidth}X}
+\textbf{Term} & \textbf{Meaning} \\
+\hline
+Vendor Defaults & Saved category percentages and average sale estimate for a vendor. \\
+Market Day Data & Market-level token stats for a specific date. \\
+Reimbursement Due & Amount to be paid back to vendor based on eligible tokens. \\
+Custom Column & Admin-defined transaction field used by all vendors. \\
+Label & Reusable tag assigned to vendors for grouping/reporting. \\
+\end{tabularx}
+
+\section{Where This Manual Lives}
+This manual file is stored in the repository at:
+\begin{itemize}
+  \item \texttt{docs/user-manual.tex}
+\end{itemize}
+
+To produce a PDF from this file, run a standard LaTeX build command (for example, \texttt{pdflatex user-manual.tex}) in the \texttt{docs} folder.
+
+\end{document}
