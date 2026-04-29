@@ -319,8 +319,8 @@ const addSummaryTable = (worksheet: ExcelJS.Worksheet, lastDataRow: number, mark
   setFormula('Total Reported Sales', `SUM(${mainRange('H')})`);
   setFormula('Number of Vendors Reporting', `COUNTIF(${mainRange('H')},">0")`);
   setFormula('% Reporting', `IF(${inputCellByLabel.get('Number of Vendors')}>0,${inputCellByLabel.get('Number of Vendors Reporting')}/${inputCellByLabel.get('Number of Vendors')},0)`);
-  setFormula('Est Total Market Sales', `IF(${inputCellByLabel.get('% Reporting')}>0,${inputCellByLabel.get('Total Reported Sales')}/${inputCellByLabel.get('% Reporting')},0)`);
-  setFormula('Average Vendor Sales', `IF(${inputCellByLabel.get('Number of Vendors')}>0,${inputCellByLabel.get('Est Total Market Sales')}/${inputCellByLabel.get('Number of Vendors')},0)`);
+  setFormula('Est Total Market Sales', 'SUM(Transactions!H2:H1000)');
+  setFormula('Average Vendor Sales', `IF(${inputCellByLabel.get('Number of Vendors Reporting')}>0,${inputCellByLabel.get('Est Total Market Sales')}/${inputCellByLabel.get('Number of Vendors Reporting')},0)`);
 
   // SNAP Formulas/Values
   setValue('# of SNAP Token Transactions', marketDayData?.snapTokenTransactions ?? null);
@@ -349,12 +349,9 @@ const addSummaryTable = (worksheet: ExcelJS.Worksheet, lastDataRow: number, mark
   setFormula('Total Tokens/Vouchers Reimbursed', `SUM(${mainRange('G')})`);
 
   // Net Collected & Manager Cash
-  setFormula('Net Collected', `SUM(${inputCellByLabel.get('Total Cash Booth Fees')}:${inputCellByLabel.get('Volunteer Lunches')})`);
+  setFormula('Net Collected', `${inputCellByLabel.get('Tokens Reimbursed with Cash')}-${inputCellByLabel.get('Cash Merch Sales')}`);
   setFormula('Fees Not Paid', `SUM(${mainRange('I')})`);
-  setFormula(
-    'Cash Held by Market Manager',
-    `${inputCellByLabel.get('Net Collected')}+${inputCellByLabel.get('Petty Cash')}+${inputCellByLabel.get('Fees Not Paid')}`
-  );
+  setValue('Cash Held by Market Manager', null);
 
   applySummarySheetStyling(worksheet);
 };
