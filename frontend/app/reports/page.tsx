@@ -218,6 +218,27 @@ function ReportsMarketDayTokenStatsSection({
   rangeTruncated: boolean;
   className?: string;
 }) {
+  const rowsWithValues = useMemo(
+    () =>
+      rows.filter((r) => {
+        const values = [
+          r.snapTokenTransactions,
+          r.snapTokensPurchased,
+          r.snapTokensRedeemed,
+          r.dufbTokenTransactions,
+          r.dufbTokensDistributed,
+          r.dufbTokensRedeemed,
+          r.wdfmTokenTransactions,
+          r.wdfmTokensPurchased,
+          r.giftCardsRedeemed,
+          r.wdfmTokensForMarketMeals,
+          r.wdfmTokensRedeemed,
+        ];
+        return values.some((value) => (value ?? 0) !== 0);
+      }),
+    [rows],
+  );
+
   const totals = useMemo(() => {
     let snapTokenTransactions = 0;
     let snapTokensPurchased = 0;
@@ -314,14 +335,14 @@ function ReportsMarketDayTokenStatsSection({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-100">
-            {rows.length === 0 ? (
+            {rowsWithValues.length === 0 ? (
               <tr>
                 <td colSpan={12} className="px-6 py-8 text-center text-slate-500 dark:!text-slate-500">
-                  No market days in this date range.
+                  No market days with token statistics in this date range.
                 </td>
               </tr>
             ) : (
-              rows.map((r) => (
+              rowsWithValues.map((r) => (
                 <tr
                   key={r.marketDate}
                   className="hover:bg-green-50/80 dark:hover:bg-green-50/80 transition-colors"
@@ -348,7 +369,7 @@ function ReportsMarketDayTokenStatsSection({
               ))
             )}
           </tbody>
-          {rows.length > 0 && (
+          {rowsWithValues.length > 0 && (
             <tfoot className="border-t-2 border-slate-200 bg-[#f8fafc] text-xs font-bold uppercase tracking-wider text-slate-600 dark:!bg-[#f8fafc] dark:border-slate-200 dark:!text-slate-600">
               <tr>
                 <td className="px-6 py-3 text-left border-r border-slate-200 dark:border-slate-200 normal-case text-slate-900 dark:!text-slate-900">
