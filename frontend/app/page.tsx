@@ -402,25 +402,24 @@ function DashboardContent() {
                                     <th className="px-6 py-4">Product Defaults</th>
                                     <th className="px-6 py-4">Reimbursement due</th>
                                     <th className="px-6 py-4">Reported Sales</th>
-                                    <th className="px-6 py-4 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {tableLoading ? (
                                     <tr>
-                                        <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
+                                        <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
                                             Loading vendors...
                                         </td>
                                     </tr>
                                 ) : vendors.length === 0 && searchQuery.trim() === "" ? (
                                     <tr>
-                                        <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
+                                        <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
                                             No vendors found
                                         </td>
                                     </tr>
                                 ) : displayedVendors.length === 0 ? (
                                     <tr>
-                                        <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
+                                        <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
                                             No vendors match your search.
                                         </td>
                                     </tr>
@@ -482,11 +481,6 @@ function DashboardContent() {
                                                     resetKey={`${metricsResetKey}|${vendor.id}`}
                                                     className="font-mono text-sm"
                                                 />
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <Button variant="ghost" size="sm" className="p-1.5 hover:bg-[#10b981]/10 hover:text-[#10b981] text-slate-400">
-                                                    <span className="material-icons text-lg leading-none">description</span>
-                                                </Button>
                                             </td>
                                         </tr>
                                     ))
