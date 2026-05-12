@@ -95,13 +95,19 @@ const MarketDayDataModule: React.FC<MarketDayDataModuleProps> = ({
   };
 
   const snapRedemptionRate = useMemo(() => {
-    if (localData.snapTokensPurchased === 0) return 0;
-    return (localData.snapTokensRedeemed / localData.snapTokensPurchased) * 100;
+    const purchased = localData.snapTokensPurchased || 0;
+    const redeemed = localData.snapTokensRedeemed || 0;
+    if (purchased === 0) return null;
+    const rate = (redeemed / purchased) * 100;
+    return isFinite(rate) ? rate : null;
   }, [localData.snapTokensPurchased, localData.snapTokensRedeemed]);
 
   const dufbRedemptionRate = useMemo(() => {
-    if (localData.dufbTokensDistributed === 0) return 0;
-    return (localData.dufbTokensRedeemed / localData.dufbTokensDistributed) * 100;
+    const distributed = localData.dufbTokensDistributed || 0;
+    const redeemed = localData.dufbTokensRedeemed || 0;
+    if (distributed === 0) return null;
+    const rate = (redeemed / distributed) * 100;
+    return isFinite(rate) ? rate : null;
   }, [localData.dufbTokensDistributed, localData.dufbTokensRedeemed]);
 
   const totalWdfmDistributed = useMemo(() => {
@@ -109,8 +115,10 @@ const MarketDayDataModule: React.FC<MarketDayDataModuleProps> = ({
   }, [localData.wdfmTokensPurchased, localData.giftCardsRedeemed, localData.wdfmTokensForMarketMeals]);
 
   const wdfmRedemptionRate = useMemo(() => {
-    if (totalWdfmDistributed === 0) return 0;
-    return (localData.wdfmTokensRedeemed / totalWdfmDistributed) * 100;
+    const redeemed = localData.wdfmTokensRedeemed || 0;
+    if (totalWdfmDistributed === 0) return null;
+    const rate = (redeemed / totalWdfmDistributed) * 100;
+    return isFinite(rate) ? rate : null;
   }, [totalWdfmDistributed, localData.wdfmTokensRedeemed]);
 
   if (loading) {
@@ -139,7 +147,7 @@ const MarketDayDataModule: React.FC<MarketDayDataModuleProps> = ({
         )}
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
           {/* SNAP Section */}
           <div className="space-y-4 rounded-lg border border-slate-100 bg-slate-50/50 p-4">
             <h3 className="font-semibold text-[#10b981]">SNAP Tokens</h3>
@@ -192,7 +200,9 @@ const MarketDayDataModule: React.FC<MarketDayDataModuleProps> = ({
               </div>
               <div className="mt-2 flex items-center justify-between text-sm font-medium text-slate-600">
                 <span>Redemption Rate:</span>
-                <span className="text-[#10b981]">{snapRedemptionRate.toFixed(2)}%</span>
+                <span className="text-[#10b981]">
+                  {snapRedemptionRate !== null ? `${snapRedemptionRate.toFixed(2)}%` : 'N/A'}
+                </span>
               </div>
             </div>
           </div>
@@ -249,7 +259,9 @@ const MarketDayDataModule: React.FC<MarketDayDataModuleProps> = ({
               </div>
               <div className="mt-2 flex items-center justify-between text-sm font-medium text-slate-600">
                 <span>Redemption Rate:</span>
-                <span className="text-[#10b981]">{dufbRedemptionRate.toFixed(2)}%</span>
+                <span className="text-[#10b981]">
+                  {dufbRedemptionRate !== null ? `${dufbRedemptionRate.toFixed(2)}%` : 'N/A'}
+                </span>
               </div>
             </div>
           </div>
@@ -289,6 +301,41 @@ const MarketDayDataModule: React.FC<MarketDayDataModuleProps> = ({
                 />
               </div>
               <div className="flex flex-col gap-1.5">
+                <Label htmlFor="wdfmTokensRedeemed">$$ Redeemed</Label>
+                <Input
+                  id="wdfmTokensRedeemed"
+                  name="wdfmTokensRedeemed"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={localData.wdfmTokensRedeemed || ''}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  onKeyDown={handleKeyDown}
+                  className="bg-white"
+                  readOnly
+                />
+              </div>
+              <div className="mt-2 space-y-1">
+                <div className="flex items-center justify-between text-sm font-medium text-slate-600">
+                  <span>Total Dist:</span>
+                  <span className="text-[#10b981]">${totalWdfmDistributed.toFixed(2)}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm font-medium text-slate-600">
+                  <span>Rate:</span>
+                  <span className="text-[#10b981]">
+                    {wdfmRedemptionRate !== null ? `${wdfmRedemptionRate.toFixed(2)}%` : 'N/A'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Other Section */}
+          <div className="space-y-4 rounded-lg border border-slate-100 bg-slate-50/50 p-4">
+            <h3 className="font-semibold text-[#10b981]">Other Programs</h3>
+            <div className="grid gap-3">
+              <div className="flex flex-col gap-1.5">
                 <Label htmlFor="giftCardsRedeemed">$$ Gift Cards</Label>
                 <Input
                   id="giftCardsRedeemed"
@@ -318,31 +365,8 @@ const MarketDayDataModule: React.FC<MarketDayDataModuleProps> = ({
                   className="bg-white"
                 />
               </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="wdfmTokensRedeemed">$$ Redeemed</Label>
-                <Input
-                  id="wdfmTokensRedeemed"
-                  name="wdfmTokensRedeemed"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={localData.wdfmTokensRedeemed || ''}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  onKeyDown={handleKeyDown}
-                  className="bg-white"
-                  readOnly
-                />
-              </div>
-              <div className="mt-2 space-y-1">
-                <div className="flex items-center justify-between text-sm font-medium text-slate-600">
-                  <span>Total Distributed:</span>
-                  <span className="text-[#10b981]">${totalWdfmDistributed.toFixed(2)}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm font-medium text-slate-600">
-                  <span>Redemption Rate:</span>
-                  <span className="text-[#10b981]">{wdfmRedemptionRate.toFixed(2)}%</span>
-                </div>
+              <div className="mt-2 text-xs text-slate-500 italic">
+                These values contribute to the Total WDFM Distributed.
               </div>
             </div>
           </div>

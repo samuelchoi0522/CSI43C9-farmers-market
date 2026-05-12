@@ -356,7 +356,7 @@ const addSummaryTable = (worksheet: ExcelJS.Worksheet, lastDataRow: number, mark
   applySummarySheetStyling(worksheet);
 };
 
-export async function downloadVendorTransactionsTemplate(marketDate: string): Promise<void> {
+export async function downloadVendorTransactionsTemplate(marketDate: string, marketDayData?: MarketDayData): Promise<void> {
   const [vendorsResponse, customColumns] = await Promise.all([
     getVendors(0, 1000, false),
     getActiveCustomColumns(),
@@ -380,7 +380,7 @@ export async function downloadVendorTransactionsTemplate(marketDate: string): Pr
   const firstDataRow = 2;
   const lastDataRow = Math.max(vendorNames.length + 1, firstDataRow);
   const additionalValuesSheet = workbook.addWorksheet('Additional Values');
-  addSummaryTable(additionalValuesSheet, lastDataRow);
+  addSummaryTable(additionalValuesSheet, lastDataRow, marketDayData);
   const hasDataRows = vendorNames.length > 0;
 
   if (hasDataRows) {
