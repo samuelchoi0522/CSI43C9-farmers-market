@@ -562,7 +562,7 @@ function TransactionsContent() {
   const handleDownloadTemplate = async () => {
     setIsDownloadingTemplate(true);
     try {
-      await downloadVendorTransactionsTemplate(currentMarketDate);
+      await downloadVendorTransactionsTemplate(currentMarketDate, marketDayData || undefined);
       toast.success('Downloaded transaction template with active custom columns.');
     } catch (error) {
       console.error('Failed to download transaction template:', error);
