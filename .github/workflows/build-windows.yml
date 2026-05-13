@@ -1,7 +1,9 @@
 name: Build Windows Executable
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - windows-file-fix
 
 permissions:
   contents: write
