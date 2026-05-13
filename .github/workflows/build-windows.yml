@@ -17,7 +17,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # BUILD THE SPRING BOOT SIDECAR
+      # BUILD SPRING BOOT SIDECAR
       - name: Setup GraalVM
         uses: graalvm/setup-graalvm@v1
         with:
