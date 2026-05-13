@@ -30,6 +30,18 @@ pub fn run() {
             }
             Ok(())
         })
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::Destroyed = event {
+                let app = window.app_handle();
+                if let Some(state) = app.try_state::<SidecarState>() {
+                    let mut lock = state.0.lock().unwrap();
+                    if let Some(child) = lock.take() {
+                        let _ = child.kill();
+                        println!("Sidecar process terminated on app exit.");
+                    }
+                }
+            }
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
