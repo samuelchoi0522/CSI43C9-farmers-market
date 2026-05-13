@@ -38,7 +38,7 @@ import java.util.stream.IntStream;
  */
 public class Seeder {
     private final Faker faker = new Faker();
-    // Change this number to change the number of vendors seeded
+    // Change this static number to change the number of vendors seeded
     private static final int VENDOR_COUNT = 20;
 
     public static void main(String[] args) {
