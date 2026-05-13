@@ -168,7 +168,7 @@ export function VendorDefaultsDialog({
                     min="0"
                     className="w-full bg-transparent text-right text-slate-900 dark:text-white outline-none text-sm"
                     value={pctHandmade}
-                    onChange={(event) => setPctHandmade(String(Math.max(0, parseFloat(event.target.value || '0'))))}
+                    onChange={(event) => setPctHandmade(event.target.value)}
                   />
                     <span className="ml-1 text-[10px] font-semibold text-slate-500 dark:text-slate-400">%</span>
                   </div>
@@ -187,7 +187,7 @@ export function VendorDefaultsDialog({
                     min="0"
                     className="w-full bg-transparent text-right text-slate-900 dark:text-white outline-none text-sm"
                     value={pctAgricultural}
-                    onChange={(event) => setPctAgricultural(String(Math.max(0, parseFloat(event.target.value || '0'))))}
+                    onChange={(event) => setPctAgricultural(event.target.value)}
                   />
                     <span className="ml-1 text-[10px] font-semibold text-slate-500 dark:text-slate-400">%</span>
                   </div>
@@ -206,7 +206,7 @@ export function VendorDefaultsDialog({
                     min="0"
                     className="w-full bg-transparent text-right text-slate-900 dark:text-white outline-none text-sm"
                     value={pctPreparedFood}
-                    onChange={(event) => setPctPreparedFood(String(Math.max(0, parseFloat(event.target.value || '0'))))}
+                    onChange={(event) => setPctPreparedFood(event.target.value)}
                   />
                     <span className="ml-1 text-[10px] font-semibold text-slate-500 dark:text-slate-400">%</span>
                   </div>
@@ -225,7 +225,7 @@ export function VendorDefaultsDialog({
                     min="0"
                     className="w-full bg-transparent text-right text-slate-900 dark:text-white outline-none text-sm"
                     value={pctCottageGoods}
-                    onChange={(event) => setPctCottageGoods(String(Math.max(0, parseFloat(event.target.value || '0'))))}
+                    onChange={(event) => setPctCottageGoods(event.target.value)}
                   />
                     <span className="ml-1 text-[10px] font-semibold text-slate-500 dark:text-slate-400">%</span>
                   </div>
@@ -244,7 +244,7 @@ export function VendorDefaultsDialog({
                     min="0"
                     className="w-full bg-transparent text-right text-slate-900 dark:text-white outline-none text-sm"
                     value={pctManufactured}
-                    onChange={(event) => setPctManufactured(String(Math.max(0, parseFloat(event.target.value || '0'))))}
+                    onChange={(event) => setPctManufactured(event.target.value)}
                   />
                     <span className="ml-1 text-[10px] font-semibold text-slate-500 dark:text-slate-400">%</span>
                   </div>
@@ -273,9 +273,7 @@ export function VendorDefaultsDialog({
                       min="0"
                       className="w-full bg-transparent text-right text-slate-900 dark:text-white outline-none text-sm"
                       value={avgSaleAmount}
-                      onChange={(event) =>
-                        setAvgSaleAmount(String(Math.max(0, parseFloat(event.target.value || '0'))))
-                      }
+                      onChange={(event) => setAvgSaleAmount(event.target.value)}
                     />
                   </div>
                   <span className="text-xs text-slate-500 dark:text-slate-400">

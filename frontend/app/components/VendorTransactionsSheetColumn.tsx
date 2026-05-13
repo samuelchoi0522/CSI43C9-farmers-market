@@ -7,6 +7,7 @@ import {
   useGridApiContext,
 } from '@mui/x-data-grid';
 import { Checkbox, TextField, Box } from '@mui/material';
+import { useState, useEffect } from 'react';
 import { type VendorTransactionsSheetRowModel } from './VendorTransactionsSheetRow';
 
 export type VendorTransactionsSheetColumnType = GridColDef<VendorTransactionsSheetRowModel>['type'];
@@ -78,9 +79,26 @@ function NumericEditCell(params: GridRenderEditCellParams<VendorTransactionsShee
   const apiRef = useGridApiContext();
   const hasError = Boolean(params.error);
 
-  const displayValue = (params.value === null || params.value === undefined || Number.isNaN(params.value)) 
-    ? '' 
-    : params.value;
+  const [localValue, setLocalValue] = useState<string>(
+    params.value === null || params.value === undefined || Number.isNaN(params.value)
+      ? ''
+      : String(params.value)
+  );
+
+  useEffect(() => {
+    const stringValue = params.value === null || params.value === undefined || Number.isNaN(params.value)
+      ? ''
+      : String(params.value);
+
+    // Sync if values are numerically different (e.g. updated from elsewhere)
+    // but don't sync if they are the same number (e.g. 1.0 vs 1) to avoid stripping trailing zeros.
+    const v1 = stringValue === '' ? null : Number(stringValue);
+    const v2 = localValue === '' ? null : Number(localValue);
+
+    if (v1 !== v2) {
+      setLocalValue(stringValue);
+    }
+  }, [params.value, localValue]);
 
   return (
     <Box sx={{ display: 'flex', height: '100%', width: '100%', alignItems: 'center', justifyContent: 'flex-end', px: 1 }}>
@@ -89,10 +107,11 @@ function NumericEditCell(params: GridRenderEditCellParams<VendorTransactionsShee
         type="number"
         autoFocus
         size="small"
-        value={displayValue}
+        value={localValue}
         error={hasError}
         onChange={(event) => {
           const val = event.target.value;
+          setLocalValue(val);
           apiRef.current.setEditCellValue({
             id: params.id,
             field: params.field,
